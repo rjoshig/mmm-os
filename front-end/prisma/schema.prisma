@@ -1,0 +1,19 @@
+// Prisma schema for the mmm-os UI database.
+//
+// This is the UI's OWN database — separate from the backend (SQLAlchemy)
+// database. It is SQLite in development and swappable to Postgres later by
+// changing ONLY the datasource `provider` and the DATABASE_URL env var, then
+// regenerating/migrating. Keep the schema portable: avoid Postgres-only native
+// types until the swap. See docs/architecture.md (Database Strategy).
+//
+// No data models are defined yet beyond what scaffolding needs — UI models
+// arrive with Phase 6.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
