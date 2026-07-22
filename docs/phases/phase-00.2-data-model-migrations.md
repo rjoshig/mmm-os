@@ -1,7 +1,7 @@
 # Phase 0.2 — Data Model & Migrations
 
 **Parent:** [`phase-00`](./phase-00-foundations-canonical-schema-data-model.md) ·
-**Depends on:** 00.1 · **Status:** Not started
+**Depends on:** 00.1 · **Status:** Done (pending PR merge)
 
 Covers Phase-0 requirement **P0-3** (and supports P0-5).
 

@@ -1,7 +1,7 @@
 # Phase 0.3 — Tenancy & Config Versioning
 
 **Parent:** [`phase-00`](./phase-00-foundations-canonical-schema-data-model.md) ·
-**Depends on:** 00.2 · **Status:** Not started
+**Depends on:** 00.2 · **Status:** Done (pending PR merge)
 
 Covers Phase-0 requirements **P0-4**, **P0-5**, **P0-6**.
 

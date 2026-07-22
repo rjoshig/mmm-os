@@ -1,7 +1,7 @@
 # Phase 0.1 — Canonical Schema & Taxonomies (machine-readable + loader)
 
 **Parent:** [`phase-00`](./phase-00-foundations-canonical-schema-data-model.md) ·
-**Depends on:** — · **Status:** In progress
+**Depends on:** — · **Status:** Done (pending PR merge)
 
 Covers Phase-0 requirements **P0-1** and **P0-2**.
 
