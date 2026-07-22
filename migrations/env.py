@@ -19,11 +19,11 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+# Importing the models package registers every table on Base.metadata so Alembic
+# autogenerate sees the full schema.
+from mmm_os import models  # noqa: F401,E402
 from mmm_os.core.config import get_settings
 from mmm_os.db.base import Base
-
-# Import models here as they are added so Alembic autogenerate can see them, e.g.:
-#   from mmm_os import models  # noqa: F401  (Phase 0 onward)
 
 config = context.config
 
