@@ -1,6 +1,6 @@
 # Phase 3 — Transformation Rule Engine
 
-**Depends on:** Phases 0, 2 · **Status:** Not started · **MVP:** yes (Phases 0–4)
+**Depends on:** Phases 0, 2 · **Status:** Done (all sub-phases implemented; pending PR merge) · **MVP:** yes (Phases 0–4)
 
 Cross-cutting: config-as-data (CC-4), idempotent jobs (CC-6), traceability (CC-3).
 
@@ -53,4 +53,7 @@ _All Phase-3 open questions resolved. See [`../open-questions.md`](../open-quest
 
 ## Sub-phases
 
-TBD — to be broken down before implementation.
+Phase 3 is implemented as two PR-sized sub-phases (one per branch/PR):
+
+- [`phase-03.1-rule-engine-core.md`](./phase-03.1-rule-engine-core.md) — rule schema, ordered/layered engine, operation registry, structural ops (P3-1, P3-4, P3-5). **Done.**
+- [`phase-03.2-value-ops-preview-api.md`](./phase-03.2-value-ops-preview-api.md) — value/taxonomy ops, sandboxed `custom` op, preview, versioned rule-set persistence + API (P3-2, P3-3, P3-6, P3-7, P3-8). **Done.**
