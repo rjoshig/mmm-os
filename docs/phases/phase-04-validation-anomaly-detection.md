@@ -1,6 +1,6 @@
 # Phase 4 — Validation & Anomaly Detection
 
-**Depends on:** Phases 1–3 · **Status:** Not started · **MVP:** yes (Phases 0–4)
+**Depends on:** Phases 1–3 · **Status:** Done (all sub-phases implemented; pending PR merge) · **MVP:** yes (Phases 0–4)
 
 Cross-cutting: human-in-the-loop (CC-5), observability (CC-7), traceability (CC-3).
 
@@ -47,4 +47,7 @@ _All Phase-4 open questions resolved. See [`../open-questions.md`](../open-quest
 
 ## Sub-phases
 
-TBD — to be broken down before implementation.
+Phase 4 is implemented as two PR-sized sub-phases (one per branch/PR):
+
+- [`phase-04.1-validation-engine.md`](./phase-04.1-validation-engine.md) — validation checks, severity policy, flag persistence, blocking gate (P4-1, P4-3, P4-4). **Done.**
+- [`phase-04.2-anomaly-review-api.md`](./phase-04.2-anomaly-review-api.md) — z-score/IQR anomaly detection, review lifecycle, API (P4-2, P4-5). **Done.**

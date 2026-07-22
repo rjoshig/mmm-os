@@ -22,7 +22,7 @@ explicitly future/deferred.
 | 1 | [phase-01](./phase-01-file-ingestion-structure-detection.md) | Land files immutably; parse CSV/multi-tab XLSX; detect structure; profile. | 0 | Done, pending merge ([01.1](./phase-01.1-object-storage-ingestion.md)/[01.2](./phase-01.2-parsing-structure-detection.md)/[01.3](./phase-01.3-profiling.md)) |
 | 2 | [phase-02](./phase-02-mapping-engine-saved-configs.md) | Map columns to canonical schema; reusable, layered, versioned saved configs. | 0, 1 | Done, pending merge ([02.1](./phase-02.1-mapping-engine.md)/[02.2](./phase-02.2-saved-configs-matching.md)) |
 | 3 | [phase-03](./phase-03-transformation-rule-engine.md) | Declarative, ordered, layered transformation rules with before/after preview. | 0, 2 | Done, pending merge ([03.1](./phase-03.1-rule-engine-core.md)/[03.2](./phase-03.2-value-ops-preview-api.md)) |
-| 4 | [phase-04](./phase-04-validation-anomaly-detection.md) | Quality checks + anomaly detection; flag issues for human review. | 1, 2, 3 | Not started |
+| 4 | [phase-04](./phase-04-validation-anomaly-detection.md) | Quality checks + anomaly detection; flag issues for human review. | 1, 2, 3 | Done, pending merge ([04.1](./phase-04.1-validation-engine.md)/[04.2](./phase-04.2-anomaly-review-api.md)) |
 | 5 | [phase-05](./phase-05-ai-suggestion-layer.md) | AI drafts mappings/labels/structure/anomaly explanations; humans ratify. | 2, 3, 4 | Not started |
 | 6 | [phase-06](./phase-06-review-ui-nextjs.md) | Next.js review UI: dashboards, mapping review, transformation builder, validation review. | 2–5 | Not started |
 | 7 | [phase-07](./phase-07-multitenancy-async-scale.md) | Queue + workers; batch fan-out; per-tenant fairness; isolation hardening; observability. | all above | Not started |
