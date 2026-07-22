@@ -8,8 +8,8 @@ source is
 [`src/mmm_os/connectors/google_ads/templates/default_mapping.yaml`](../../src/mmm_os/connectors/google_ads/templates/default_mapping.yaml).
 It sits at the **`template` layer** of the Phase-2 layered config, so a tenant may
 **override any field per tenant** (customer overrides win). It follows the
-[Meta reference pattern](./meta-mapping-template.md); DV360 will ship an equivalent
-template later.
+[Meta reference pattern](./meta-mapping-template.md); see also the
+[DV360 template](./dv360-mapping-template.md).
 
 > **Provisional field names.** The exact GAQL field/metric names and conversion
 > params below are **provisional** and MUST be confirmed against the live Google

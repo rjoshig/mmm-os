@@ -64,6 +64,8 @@ docs under [`../connectors/`](../connectors/):
   objects of a report row into one flat row before mapping.
 - **string→number `cast_type`** (TikTok) — numeric metrics arrive as strings and
   must be cast (an extension of the existing `cast_type` op).
+- **`strip_report_totals`** (DV360) — drop the trailing grand-total / summary rows
+  of a Bid Manager offline CSV report before mapping.
 
 _All Phase-3 MVP open questions resolved; the operation-library items above are
 deferred connector-era extensions. See [`../open-questions.md`](../open-questions.md)._

@@ -19,6 +19,8 @@ against the **same** `SourceConnector` contract established by Meta (09.4).
   + [`default_mapping.yaml`](../../src/mmm_os/connectors/google_ads/templates/default_mapping.yaml).
 - TikTok — [`docs/connectors/tiktok-mapping-template.md`](../connectors/tiktok-mapping-template.md)
   + [`default_mapping.yaml`](../../src/mmm_os/connectors/tiktok/templates/default_mapping.yaml).
+- DV360 — [`docs/connectors/dv360-mapping-template.md`](../connectors/dv360-mapping-template.md)
+  + [`default_mapping.yaml`](../../src/mmm_os/connectors/dv360/templates/default_mapping.yaml).
 
 ## Functional Requirements
 
@@ -35,6 +37,8 @@ against the **same** `SourceConnector` contract established by Meta (09.4).
     `resolve_geo_target` (geo-target-constant ID → country).
   - **TikTok:** `flatten_report_row` (merge the split `dimensions`/`metrics`
     objects), and string→number `cast_type` (numeric metrics arrive as strings).
+  - **DV360:** `strip_report_totals` (drop the trailing grand-total/summary rows
+    of the Bid Manager CSV before mapping).
   - *(Meta already contributed `extract_action`.)*
 
 ## Deliverables
@@ -54,6 +58,10 @@ against the **same** `SourceConnector` contract established by Meta (09.4).
 - **TikTok:** a pull yields canonical rows with the **split response flattened**,
   string metrics **cast to number**, and `channel`/`geo` set — zero manual mapping
   for the standard case.
+- **DV360:** a Bid Manager report pull yields canonical rows with the **trailing
+  total rows stripped**, the chosen cost metric mapped to `spend`, and
+  `channel`/`campaign`/`ad_group`/`geo` set — zero manual mapping for the standard
+  case.
 
 ## Dependencies
 

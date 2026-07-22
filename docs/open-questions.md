@@ -68,7 +68,10 @@ confirm before building.
 | OQ-9.14 | Google Ads: geo-target-constant → country resolution source (for `resolve_geo_target`). | 09.5 | ⏸️ Deferred — need the geo-target-constant reference data. |
 | OQ-9.15 | TikTok: which conversion event + **value** metric per customer (drives `revenue`, left null by default). | 09.5 | ⏸️ Deferred — per-tenant; value-metric name provisional. |
 | OQ-9.16 | TikTok: all vs destination clicks; sync vs async report thresholds; how advertiser currency is fetched. | 09.5 | ⏸️ Deferred — config + API-behaviour details. |
-| OQ-9.17 | Cross-partner: consistent channel-naming (fixed constant per connector vs derived) applied uniformly across Meta/Google/TikTok/DV360. | 09.4/09.5 | ⏸️ Deferred — templates fix `channel` per connector today (Meta OQ-9.11); confirm uniform resolution. |
+| OQ-9.17 | Cross-partner: consistent channel-naming (fixed constant per connector vs derived) applied uniformly across Meta/Google/TikTok/DV360. | 09.4/09.5 | ⏸️ Deferred — templates fix `channel` per connector today (Meta OQ-9.11); confirm uniform resolution. DV360 default = `Programmatic` (vs `DV360`/`Google`). |
+| OQ-9.18 | DV360: which cost metric counts as `spend` (`METRIC_REVENUE_ADVERTISER` vs media-cost vs billable-cost). | 09.5 | ⏸️ Deferred — per-tenant billing/markup model; template default = `METRIC_REVENUE_ADVERTISER`. |
+| OQ-9.19 | DV360: hierarchy level to pull (Media Plan / Insertion Order / Line Item) and its mapping to campaign/ad_group. | 09.5 | ⏸️ Deferred — default = Media Plan→campaign, Insertion Order→ad_group. |
+| OQ-9.20 | DV360: Bid Manager async offline-report handling (create/run/poll/download signed CSV) + stripping grand-total rows. | 09.5 | ⏸️ Deferred — needs `strip_report_totals` op (Phase 3) + async report orchestration (Phase 09.6). |
 
 ---
 
@@ -77,7 +80,7 @@ confirm before building.
 - **OQ-5.1 (cost ceiling per file)** — set once we have real per-file token/cost data.
 - **OQ-5.2 (confidence calibration)** — needs labelled accept/reject outcomes.
 - **OQ-8.1 (compliance controls)** — SOC 2 Type II is the working target; confirm scope + controls with legal in Phase 8.
-- **OQ-9.1…OQ-9.17 (partner connectors)** — Phase 9 implementation inputs; OQ-9.2 has external approval lead times worth starting early; OQ-9.9…9.12 come from the Meta template pattern; OQ-9.13…9.17 from the Google Ads & TikTok templates (per-tenant conversion choices, geo/currency resolution, click definitions, sync/async pulls, uniform channel naming).
+- **OQ-9.1…OQ-9.20 (partner connectors)** — Phase 9 implementation inputs; OQ-9.2 has external approval lead times worth starting early; OQ-9.9…9.12 come from the Meta template pattern; OQ-9.13…9.17 from the Google Ads & TikTok templates; OQ-9.18…9.20 from the DV360 template (cost-metric choice, hierarchy level, async offline-report handling).
 
 ---
 

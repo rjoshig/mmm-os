@@ -1,0 +1,44 @@
+# Default mapping template: DV360 (Display & Video 360) Bid Manager API offline reports -> canonical schema
+# Auto-applied on DV360 pulls; overridable per tenant (Phase 2 layered config).
+connector: dv360
+schema_version: 0.1
+
+# DV360 reporting = Bid Manager (DBM) API: define a query (group-bys + metrics), run it,
+# then download an ASYNC offline CSV report from a signed URL. The CSV is a flat table
+# (one header row) with trailing grand-total / summary rows that must be stripped.
+report:
+  api: bid_manager               # Bid Manager (DBM) query + offline report
+  query_type: standard
+  group_bys:                     # dimensions
+    - FILTER_DATE
+    - FILTER_MEDIA_PLAN          # campaign
+    - FILTER_INSERTION_ORDER     # ~ ad_group
+    - FILTER_COUNTRY
+  metrics:
+    - METRIC_IMPRESSIONS
+    - METRIC_CLICKS
+    - METRIC_REVENUE_ADVERTISER  # advertiser-currency cost (several cost metrics exist; see notes)
+    - METRIC_TOTAL_CONVERSIONS
+  date_range: rolling            # lookback window handled by scheduler
+  # NOTE: report is delivered as a CSV file via signed URL (async: create -> run -> poll -> download).
+  # NOTE: strip trailing grand-total / summary rows before mapping (op: strip_report_totals).
+  # NOTE: which cost metric counts as "spend" is a per-tenant decision (billing/markup model).
+
+column_map:
+  date:        { source: FILTER_DATE, op: parse_date }
+  channel:     { source: __constant__, value: "Programmatic" }   # DV360 = programmatic DSP; see notes
+  sub_channel: { source: null }          # optionally FILTER_EXCHANGE / format; off by default
+  campaign:    { source: FILTER_MEDIA_PLAN }
+  ad_group:    { source: FILTER_INSERTION_ORDER }   # DV360 insertion order ~ canonical ad_group
+  geo:         { source: FILTER_COUNTRY, op: map_value, taxonomy: geo }
+  product:     { source: null }
+  funnel_stage: { source: null }         # not reliably derivable; optional
+  spend:       { source: METRIC_REVENUE_ADVERTISER }   # advertiser-currency cost; metric choice is per-tenant
+  impressions: { source: METRIC_IMPRESSIONS }
+  clicks:      { source: METRIC_CLICKS }
+  conversions: { source: METRIC_TOTAL_CONVERSIONS }
+  revenue:     { source: null }          # DV360 media reports carry cost, not sales revenue; set per tenant
+  reach:       { source: null }          # not in the standard offline report
+  currency:    { source: __account__ }   # advertiser currency; not a per-row column -> from advertiser settings
+
+taxonomies: {}   # geo uses canonical geo taxonomy; DV360 FILTER_COUNTRY is ISO-like
