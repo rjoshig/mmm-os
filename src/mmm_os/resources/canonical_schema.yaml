@@ -1,0 +1,104 @@
+# Canonical Schema (machine-readable) — the fixed target contract.
+#
+# Mirrors docs/canonical-schema.md, Appendix A. Loaded and validated at startup
+# (see src/mmm_os/canonical/). NEVER hardcode these fields in Python — read them
+# from here. Field `type` is one of: date | number | string | boolean | enum |
+# id | timestamp. An `enum` field MUST name a `taxonomy` that exists in
+# taxonomies.yaml.
+version: 1
+
+# A.1 Dimension fields
+dimensions:
+  - name: date
+    type: date
+    required: true
+    notes: Period date; normalized to ISO. Granularity per canonical-schema A.4.
+  - name: channel
+    type: enum
+    taxonomy: channel
+    required: true
+    notes: Top-level channel.
+  - name: sub_channel
+    type: enum
+    taxonomy: channel
+    required: false
+    notes: Platform/placement under channel.
+  - name: campaign
+    type: string
+    required: false
+    notes: Campaign name (raw kept + standardized).
+  - name: ad_group
+    type: string
+    required: false
+    notes: Ad set / line item.
+  - name: geo
+    type: enum
+    taxonomy: geo
+    required: false
+    notes: Market/region/country.
+  - name: product
+    type: string
+    required: false
+    notes: Product / brand / SKU.
+  - name: funnel_stage
+    type: enum
+    taxonomy: funnel_stage
+    required: false
+    notes: e.g. awareness/consideration/conversion.
+
+# A.2 Measure fields
+measures:
+  - name: spend
+    type: number
+    required: false
+    notes: In `currency`; normalized.
+  - name: impressions
+    type: number
+    required: false
+  - name: clicks
+    type: number
+    required: false
+  - name: conversions
+    type: number
+    required: false
+  - name: revenue
+    type: number
+    required: false
+  - name: reach
+    type: number
+    required: false
+
+# OQ-2.2 resolved: at least one measure is required for a row to be meaningful.
+measure_policy:
+  min_required: 1
+
+# A.3 Metadata fields (system-populated)
+metadata:
+  - name: tenant_id
+    type: id
+    required: true
+    notes: Always present (CC-1).
+  - name: currency
+    type: enum
+    taxonomy: currency
+    required: false
+    notes: ISO currency; drives convert_currency.
+  - name: source_file_id
+    type: id
+    required: false
+    notes: Traceability (CC-3).
+  - name: source_sheet
+    type: string
+    required: false
+  - name: source_row
+    type: number
+    required: false
+  - name: mapping_config_version
+    type: number
+    required: false
+  - name: rule_set_version
+    type: number
+    required: false
+  - name: ingested_at
+    type: timestamp
+    required: false

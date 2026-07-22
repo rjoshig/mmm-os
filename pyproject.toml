@@ -13,6 +13,7 @@ dependencies = [
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
     "python-dotenv>=1.0",
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
@@ -21,6 +22,7 @@ dev = [
     "mypy>=1.10",
     "pytest>=8.2",
     "httpx>=0.27",
+    "types-PyYAML>=6.0",
 ]
 
 [build-system]
@@ -29,6 +31,8 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mmm_os"]
+# Bundle the machine-readable config resources (canonical schema + taxonomies).
+artifacts = ["src/mmm_os/resources/*.yaml"]
 
 # ---------------------------------------------------------------------------
 # uv — dependency management (see CODING_STANDARDS.md)
@@ -39,6 +43,7 @@ dev-dependencies = [
     "mypy>=1.10",
     "pytest>=8.2",
     "httpx>=0.27",
+    "types-PyYAML>=6.0",
 ]
 
 # ---------------------------------------------------------------------------

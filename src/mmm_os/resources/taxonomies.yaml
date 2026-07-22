@@ -1,0 +1,52 @@
+# Standard Taxonomies (machine-readable) — controlled vocabularies.
+#
+# Mirrors docs/canonical-schema.md, Appendix B. `map_value` rules resolve raw
+# values into these canonical `terms`; `aliases` map known synonyms (any case) to
+# a canonical term. Seed lists — extend over time. Loaded/validated at startup.
+version: 1
+
+taxonomies:
+  channel:
+    terms:
+      - Facebook
+      - Google
+      - TikTok
+      - YouTube
+      - Programmatic
+      - TV
+      - Radio
+      - OOH
+      - Print
+      - Email
+      - Affiliate
+      - Other
+    aliases:
+      Facebook: [FB, fb, fb_ads, "facebook ads", "meta", "meta ads", instagram, ig]
+      Google: [google ads, adwords, google_ads, gads, sem, "paid search"]
+      TikTok: [tiktok ads, tt, tik_tok]
+      YouTube: [yt, youtube ads]
+      Programmatic: [dv360, "display & video 360", ttd, "the trade desk"]
+      OOH: [ooh, "out of home", billboard]
+      Email: [edm, "e-mail", newsletter]
+
+  funnel_stage:
+    terms:
+      - Awareness
+      - Consideration
+      - Conversion
+      - Retention
+    aliases:
+      Awareness: [awareness, upper, "upper funnel", tofu]
+      Consideration: [consideration, mid, "mid funnel", mofu]
+      Conversion: [conversion, "lower funnel", bofu, performance, acquisition]
+      Retention: [retention, loyalty, crm]
+
+  # ISO country/region scope to be defined in Phase 0 (seed empty).
+  geo:
+    terms: []
+    aliases: {}
+
+  # ISO 4217 currency codes — seed empty; populated when scoped.
+  currency:
+    terms: []
+    aliases: {}
