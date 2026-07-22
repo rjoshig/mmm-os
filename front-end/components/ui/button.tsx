@@ -31,7 +31,7 @@ export function Button({
         "disabled:pointer-events-none disabled:opacity-50",
         VARIANTS[variant],
         SIZES[size],
-        className,
+        className
       )}
       {...props}
     />

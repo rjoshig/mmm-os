@@ -64,8 +64,12 @@ export interface ColumnProfile {
   index?: number;
   type?: string;
   null_rate?: number;
+  null_count?: number;
   distinct_count?: number;
-  samples?: string[];
+  distinct_capped?: boolean;
+  sample_values?: (string | null)[];
+  min?: unknown;
+  max?: unknown;
   [key: string]: unknown;
 }
 
@@ -82,6 +86,21 @@ export interface IngestResponse {
 export interface ProcessResponse {
   job: JobRead;
   sheets: SheetRead[];
+}
+
+// --- Canonical schema ---
+export interface CanonicalFieldRead {
+  name: string;
+  type: string;
+  required: boolean;
+  kind: "dimension" | "measure";
+  taxonomy: string | null;
+}
+
+export interface CanonicalFieldsResponse {
+  version: number;
+  fields: CanonicalFieldRead[];
+  min_measures_required: number;
 }
 
 // --- Mapping ---

@@ -12,11 +12,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from mmm_os.api.deps import get_canonical
+from mmm_os.canonical import CanonicalConfig
 from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.db.session import get_session
 from mmm_os.models import File as FileModel
 from mmm_os.models import Job, Profile, Sheet
 from mmm_os.models.enums import SheetStatus
+from mmm_os.schemas.canonical import CanonicalFieldRead, CanonicalFieldsResponse
 from mmm_os.schemas.file import (
     FileDetail,
     FileListItem,
@@ -28,6 +31,34 @@ from mmm_os.schemas.file import (
 )
 
 router = APIRouter(prefix="/api/v1", tags=["reads"])
+
+
+@router.get("/canonical/fields", response_model=CanonicalFieldsResponse)
+def canonical_fields(
+    canonical: CanonicalConfig = Depends(get_canonical),
+) -> CanonicalFieldsResponse:
+    """List the canonical fields a source column may map to (mapping UI)."""
+    schema = canonical.schema
+    fields = [
+        CanonicalFieldRead(
+            name=f.name,
+            type=f.type.value,
+            required=f.required,
+            kind="dimension",
+            taxonomy=f.taxonomy,
+        )
+        for f in schema.dimensions
+    ] + [
+        CanonicalFieldRead(
+            name=f.name, type=f.type.value, required=f.required, kind="measure", taxonomy=f.taxonomy
+        )
+        for f in schema.measures
+    ]
+    return CanonicalFieldsResponse(
+        version=schema.version,
+        fields=fields,
+        min_measures_required=schema.measure_policy.min_required,
+    )
 
 
 def _latest_job(session: Session, tenant_id: uuid.UUID, file_id: uuid.UUID) -> Job | None:

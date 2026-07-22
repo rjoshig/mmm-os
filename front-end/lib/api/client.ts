@@ -8,8 +8,10 @@ import { getActiveTenantId } from "@/lib/tenant";
 import type {
   AcceptResponse,
   AutoMapResponse,
+  CanonicalFieldsResponse,
   FileDetail,
   FileListItem,
+  FlagRead,
   IngestResponse,
   PreviewResponse,
   ProcessResponse,
@@ -75,6 +77,9 @@ function tenantPath(suffix: string): string {
 }
 
 export const api = {
+  // --- Canonical schema (not tenant-scoped) ---
+  canonicalFields: () => request<CanonicalFieldsResponse>("/api/v1/canonical/fields"),
+
   // --- Files / jobs (reads) ---
   listFiles: () => request<FileListItem[]>(tenantPath("/files")),
   getFile: (fileId: string) => request<FileDetail>(tenantPath(`/files/${fileId}`)),
@@ -123,13 +128,14 @@ export const api = {
     }),
 
   // --- Validation ---
+  getFlags: (jobId: string) => request<FlagRead[]>(tenantPath(`/jobs/${jobId}/validation-flags`)),
   validateJob: (jobId: string, rows: Record<string, unknown>[]) =>
     request<ValidateResponse>(tenantPath(`/jobs/${jobId}/validate`), {
       method: "POST",
       body: JSON.stringify({ rows }),
     }),
   reviewFlag: (flagId: string, status: string) =>
-    request<unknown>(tenantPath(`/validation-flags/${flagId}/review`), {
+    request<FlagRead>(tenantPath(`/validation-flags/${flagId}/review`), {
       method: "POST",
       body: JSON.stringify({ status }),
     }),

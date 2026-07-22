@@ -53,6 +53,19 @@ def test_sheet_detail_has_profile(client: TestClient) -> None:
     assert body["profile"]["row_count"] == 2
 
 
+def test_canonical_fields(client: TestClient) -> None:
+    """The canonical-fields endpoint lists dimensions + measures for the mapping UI."""
+    resp = client.get("/api/v1/canonical/fields")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    names = {f["name"] for f in body["fields"]}
+    assert {"date", "channel", "spend"} <= names
+    kinds = {f["name"]: f["kind"] for f in body["fields"]}
+    assert kinds["date"] == "dimension"
+    assert kinds["spend"] == "measure"
+    assert body["min_measures_required"] >= 1
+
+
 def test_reads_are_tenant_scoped(client: TestClient) -> None:
     """A different tenant sees none of the first tenant's files; unknown ids 404."""
     tenant_id = uuid.uuid4()
