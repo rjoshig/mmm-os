@@ -38,6 +38,9 @@ coverage.xml
 *.sqlite
 *.sqlite3
 *.db-journal
+
+# Local LLM config (only the example is committed)
+llm.config.json
 front-end/prisma/*.db
 front-end/prisma/dev.db*
 

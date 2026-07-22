@@ -188,18 +188,28 @@ Format: **ADR-NNN — Title — Status (Accepted / Proposed / Superseded) — Da
 - **Consequences:** A Redis dependency is added in Phase 7. Jobs must remain
   idempotent (CC-6) so retries don't duplicate output.
 
-### ADR-008 — AI provider = Claude via the Anthropic API — Accepted (cost ceiling deferred) — 2026-07
-- **Context:** The suggestion layer (Phase 5) needs an LLM; provider and
-  credential handling must be pinned, and inputs kept privacy-preserving.
-- **Decision (OQ-5.1 / OQ-INIT.4):** Provider = **Claude via the Anthropic API**
-  (most-capable model), behind a provider abstraction so the model is swappable.
-  Credentials via env (`ANTHROPIC_API_KEY`), never in code. Only **profile data**
-  (distinct values + column stats) is sent to the model, never raw row dumps
-  (P5-1). **Open:** the per-file cost ceiling (OQ-5.1) — set once real usage data
-  exists.
-- **Consequences:** No secrets in the repo; the model choice is isolated behind
-  the abstraction. Confidence calibration (OQ-5.2) remains deferred pending
-  labelled accept/reject data.
+### ADR-008 — AI provider = config-driven, dual OpenAI + Anthropic, off by default — Accepted (cost ceiling deferred) — 2026-07 (rev 2)
+- **Context:** The suggestion layer (Phase 5) needs an LLM. It must support **both
+  the OpenAI API format and the Anthropic SDK**, and switching between them (or
+  changing the model) must be a **config/env change only** — no code edits. LLM
+  calls must be **off by default** and explicitly enabled.
+- **Decision (OQ-5.1 / OQ-INIT.4, revised):** A provider-agnostic `LLMClient`
+  abstraction with two backends — **OpenAI** (`openai` SDK, also covers
+  OpenAI-compatible endpoints via `base_url`) and **Anthropic** (`anthropic` SDK).
+  Configuration comes from **env vars or an optional JSON config file**
+  (`LLM_CONFIG_FILE`), with env overriding JSON. Key settings: `enabled` (default
+  **false**), `provider` (`auto` | `openai` | `anthropic`), `model`, `api_key`
+  (or `OPENAI_API_KEY` / `ANTHROPIC_API_KEY`), `base_url`, thresholds. When
+  `provider = auto`, the provider is **inferred from the model name** (`gpt*`/`o*`
+  → OpenAI, `claude*` → Anthropic), so flipping providers can be as simple as
+  changing the model. The SDKs are **optional dependencies** (`mmm-os[llm]`),
+  imported lazily; the core runs without them. Only **profile data** (distinct
+  values + column stats) is ever sent to the model, never raw row dumps (P5-1).
+  **Open:** the per-file cost ceiling (OQ-5.1).
+- **Consequences:** No secrets in the repo; provider/model are swappable by config
+  alone; the LLM is inert unless explicitly enabled. Handlers depend on the
+  `LLMClient` interface, so tests inject a fake with no network/SDK. Confidence
+  calibration (OQ-5.2) remains deferred pending labelled accept/reject data.
 
 ### ADR-009 — Design system = extracted tokens + hand-built primitives — Accepted — 2026-07
 - **Context:** The Review UI (Phase 6) needs a consistent design language without

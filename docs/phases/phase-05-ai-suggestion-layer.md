@@ -1,6 +1,6 @@
 # Phase 5 — AI Suggestion Layer
 
-**Depends on:** Phases 2, 3, 4 · **Status:** Not started
+**Depends on:** Phases 2, 3, 4 · **Status:** Done (all sub-phases implemented; pending PR merge)
 
 Cross-cutting: human-in-the-loop (CC-5) — AI never auto-commits.
 
@@ -48,10 +48,13 @@ Phases 2, 3, 4.
 
 - **OQ-5.1** — 🟡 Partial: provider = **Claude via the Anthropic API** (behind a provider abstraction); **per-file cost ceiling still open** (needs real usage data). See ADR-008.
 - **OQ-5.2** — ⏸️ Deferred: confidence calibration needs labelled accept/reject data. Interim: model-reported confidence + configurable thresholds; calibrate later (reliability curves / isotonic).
-- **OQ-INIT.4** — ✅ Resolved: **Anthropic SDK**; credentials via env (`ANTHROPIC_API_KEY`); only profile data sent to the model (P5-1). See ADR-008.
+- **OQ-INIT.4** — ✅ Resolved: **OpenAI + Anthropic SDKs, config/env-selected** (off by default; provider auto-inferred from model name); credentials via env (`OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `LLM_API_KEY`) or JSON config; only profile data sent to the model (P5-1). See ADR-008.
 
 See [`../open-questions.md`](../open-questions.md) for status.
 
 ## Sub-phases
 
-TBD — to be broken down before implementation.
+Phase 5 is implemented as two PR-sized sub-phases (one per branch/PR):
+
+- [`phase-05.1-llm-provider-config.md`](./phase-05.1-llm-provider-config.md) — provider-agnostic LLM client (OpenAI + Anthropic), config/env-driven, off by default (ADR-008). **Done.**
+- [`phase-05.2-suggestion-service-api.md`](./phase-05.2-suggestion-service-api.md) — mapping/taxonomy/anomaly suggestions from profiles, confidence, reasoning storage, accept/reject/ratify, API (P5-1..P5-8). **Done.**

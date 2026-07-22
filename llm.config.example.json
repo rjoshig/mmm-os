@@ -1,0 +1,13 @@
+{
+  "$comment": "Example LLM config. Copy to a file and point LLM_CONFIG_FILE at it, OR set the equivalent LLM_* env vars (env overrides this file). The LLM is OFF unless enabled=true. provider 'auto' infers OpenAI for gpt*/o* models and Anthropic for claude* models — so switching providers can be as simple as changing 'model'.",
+  "enabled": false,
+  "provider": "auto",
+  "model": "gpt-4o-mini",
+  "api_key": null,
+  "base_url": null,
+  "temperature": 0.0,
+  "max_tokens": 1024,
+  "timeout_seconds": 60.0,
+  "confidence_autofill": 0.85,
+  "confidence_flag": 0.5
+}

@@ -24,7 +24,7 @@ recorded here and, where architectural, in [`architecture.md`](./architecture.md
 | OQ-3.2 | Reshape (wide→long) config model. | 3 | ✅ **Draft config model** `{ id_vars, value_vars \| value_var_pattern, var_name → dimension, value_name → measure }`; deterministic. |
 | OQ-4.1 | Default severity / blocking policy. | 4 | ✅ **BLOCK** = missing/unmapped required field, negative measure, type mismatch on a required field; **WARN** = date gaps, duplicates, outliers, out-of-range non-required. Configurable per tenant. |
 | OQ-4.2 | Anomaly method for v1. | 4 | ✅ **z-score (robust/median variant) + IQR** per dimension slice; behind a pluggable detector interface. |
-| OQ-5.1 | LLM provider / model + cost ceiling per file. | 5 | 🟡 **Provider = Claude (Anthropic API)**, most-capable model, behind a provider abstraction. **Cost ceiling per file deferred** (needs real usage data). See ADR-008. |
+| OQ-5.1 | LLM provider / model + cost ceiling per file. | 5 | 🟡 **Dual provider — OpenAI + Anthropic — selected by config/env** (off by default; provider auto-inferred from model name). Swappable without code changes. **Cost ceiling per file deferred** (needs real usage data). See ADR-008. |
 | OQ-5.2 | Confidence calibration. | 5 | ⏸️ **Deferred** — needs labelled accept/reject data. Interim: model-reported confidence + configurable thresholds; calibrate later (reliability curves / isotonic). |
 | OQ-6.1 | Design system / component library. | 6 | ✅ **Extracted design language + hand-built shadcn-style primitives** (Card/Badge/Table/PageHeader/StatCard); no heavy third-party component library. See ADR-009 and `../front-end/CLAUDE.md`. |
 | OQ-7.1 | Queue tech + worker hosting. | 7 | ✅ **Celery + Redis** (broker + result backend); autoscaling workers; per-tenant rate limiting/fairness. See ADR-007. |
@@ -39,7 +39,7 @@ recorded here and, where architectural, in [`architecture.md`](./architecture.md
 | OQ-INIT.1 | Object-storage provider and local-dev substitute. | 1 | ✅ **Storage abstraction**: local filesystem in dev, S3-compatible (S3/MinIO) in prod, selected by env. See ADR-006. |
 | OQ-INIT.2 | Is the clean-output "warehouse" a backend-DB table or a separate system for v1? | 0/1 | ✅ **Backend-DB table** (`output_row`) for v1 — same decision as OQ-0.2. See ADR-005. |
 | OQ-INIT.3 | Does the UI (Prisma) database store anything beyond front-end concerns? | 6 | ✅ **UI-only concerns** (session/preferences/UI state later); never mirrors backend domain data; effectively empty until Phase 6. |
-| OQ-INIT.4 | LLM provider/SDK choice and credential injection. | 5 | ✅ **Anthropic SDK; credentials via env (`ANTHROPIC_API_KEY`)**; only profile data sent to the model (P5-1). Folds into ADR-008. |
+| OQ-INIT.4 | LLM provider/SDK choice and credential injection. | 5 | ✅ **OpenAI SDK and Anthropic SDK, config/env-selected**; credentials via env (`OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `LLM_API_KEY`) or JSON config; only profile data sent to the model (P5-1). Folds into ADR-008. |
 
 ---
 
