@@ -75,6 +75,41 @@ confirm before building.
 
 ---
 
+## Enterprise-readiness questions (inserted + spec-only phases)
+
+Surfaced by the enterprise-readiness phases. **Build** phases resolve theirs before
+implementation; **spec-only** phases (10–12) resolve theirs if/when scheduled.
+
+| ID | Question | Phase | Status |
+|---|---|---|---|
+| OQ-00.5-1 | Session store: DB-backed vs stateless signed tokens vs both. | 00.5 | ⏸️ Deferred to build. |
+| OQ-00.5-2 | OIDC/SAML library selection (maintained, audited). | 00.5 | ⏸️ Deferred to build. |
+| OQ-00.5-3 | Per-tenant IdP config model (discovery, cert rotation, attribute mapping). | 00.5 | ⏸️ Deferred to build. |
+| OQ-00.5-4 | MFA method(s) for v1 (TOTP / WebAuthn / OTP). | 00.5 | ⏸️ Deferred to build. |
+| OQ-00.6-1 | Dev secrets backend + at-rest encryption scheme. | 00.6 | ⏸️ Deferred to build. |
+| OQ-00.6-2 | Target managed KMS/vault. | 00.6 | ⏸️ Deferred to build. |
+| OQ-00.6-3 | Key rotation policy (cadence, envelope encryption). | 00.6 | ⏸️ Deferred to build. |
+| OQ-5.1-1 | Default per-tenant LLM budgets (tokens/cost, window). | 05.1 | ⏸️ Deferred to build. Supersedes the old OQ-5.1 cost-ceiling framing. |
+| OQ-5.1-2 | Behaviour at cap: hard block vs degrade (deterministic-only). | 05.1 | ⏸️ Deferred to build. |
+| OQ-5.1-3 | Model-tier routing policy (signals for easy vs hard). | 05.1 | ⏸️ Deferred to build. |
+| OQ-07.1-1 | Metrics/logging/tracing stack (e.g. OTel + Prometheus/Grafana vs hosted APM). | 07.1 | ⏸️ Deferred to build. |
+| OQ-07.2-1 | Retry limits/policy per failure class. | 07.2 | ⏸️ Deferred to build. |
+| OQ-07.2-2 | DLQ handling workflow (alert / manual replay / expiry). | 07.2 | ⏸️ Deferred to build. |
+| OQ-08.1-1 | Target framework(s) — SOC 2 Type II (per OQ-8.1); others? | 08.1 | ⏸️ Deferred to build. |
+| OQ-08.1-2 | Which technical controls are in-scope for v1. | 08.1 | ⏸️ Deferred to build. |
+| OQ-10-1 | Retention periods per data class. | 10 | ⏸️ Spec-only. |
+| OQ-10-2 | RPO/RTO targets. | 10 | ⏸️ Spec-only. |
+| OQ-10-3 | Erasure vs immutable-raw (CC-2) / audit reconciliation. | 10 | ⏸️ Spec-only. |
+| OQ-10-4 | Data-residency requirements + regions. | 10 | ⏸️ Spec-only. |
+| OQ-11-1 | Hosting/cloud target + container orchestration. | 11 | ⏸️ Spec-only. |
+| OQ-11-2 | IaC tooling. | 11 | ⏸️ Spec-only. |
+| OQ-11-3 | CI/CD platform + release/rollback strategy. | 11 | ⏸️ Spec-only. |
+| OQ-12-1 | Concrete SLA targets per stage. | 12 | ⏸️ Spec-only. |
+| OQ-12-2 | Load-testing tooling + traffic modelling. | 12 | ⏸️ Spec-only. |
+| OQ-12-3 | Scale ceiling to validate (200–500 tenants + batch sizes). | 12 | ⏸️ Spec-only. |
+
+---
+
 ## Still open (need input before their phase)
 
 - **OQ-5.1 (cost ceiling per file)** — set once we have real per-file token/cost data.

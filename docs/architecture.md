@@ -186,7 +186,69 @@ stages. This maps them onto our vocabulary:
 
 ---
 
-## 6. Architecture Decision Log
+## 6. Enterprise Readiness
+
+These cross-cutting concerns each have a dedicated phase spec; summaries here point
+to them. They extend — not replace — the two-DB strategy and portability rules.
+
+### 6.1 Authentication & Identity (Phase 00.5, CC-11)
+
+Application-level identity: tenant-scoped users, email/password + MFA, and SSO via
+**OIDC/SAML** (pluggable per-tenant IdP). Every API endpoint requires
+authenticated + authorized access (deny by default); the authorization hook
+consumes the Phase-8 RBAC roles. Session/token store follows the portability rules
+(SQLite now → Postgres by config). Distinct from partner-connector credentials
+(Phase 9). See [`phases/phase-00.5-authentication-identity.md`](./phases/phase-00.5-authentication-identity.md).
+
+### 6.2 Secrets Management (Phase 00.6, CC-12)
+
+A single `SecretStore` abstraction for **all** sensitive material — app/signing
+keys, auth/IdP secrets, partner OAuth tokens (CC-10), DB creds. Local
+encrypted-dev backend now; pluggable KMS/vault later. The DB stores only a
+`secret_ref` (pointer + metadata), never the value; secrets are never logged. See
+[`phases/phase-00.6-secrets-management.md`](./phases/phase-00.6-secrets-management.md).
+
+### 6.3 LLM Cost Controls (Phase 05.1, CC-13)
+
+Per-tenant token/call **metering** (`llm_usage`), configurable **budgets/caps**
+with enforcement (throttle/block at limit), plus cost reduction — profile-only
+inputs (already CC in Phase 5), response caching, batching, and model-tier
+routing. Resolves the deferred OQ-5.1 cost ceiling. See
+[`phases/phase-05.1-llm-cost-controls.md`](./phases/phase-05.1-llm-cost-controls.md).
+
+### 6.4 Observability & Monitoring (Phase 07.1, CC-7)
+
+The platform-wide standard: structured logging with `tenant_id`/`job_id` context,
+metrics (throughput/latency/failures/queue depth), tracing across API→worker,
+alerting, dashboards, the `job_event` timeline, and per-connector sync health. The
+standard is defined in Phase 07.1 but **instrumented incrementally from Phase 1**.
+See [`phases/phase-07.1-observability-monitoring.md`](./phases/phase-07.1-observability-monitoring.md).
+
+### 6.5 Resilience & Error Handling (Phase 07.2, CC-6)
+
+Retry-with-backoff, a **dead-letter queue** for poison jobs, idempotency hardening
+(retries never duplicate output), partner-API rate-limit/backoff with
+partial-failure isolation, and circuit-breaker/graceful degradation. See
+[`phases/phase-07.2-resilience-error-handling.md`](./phases/phase-07.2-resilience-error-handling.md).
+
+### 6.6 Compliance Controls (Phase 08.1)
+
+The SOC 2-aligned **technical controls** — complete audit logging, enforced
+encryption in transit/at rest, access reviews, change-management traceability,
+least-privilege verification, secrets via Phase 00.6. **Certification is an
+organizational process, not a build artifact**; this phase delivers the controls
+that make it achievable. Cross-references Phase 8 (governance) and Phase 10
+(policy). See [`phases/phase-08.1-compliance-controls.md`](./phases/phase-08.1-compliance-controls.md).
+
+### 6.7 Design-only tail (Phases 10–12)
+
+Data governance & retention (10), deployment & infrastructure (11), and load/scale
+testing (12) are **documented but not scheduled to build**. **Postgres migration
+remains Deferred** — portability is already designed (§2), so it needs no new work.
+
+---
+
+## 7. Architecture Decision Log
 
 Append an entry when a decision is made, changed, or superseded.
 Format: **ADR-NNN — Title — Status (Accepted / Proposed / Superseded) — Date — Context / Decision / Consequences.**

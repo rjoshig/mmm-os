@@ -1,13 +1,15 @@
-# Phase 9 — (Future) Partner Data Connectors & Extraction
+# Phase 9 — Partner Data Connectors & Extraction
 
-**Depends on:** the full core (Phases 0–8), and the source seam already realised
-in Phase 1 · **Status:** Deferred (fully designed; implementation not started)
+**Depends on:** the full core (Phases 0–8) + enterprise-readiness phases, and the
+source seam already realised in Phase 1 · **Status:** Build — **sequenced last**
+(after the core + enterprise-readiness phases); fully designed across 09.1–09.8.
 
-> **Deferred. Do not build until explicitly scoped.** Per
-> [`../../CLAUDE.md`](../../CLAUDE.md), never build anything marked Deferred. This
-> phase is **designed in detail now** so it attaches to the existing
-> source-agnostic seam without a refactor — but no connector/API/business logic is
-> implemented until a maintainer scopes it.
+> **Planned Build, sequenced last.** The connector work is now a scheduled build
+> (not indefinitely deferred), but comes **after** the core + enterprise-readiness
+> phases — see [`README.md`](./README.md) (authoritative order). It is designed in
+> detail now so it attaches to the existing source-agnostic seam without a
+> refactor. **Exception:** the **PDF/email extraction** sub-track (below) remains
+> **Deferred** — do not build it until explicitly scoped.
 
 Cross-cutting: source-agnostic pipeline (CC-9), credential security (CC-10),
 idempotent jobs (CC-6), traceability (CC-3), observability (CC-7).

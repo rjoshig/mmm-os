@@ -3,31 +3,57 @@
 The platform is built **strictly phase by phase, in order**. Do not start a phase
 until the prior phase's acceptance criteria pass. Each phase spec derives from
 [`../build-plan.md`](../build-plan.md) and honours the cross-cutting requirements
-(CC-1…CC-10) documented there.
+(CC-1…CC-13) documented there.
 
 Before working on a phase, read its spec **and the spec(s) it depends on**, plus
 the relevant items in [`../open-questions.md`](../open-questions.md).
 
+**This file is the authoritative source for build order + per-phase Status.** The
+sequence below interleaves the original phases with **inserted** enterprise-
+readiness phases (decimal filenames — standalone phases, *not* sub-phases) and
+**spec-only** tail phases (10–12).
+
 ## MVP
 
 **The MVP is Phases 0–4** (file in → clean data out, config-driven). Phase 5 (AI)
-and Phase 6 (UI) make it usable; Phases 7–8 make it enterprise-ready; Phase 9 is
-explicitly future/deferred.
+and Phase 6 (UI) make it usable; the enterprise-readiness phases (00.5/00.6/05.1/
+07.1/07.2/08.1 + 7/8) make it production-grade; Phase 9 (connectors) is fully
+designed but deferred; Phases 10–12 are design-only.
 
-## Phases
+## Build order (authoritative)
 
-| Phase | Spec | One-line summary | Depends on | Status |
-|---|---|---|---|---|
-| 0 | [phase-00](./phase-00-foundations-canonical-schema-data-model.md) | Repo, canonical schema, taxonomies, data model, tenancy model. | — | Done, pending merge ([00.1](./phase-00.1-canonical-schema-taxonomies.md)/[00.2](./phase-00.2-data-model-migrations.md)/[00.3](./phase-00.3-tenancy-config-versioning.md)) |
-| 1 | [phase-01](./phase-01-file-ingestion-structure-detection.md) | Land files immutably; parse CSV/multi-tab XLSX; detect structure; profile. | 0 | Done, pending merge ([01.1](./phase-01.1-object-storage-ingestion.md)/[01.2](./phase-01.2-parsing-structure-detection.md)/[01.3](./phase-01.3-profiling.md)) |
-| 2 | [phase-02](./phase-02-mapping-engine-saved-configs.md) | Map columns to canonical schema; reusable, layered, versioned saved configs. | 0, 1 | Done, pending merge ([02.1](./phase-02.1-mapping-engine.md)/[02.2](./phase-02.2-saved-configs-matching.md)) |
-| 3 | [phase-03](./phase-03-transformation-rule-engine.md) | Declarative, ordered, layered transformation rules with before/after preview. | 0, 2 | Done, pending merge ([03.1](./phase-03.1-rule-engine-core.md)/[03.2](./phase-03.2-value-ops-preview-api.md)) |
-| 4 | [phase-04](./phase-04-validation-anomaly-detection.md) | Quality checks + anomaly detection; flag issues for human review. | 1, 2, 3 | Done, pending merge ([04.1](./phase-04.1-validation-engine.md)/[04.2](./phase-04.2-anomaly-review-api.md)) |
-| 5 | [phase-05](./phase-05-ai-suggestion-layer.md) | AI drafts mappings/labels/structure/anomaly explanations; humans ratify. | 2, 3, 4 | Done, pending merge ([05.1](./phase-05.1-llm-provider-config.md)/[05.2](./phase-05.2-suggestion-service-api.md)) |
-| 6 | [phase-06](./phase-06-review-ui-nextjs.md) | Next.js review UI: dashboards, mapping review, transformation builder, validation review. | 2–5 | Not started |
-| 7 | [phase-07](./phase-07-multitenancy-async-scale.md) | Queue + workers; batch fan-out; per-tenant fairness; isolation hardening; observability. | all above | Not started |
-| 8 | [phase-08](./phase-08-governance-security.md) | RBAC, audit logging, encryption, admin UI. | 7 | Not started |
-| 9 | [phase-09](./phase-09-future-connectors-extraction.md) | *(Future)* Partner data connectors (SFTP + Meta/Google Ads/DV360/TikTok); PDF/email extraction. Fully designed (09.1–09.8); 09.1 realised as the Phase-1 source seam. | 0–8 (+ Phase 1 seam) | Deferred |
+Status: **Build** = to be implemented · **Done** = implemented, pending merge ·
+**Spec-only** = designed, not scheduled to build · **Deferred** = out of scope
+until scoped.
+
+| # | Phase | Spec | One-line summary | Depends on | Status |
+|---|---|---|---|---|---|
+| 1 | 0 | [phase-00](./phase-00-foundations-canonical-schema-data-model.md) | Repo, canonical schema, taxonomies, data model, tenancy. | — | Done |
+| 2 | 00.5 | [phase-00.5](./phase-00.5-authentication-identity.md) | Auth & identity: tenant users, password+MFA, OIDC/SAML SSO, endpoint authz (CC-11). | 0 | Build |
+| 3 | 00.6 | [phase-00.6](./phase-00.6-secrets-management.md) | Secrets management: `SecretStore` for all secrets/tokens (CC-12). | 0 | Build |
+| 4 | 1 | [phase-01](./phase-01-file-ingestion-structure-detection.md) | Land files immutably; parse CSV/multi-tab XLSX; detect structure; profile. | 0 | Done |
+| 5 | 2 | [phase-02](./phase-02-mapping-engine-saved-configs.md) | Map columns to canonical schema; layered, versioned saved configs. | 0, 1 | Done |
+| 6 | 3 | [phase-03](./phase-03-transformation-rule-engine.md) | Declarative, ordered, layered transformation rules with preview. | 0, 2 | Done |
+| 7 | 4 | [phase-04](./phase-04-validation-anomaly-detection.md) | Quality checks + anomaly detection; flag issues for review. | 1, 2, 3 | Done |
+| 8 | 5 | [phase-05](./phase-05-ai-suggestion-layer.md) | AI drafts mappings/labels/structure/anomaly; humans ratify. | 2, 3, 4 | Done |
+| 9 | 05.1 | [phase-05.1](./phase-05.1-llm-cost-controls.md) | LLM cost controls: per-tenant metering, budgets/caps, caching, tier routing (CC-13). | 5 | Build |
+| 10 | 6 | [phase-06](./phase-06-review-ui-nextjs.md) | Next.js review UI: dashboards, mapping review, transform builder, validation review. | 2–5, **00.5** | Build |
+| 11 | 7 | [phase-07](./phase-07-multitenancy-async-scale.md) | Queue + workers; batch fan-out; per-tenant fairness; isolation hardening. | all above | Build |
+| 12 | 07.1 | [phase-07.1](./phase-07.1-observability-monitoring.md) | Observability standard: logging/metrics/tracing/alerting (CC-7); instrumented from Phase 1. | 7 | Build |
+| 13 | 07.2 | [phase-07.2](./phase-07.2-resilience-error-handling.md) | Resilience: retry/backoff, DLQ, idempotency hardening, partner-failure isolation (CC-6). | 7 | Build |
+| 14 | 8 | [phase-08](./phase-08-governance-security.md) | RBAC, audit logging, encryption, admin UI. | 7 | Build |
+| 15 | 08.1 | [phase-08.1](./phase-08.1-compliance-controls.md) | SOC 2-aligned technical controls (audit, encryption, access reviews, least-privilege). | 8, 00.5, 00.6 | Build |
+| 16 | 9 (+09.1–09.8) | [phase-09](./phase-09-future-connectors-extraction.md) | Partner data connectors (SFTP + Meta/Google Ads/DV360/TikTok); PDF/email extraction. | 0–8 (+ Phase 1 seam) | Build (was Deferred) |
+| 17 | 10 | [phase-10](./phase-10-data-governance-retention.md) | Data governance & retention, backup/DR, erasure, residency, PII posture. | 0–8 | Spec-only |
+| 18 | 11 | [phase-11](./phase-11-deployment-infrastructure.md) | Deployment & infra: environments, CI/CD, IaC, autoscaling, secret injection. | 0–8 | Spec-only |
+| 19 | 12 | [phase-12](./phase-12-load-scale-testing.md) | Load/scale test plan for 200–500 tenants + batch concurrency. | 0–8, 11 | Spec-only |
+| — | Postgres migration | [architecture §2](../architecture.md) | Swap backend/UI DB SQLite→Postgres by config only (portability already designed). | — | Deferred |
+
+> **Note on Phase 9 status.** Phase 9 was originally *Deferred*; it is now planned
+> as **Build** (fully designed across 09.1–09.8) but sequenced after the core +
+> enterprise-readiness phases. **PDF/email extraction within Phase 9 stays a
+> deferred sub-track.** **Postgres migration remains Deferred** — portability is
+> already designed, so it needs no new work.
 
 ## Phase 9 sub-phases (deferred; fully designed)
 
@@ -65,9 +91,28 @@ When a phase is too large to implement in one pass, break it into **sub-phases**
 - Per [`../../GIT_STANDARDS.md`](../../GIT_STANDARDS.md): **one sub-phase per
   branch/PR** once a phase is broken down (one phase per PR otherwise).
 
+## Inserted phases vs sub-phases
+
+Two different things share the decimal filename form:
+
+- **Sub-phases** (e.g. `phase-01.1`, `phase-09.2`) are PR-sized *slices of their
+  parent phase*, linked from the parent's `## Sub-phases` section.
+- **Inserted phases** (`phase-00.5`, `phase-00.6`, `phase-05.1-llm-cost-controls`,
+  `phase-07.1`, `phase-07.2`, `phase-08.1`) are **standalone phases** placed
+  mid-sequence for ordering; they are **not** sub-phases of the adjacent phase. The
+  **Build order** table above is the authority on where each sits.
+
+> **Label caution — two things named "05.1".** Phase 5 already has sub-phases
+> `phase-05.1-llm-provider-config` and `phase-05.2-suggestion-service-api` (slices
+> of Phase 5, already **Done**). The **inserted** phase
+> `phase-05.1-llm-cost-controls` is a *separate* standalone phase (Status: Build).
+> The filenames differ by slug so there is no file collision; always refer to these
+> by **full filename**, not the bare number, to avoid ambiguity.
+
 ## Status legend
 
-- **Not started** — spec written; no implementation.
-- **In progress** — implementation underway on a phase/sub-phase branch.
-- **Done** — all acceptance criteria pass and merged.
-- **Deferred** — explicitly out of scope until scoped (Phase 9).
+- **Build** — planned for implementation; spec written, not yet built.
+- **Done** — implemented and passing (pending PR merge in this repo).
+- **Spec-only** — designed now, **not** scheduled to build (Phases 10–12).
+- **Deferred** — out of scope until explicitly scoped (PDF/email sub-track within
+  Phase 9; the Postgres migration).

@@ -31,11 +31,17 @@
 | **6** | Review UI (Next.js) | Mapping tables, preview, approve/reject, dashboards | 2–5 |
 | **7** | Multi-Tenancy, Async & Scale | Queue, workers, isolation hardening, observability | all above |
 | **8** | Governance & Security | Roles, audit, encryption, compliance | 7 |
-| **9** | *(Future)* Connectors & Extraction | API connectors; PDF/email extraction | deferred |
+| **9** | Connectors & Extraction | Partner data connectors (SFTP + Meta/Google/DV360/TikTok); PDF/email extraction *(deferred sub-track)* | 0–8 |
+
+Additional phases (added post-v0.1 for enterprise readiness) are listed
+authoritatively in [`phases/README.md`](./phases/README.md): inserted **Build**
+phases 00.5, 00.6, 05.1, 07.1, 07.2, 08.1 and **Spec-only** tail phases 10, 11, 12.
 
 **Guiding principle:** the MVP is **Phases 0–4** (file in → clean data out,
-config-driven). Phase 5 (AI) and Phase 6 (UI) make it usable; Phases 7–8 make it
-enterprise-ready. Phase 9 is explicitly future.
+config-driven). Phase 5 (AI) and Phase 6 (UI) make it usable; the enterprise-
+readiness phases (00.5/00.6/05.1/07.1/07.2/08.1 + 7/8) make it production-grade;
+Phase 9 (connectors) is planned but sequenced last, and Phases 10–12 are
+design-only.
 
 **Baked-in-from-day-one note:** tenant isolation (`tenant_id` on every table) and
 async-ready job records MUST be scaffolded in Phase 0 even though scale-hardening
@@ -61,10 +67,19 @@ relevant `CC-n` where applicable.
 - **CC-8 Stack:** Next.js (frontend) · FastAPI/Python (API) · Celery/RQ (workers) · Postgres (metadata/config; SQLite in dev) · object storage (raw files) · warehouse (clean output) · LLM (suggestions).
 - **CC-9 Source-agnostic pipeline:** mapping, transform, validation, and output MUST operate on the common **landed representation** regardless of source (upload / SFTP / API connector). Sources implement one `SourceConnector` contract producing a `LandedDataset` (ADR-010).
 - **CC-10 Credential security:** partner credentials/tokens MUST be encrypted at rest, tenant-scoped, least-privilege (read-only reporting scopes), and **never logged**.
+- **CC-11 Authenticated access:** every API endpoint MUST require authenticated + authorized (tenant-scoped) access — no anonymous reach into any tenant's data. See [`phases/phase-00.5-authentication-identity.md`](./phases/phase-00.5-authentication-identity.md).
+- **CC-12 Secrets via store:** all secrets/tokens (app secrets, auth/IdP secrets, partner OAuth tokens) MUST go through the `SecretStore` — never plaintext at rest, never logged. See [`phases/phase-00.6-secrets-management.md`](./phases/phase-00.6-secrets-management.md).
+- **CC-13 LLM budget enforcement:** LLM usage MUST be metered per tenant and respect configured budgets/caps. See [`phases/phase-05.1-llm-cost-controls.md`](./phases/phase-05.1-llm-cost-controls.md).
 
 ---
 
 ## 3. Phase index
+
+> The table below lists the **original** phases 0–9. Additional **inserted**
+> phases (00.5, 00.6, 05.1, 07.1, 07.2, 08.1) and **spec-only tail** phases
+> (10, 11, 12) were added for enterprise readiness. **[`phases/README.md`](./phases/README.md)
+> is the authoritative source for the full build order + per-phase Status
+> (Build / Spec-only / Deferred).**
 
 | Phase | Spec file | Status |
 |---|---|---|
@@ -77,7 +92,7 @@ relevant `CC-n` where applicable.
 | 6 | [`phases/phase-06-review-ui-nextjs.md`](./phases/phase-06-review-ui-nextjs.md) | Not started |
 | 7 | [`phases/phase-07-multitenancy-async-scale.md`](./phases/phase-07-multitenancy-async-scale.md) | Not started |
 | 8 | [`phases/phase-08-governance-security.md`](./phases/phase-08-governance-security.md) | Not started |
-| 9 | [`phases/phase-09-future-connectors-extraction.md`](./phases/phase-09-future-connectors-extraction.md) | Deferred |
+| 9 | [`phases/phase-09-future-connectors-extraction.md`](./phases/phase-09-future-connectors-extraction.md) | Build (sequenced last; PDF/email sub-track deferred) |
 
 ---
 

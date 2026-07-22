@@ -66,7 +66,15 @@ acceptance criteria pass.
 ## Golden rules
 
 1. **Build phase-by-phase, in order.** Follow `docs/phases/`. The MVP is Phases 0–4.
-2. **Honor the cross-cutting requirements (CC-1…CC-10) in every phase:**
+   The plan now includes **inserted** enterprise-readiness phases (00.5 auth, 00.6
+   secrets, 05.1 LLM cost controls, 07.1 observability, 07.2 resilience, 08.1
+   compliance controls) and **spec-only** tail phases (10 governance, 11 deployment,
+   12 load/scale — design only, not scheduled to build). **Authentication (00.5) and
+   secrets (00.6) are foundational, built right after Phase 0**, and the **Review UI
+   (Phase 6) depends on auth**. Postgres migration remains **Deferred**.
+   [`docs/phases/README.md`](./docs/phases/README.md) is the **authoritative** build
+   order + per-phase Status.
+2. **Honor the cross-cutting requirements (CC-1…CC-13) in every phase:**
    - **Multi-tenant:** every persisted record carries `tenant_id`; no query returns cross-tenant data.
    - **Immutable raw files:** original uploads are stored unaltered; processing works on copies/derived data.
    - **Config-as-data:** all mappings and transformations are stored as versioned data, never as code.
@@ -76,7 +84,10 @@ acceptance criteria pass.
    - **Observability:** every job stage emits status + timing + error records.
    - **Source-agnostic pipeline (CC-9):** mapping/transform/validation/output operate on the common `LandedDataset` regardless of source; sources implement one `SourceConnector` contract (ADR-010).
    - **Credential security (CC-10):** partner credentials/tokens are encrypted at rest, tenant-scoped, least-privilege, and never logged.
-3. **Never build anything marked Deferred / Out of scope** (e.g. Phase 9 connectors and PDF/email extraction) unless explicitly told.
+   - **Authenticated access (CC-11):** every API endpoint requires authenticated + authorized (tenant-scoped) access (Phase 00.5).
+   - **Secrets via store (CC-12):** all secrets/tokens go through the `SecretStore` — never plaintext at rest, never logged (Phase 00.6).
+   - **LLM budget enforcement (CC-13):** LLM usage is metered per tenant and respects configured budgets/caps (Phase 05.1).
+3. **Never build anything marked Deferred / Spec-only / Out of scope** unless explicitly told — e.g. **PDF/email extraction** (the deferred sub-track within Phase 9), the **spec-only** phases 10–12 (governance/deployment/load-testing), and the **Postgres migration**. *(Phase 9 partner connectors are now a planned **Build**, fully designed across 09.1–09.8, but sequenced last — after the core + enterprise-readiness phases. See [`docs/phases/README.md`](./docs/phases/README.md).)*
 4. **Resolve Open Questions before assuming.** If something is unspecified, add it to [`docs/open-questions.md`](./docs/open-questions.md) and ask — do not invent requirements.
 5. **Database portability is a hard requirement.** Two independent databases (backend + UI), each SQLite now and swappable to Postgres via env-var URL only. Use dialect-agnostic types; read the URL from env; never hardcode a dialect. See [`docs/architecture.md`](./docs/architecture.md).
 

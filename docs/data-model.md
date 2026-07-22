@@ -73,6 +73,30 @@ sources this is the existing `source_file_id`/`source_sheet`/`source_row` chain.
 
 ---
 
+## Appendix C.2 — Identity, secrets & usage entities
+
+Added for the enterprise-readiness phases (authentication 00.5, secrets 00.6, LLM
+cost controls 05.1, compliance 08.1). Tenant-scoped where applicable; portable
+types only. The core `user` entity (Appendix C) is **extended**, not replaced.
+
+| Entity | Purpose | Key notes |
+|---|---|---|
+| `user` *(extends Appendix C)* | Tenant-scoped account. | Add auth fields: password hash, MFA enrolment, status. Every request resolves to `(user, tenant_id)` (CC-1, CC-11). |
+| `session` | Active login session / token record. | Portable store (SQLite→Postgres by config); supports logout/expiry. Phase 00.5. |
+| `identity_provider_config` | Per-tenant SSO config. | OIDC/SAML settings (issuer, client, cert, attribute mapping); **secrets via `secret_ref`**, not inline. Phase 00.5. |
+| `role` / `user_role` | RBAC roles + assignments. | **Coordinate with Phase 8** (governance owns the role/permission model); the 00.5 auth hook enforces them. Tenant-scoped. |
+| `llm_usage` | Per-tenant LLM metering. | Tokens/calls attributed to `tenant_id` (+ job/suggestion); drives budgets/caps (CC-13) and observability. Phase 05.1. |
+| `secret_ref` | Pointer + metadata for a stored secret. | **Never the secret value** — type, scope, created/expiry only; the value lives in the `SecretStore` (CC-12). Phase 00.6. |
+| `audit_log` *(Phase 8/08.1)* | Append-only record of sensitive actions. | Actor + tenant + timestamp; auth events, permission/config/credential changes, exports. |
+
+**Relationships (high level):**
+- `tenant` 1—* `user`, `session`, `identity_provider_config`, `llm_usage`, `role`.
+- `user` 1—* `session`; `user` *—* `role` via `user_role`.
+- `secret_ref` is referenced by `identity_provider_config` and by
+  `connector_credential` (Appendix C.1) — the value is never stored in the DB (CC-12).
+
+---
+
 ## Appendix D — Rule Schema (draft)
 
 Each transformation is stored as **data**, not code (CC-4). A rule:
