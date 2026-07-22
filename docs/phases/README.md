@@ -18,7 +18,7 @@ explicitly future/deferred.
 
 | Phase | Spec | One-line summary | Depends on | Status |
 |---|---|---|---|---|
-| 0 | [phase-00](./phase-00-foundations-canonical-schema-data-model.md) | Repo, canonical schema, taxonomies, data model, tenancy model. | — | Not started |
+| 0 | [phase-00](./phase-00-foundations-canonical-schema-data-model.md) | Repo, canonical schema, taxonomies, data model, tenancy model. | — | In progress ([00.1](./phase-00.1-canonical-schema-taxonomies.md)/[00.2](./phase-00.2-data-model-migrations.md)/[00.3](./phase-00.3-tenancy-config-versioning.md)) |
 | 1 | [phase-01](./phase-01-file-ingestion-structure-detection.md) | Land files immutably; parse CSV/multi-tab XLSX; detect structure; profile. | 0 | Not started |
 | 2 | [phase-02](./phase-02-mapping-engine-saved-configs.md) | Map columns to canonical schema; reusable, layered, versioned saved configs. | 0, 1 | Not started |
 | 3 | [phase-03](./phase-03-transformation-rule-engine.md) | Declarative, ordered, layered transformation rules with before/after preview. | 0, 2 | Not started |

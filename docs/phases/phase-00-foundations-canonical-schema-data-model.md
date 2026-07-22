@@ -53,4 +53,8 @@ _All Phase-0 open questions resolved. See [`../open-questions.md`](../open-quest
 
 ## Sub-phases
 
-TBD — to be broken down before implementation.
+Phase 0 is implemented as three PR-sized sub-phases (one per branch/PR):
+
+- [`phase-00.1-canonical-schema-taxonomies.md`](./phase-00.1-canonical-schema-taxonomies.md) — machine-readable canonical schema + taxonomies + startup-validated loader (P0-1, P0-2). **In progress.**
+- [`phase-00.2-data-model-migrations.md`](./phase-00.2-data-model-migrations.md) — SQLAlchemy models for all Phase-0 tables + Alembic migration (P0-3). **Not started.**
+- [`phase-00.3-tenancy-config-versioning.md`](./phase-00.3-tenancy-config-versioning.md) — tenant/user creation + config versioning + secrets handling (P0-4, P0-5, P0-6). **Not started.**
