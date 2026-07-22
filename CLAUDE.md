@@ -34,6 +34,8 @@ mmm-os/
 │   ├── models/              # ORM models. [Phase 0]
 │   ├── schemas/             # Pydantic v2 schemas. [Phase 0]
 │   ├── ingestion/           # File ingestion + structure detection. [Phase 1]
+│   ├── sources/             # Source-agnostic ingestion seam (FileSource → LandedDataset). [Phase 1; CC-9]
+│   ├── connectors/          # Partner connectors (SFTP/Meta/Google Ads/DV360/TikTok). [Phase 9 — placeholders]
 │   ├── mapping/             # Mapping engine + saved configs. [Phase 2]
 │   ├── transform/           # Declarative transformation rule engine. [Phase 3]
 │   ├── validation/          # Validation + anomaly detection. [Phase 4]
@@ -49,10 +51,10 @@ mmm-os/
 Read the doc relevant to your task before writing code:
 
 - [`docs/prd.md`](./docs/prd.md) — Product requirements: background, scope, capabilities, ETL flow, rule engine, AI layer, tech stack, risks.
-- [`docs/build-plan.md`](./docs/build-plan.md) — High-level phase roadmap (0–9) + cross-cutting requirements CC-1…CC-8.
+- [`docs/build-plan.md`](./docs/build-plan.md) — High-level phase roadmap (0–9) + cross-cutting requirements CC-1…CC-10.
 - [`docs/canonical-schema.md`](./docs/canonical-schema.md) — The canonical target schema (Appendix A) + standard taxonomies (Appendix B). The fixed contract everything resolves to.
-- [`docs/data-model.md`](./docs/data-model.md) — Data-model entities (Appendix C) + declarative rule schema (Appendix D).
-- [`docs/architecture.md`](./docs/architecture.md) — Tech stack, the two-database strategy, and the running architecture-decision log.
+- [`docs/data-model.md`](./docs/data-model.md) — Data-model entities (Appendix C, incl. C.1 source/connector entities) + declarative rule schema (Appendix D).
+- [`docs/architecture.md`](./docs/architecture.md) — Tech stack, the two-database strategy, the **Data Sources & Connectors** abstraction (source-agnostic ingestion; §5), and the running architecture-decision log.
 - [`docs/open-questions.md`](./docs/open-questions.md) — Consolidated open questions (Appendix E) + any surfaced since. **Resolve the relevant ones before assuming.**
 - [`docs/phases/README.md`](./docs/phases/README.md) — Phase index, statuses, MVP definition, and the sub-phase naming convention.
 - [`docs/phases/phase-NN-*.md`](./docs/phases/) — One spec per phase, each with Objective · Scope · Functional Requirements · Deliverables · Acceptance Criteria · Dependencies · Open Questions · Sub-phases.
@@ -64,14 +66,16 @@ acceptance criteria pass.
 ## Golden rules
 
 1. **Build phase-by-phase, in order.** Follow `docs/phases/`. The MVP is Phases 0–4.
-2. **Honor the cross-cutting requirements (CC-1…CC-8) in every phase:**
+2. **Honor the cross-cutting requirements (CC-1…CC-10) in every phase:**
    - **Multi-tenant:** every persisted record carries `tenant_id`; no query returns cross-tenant data.
    - **Immutable raw files:** original uploads are stored unaltered; processing works on copies/derived data.
    - **Config-as-data:** all mappings and transformations are stored as versioned data, never as code.
    - **Human-in-the-loop AI:** AI never auto-commits; suggestions require human accept/reject/modify.
    - **Idempotent jobs:** re-running a job on the same input yields the same result, with no duplicate output.
-   - **Traceability:** every output row traces to source file + sheet + row + applied config/rule versions.
+   - **Traceability:** every output row traces to its source (file+sheet+row, or `source`/`sync_run`) + applied config/rule versions.
    - **Observability:** every job stage emits status + timing + error records.
+   - **Source-agnostic pipeline (CC-9):** mapping/transform/validation/output operate on the common `LandedDataset` regardless of source; sources implement one `SourceConnector` contract (ADR-010).
+   - **Credential security (CC-10):** partner credentials/tokens are encrypted at rest, tenant-scoped, least-privilege, and never logged.
 3. **Never build anything marked Deferred / Out of scope** (e.g. Phase 9 connectors and PDF/email extraction) unless explicitly told.
 4. **Resolve Open Questions before assuming.** If something is unspecified, add it to [`docs/open-questions.md`](./docs/open-questions.md) and ask — do not invent requirements.
 5. **Database portability is a hard requirement.** Two independent databases (backend + UI), each SQLite now and swappable to Postgres via env-var URL only. Use dialect-agnostic types; read the URL from env; never hardcode a dialect. See [`docs/architecture.md`](./docs/architecture.md).

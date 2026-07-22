@@ -53,12 +53,14 @@ relevant `CC-n` where applicable.
 
 - **CC-1 Multi-tenant:** every persisted record MUST carry `tenant_id`; no query may return cross-tenant data.
 - **CC-2 Immutable raw:** original uploaded files MUST be stored unaltered; all processing works on copies/derived data.
-- **CC-3 Traceability:** every output row MUST be traceable to source file + sheet + row + applied rule versions.
+- **CC-3 Traceability:** every output row MUST be traceable to its **source** (source file + sheet + row for file sources; `source`/`sync_run` for API connectors) + applied rule versions — a source-agnostic trace (CC-9, ADR-010).
 - **CC-4 Config-as-data:** all mappings and transformations MUST be stored as data (not code), versioned.
 - **CC-5 Human-in-the-loop:** AI never auto-commits; suggestions require human accept/reject/modify.
-- **CC-6 Idempotent jobs:** re-running a job on the same input MUST produce the same result and not duplicate output.
+- **CC-6 Idempotent jobs:** re-running a job on the same input MUST produce the same result and not duplicate output (for connectors: re-pulling a window **replaces**, never duplicates).
 - **CC-7 Observability:** every job stage MUST emit status + timing + error records.
 - **CC-8 Stack:** Next.js (frontend) · FastAPI/Python (API) · Celery/RQ (workers) · Postgres (metadata/config; SQLite in dev) · object storage (raw files) · warehouse (clean output) · LLM (suggestions).
+- **CC-9 Source-agnostic pipeline:** mapping, transform, validation, and output MUST operate on the common **landed representation** regardless of source (upload / SFTP / API connector). Sources implement one `SourceConnector` contract producing a `LandedDataset` (ADR-010).
+- **CC-10 Credential security:** partner credentials/tokens MUST be encrypted at rest, tenant-scoped, least-privilege (read-only reporting scopes), and **never logged**.
 
 ---
 

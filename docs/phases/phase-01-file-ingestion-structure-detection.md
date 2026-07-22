@@ -2,7 +2,7 @@
 
 **Depends on:** Phase 0 · **Status:** Done (all sub-phases implemented; pending PR merge) · **MVP:** yes (Phases 0–4)
 
-Cross-cutting: immutable raw files (CC-2), traceability (CC-3), observability (CC-7).
+Cross-cutting: immutable raw files (CC-2), traceability (CC-3), observability (CC-7), source-agnostic pipeline (CC-9).
 
 ## Objective
 
@@ -10,11 +10,25 @@ Accept files, store them immutably, parse CSV/XLSX (including multi-tab), and
 profile their structure so downstream phases have clean, described tables to work
 on.
 
+**Pluggable source from the start (CC-9, ADR-010):** ingestion is modelled as the
+first implementation of the source-agnostic `SourceConnector` contract. A file
+upload is simply one kind of source: `FileSource` (`src/mmm_os/sources/`) reads
+the stored bytes and emits the common **`LandedDataset`** that all downstream
+phases consume. Structure detection routes through it, so partner connectors
+(SFTP / API — [Phase 9](./phase-09-future-connectors-extraction.md), foundational
+sub-phase [09.1](./phase-09.1-source-abstraction-landed-dataset.md)) attach at the
+**same seam** without a refactor. SFTP and API sources remain deferred; the seam
+exists now.
+
 ## Scope
 
 - **In:** upload/landing; object storage; job record creation; CSV + XLSX
-  (multi-tab) parsing; header-row detection; type inference; profiling.
-- **Out:** mapping, transformation, AI, connectors, PDF/email.
+  (multi-tab) parsing; header-row detection; type inference; profiling; the
+  `SourceConnector`/`LandedDataset` seam with `FileSource` as its first
+  implementation.
+- **Out:** mapping, transformation, AI, connectors, PDF/email. (The connector
+  *implementations* — SFTP + partner APIs — are deferred to Phase 9; only the
+  file-source seam is in scope here.)
 
 ## Functional Requirements
 
@@ -31,6 +45,8 @@ on.
 - Ingestion endpoint + object-storage integration.
 - Parser supporting CSV and multi-tab XLSX/XLS.
 - Structure-detection + profiling module.
+- `SourceConnector` contract + `LandedDataset` + `FileSource` (the source seam);
+  processing routes structure detection through it.
 - Persisted `file`, `sheet`, and `profile` records.
 
 ## Acceptance Criteria

@@ -20,6 +20,7 @@ Per cross-cutting requirement **CC-8**:
 | Raw files | **Object storage (abstraction)** | Immutable raw copies (CC-2). Local filesystem in dev, S3-compatible (S3/MinIO) in prod. See ADR-006. Introduced in Phase 1. |
 | Clean data | **`output_row` table in the backend DB (v1)** | Model-ready structured output. Dedicated warehouse deferred until scale. See ADR-005. |
 | AI | **Claude (Anthropic API)** | Mapping / labelling / structure / anomaly-explanation suggestions (Phase 5). Provider abstraction; env-injected creds; profile-only inputs. See ADR-008. |
+| Data sources | **`SourceConnector` abstraction** | Uploads/SFTP (file sources) + partner API connectors (Meta/Google Ads/DV360/TikTok) converge on one `LandedDataset` (CC-9). `FileSource` real now; connectors deferred to Phase 9. See ADR-010. |
 
 **Layering (backend):** `api/` routers stay thin (no business logic) → services →
 `models/` / `db/`. Pydantic v2 schemas (`schemas/`) are kept separate from ORM
@@ -108,7 +109,84 @@ All mappings and transformations are stored as **versioned data**, not code
 
 ---
 
-## 5. Architecture Decision Log
+## 5. Data Sources & Connectors
+
+The platform ingests customer data from **multiple inbound sources** that all
+converge into **one** pipeline: onboarding/staging → mapping (Phase 2) →
+transform (Phase 3) → validation (Phase 4) → clean canonical "stack"/output. The
+source layer makes that convergence explicit so connectors attach without a
+refactor (CC-9). Connector *implementation* is deferred to
+[Phase 9](./phases/phase-09-future-connectors-extraction.md); the **abstraction
+is designed in now**.
+
+### 5.1 The ingestion source abstraction
+
+Every source implements a common **`SourceConnector`** contract
+(`src/mmm_os/sources/base.py`):
+
+- **`fetch(request) -> LandedDataset`** — produce the common landed representation.
+- **`test_connection() -> bool`** — whether the source is reachable/authorised
+  (trivially true for file sources; a live credential probe for API sources).
+- **`list_available() -> list[...]`** — selectable entities (ad accounts, metrics,
+  reports); empty for file sources.
+
+Both source families emit the **same** `LandedDataset` (`sources/landed.py`),
+tagged with `source_type` (`upload` / `sftp` / `api_connector`) and a `source_ref`
+for traceability (CC-3). Nothing downstream depends on which connector produced it.
+
+- **File sources** (upload today via `FileSource`; SFTP later) fetch/receive
+  files and flow them through the existing Phase-1 parsing + structure detection
+  to land one table per non-empty sheet (header row + inferred column structure).
+  **`FileSource` is the first real implementation** and is what `ingestion`
+  already routes through.
+- **API sources** (partner connectors — Meta, Google Ads, DV360, TikTok) call the
+  partner reporting API and normalise the response **directly** into landed
+  records — no header detection needed, since partner report schemas are known
+  and stable.
+
+### 5.2 Partner connectors (API sources)
+
+Connectors pull **each customer's own aggregate paid-media performance** (spend,
+impressions, clicks, conversions, reach — by date/campaign/geo/placement) from
+their authorised ad accounts. This is customer-specific **aggregate** reporting
+data only — **no user-level PII**.
+
+- **Auth & credentials (CC-10):** OAuth2 per customer per partner, plus support
+  for long-lived/system-user tokens where a partner uses Business-Manager-style
+  access. Tokens are stored **encrypted, tenant-scoped, least-privilege
+  (read-only reporting scopes)**, auto-refreshed, with graceful handling of
+  expiry/revocation surfaced as clear errors. **Tokens are never logged.**
+- **Per-customer connector config:** account IDs, entities/metrics/dimensions to
+  pull, currency, timezone, incremental lookback window, backfill range, schedule.
+- **Scheduling/orchestration:** async workers (Phase-7 Celery+Redis, ADR-007) run
+  scheduled syncs; incremental pulls use a **rolling lookback window** to catch
+  partner-side restatements; backfill covers history; per-partner rate limiting,
+  pagination, and retry/backoff. **Re-pulling a window replaces, never duplicates**
+  (idempotent, CC-6).
+- **Default mapping/taxonomy templates:** because partner schemas are stable, each
+  connector ships **default column→canonical mappings and taxonomy defaults**
+  (e.g. Meta `spend` → canonical `spend`; platform → `Facebook`), so partner data
+  auto-maps with minimal human review — reusing the **Phase-2 template layer**,
+  still human-ratifiable (CC-5).
+- **Privacy:** aggregate reporting data only; requested scopes are documented per
+  partner and kept least-privilege.
+
+### 5.3 Glossary (external terms → our components)
+
+A reader coming from other data platforms may use different names for the same
+stages. This maps them onto our vocabulary:
+
+| You may hear… | In `mmm-os` it is… |
+|---|---|
+| "staging / onboarding validation" | the **ingestion + structure-detection** stage (Phase 1) landing a `LandedDataset`, before mapping |
+| "ETL cleansing / exception validation" | the **transform (Phase 3) + validation/anomaly (Phase 4)** phases |
+| "stack data" / "the stack" | the clean, canonical, model-ready **output** (`output_row`, ADR-005) |
+| "source / feed / integration" | a **`SourceConnector`** (upload, SFTP, or a partner API connector) |
+| "landed / staged dataset" | the common **`LandedDataset`** every source emits |
+
+---
+
+## 6. Architecture Decision Log
 
 Append an entry when a decision is made, changed, or superseded.
 Format: **ADR-NNN — Title — Status (Accepted / Proposed / Superseded) — Date — Context / Decision / Consequences.**
@@ -221,6 +299,28 @@ Format: **ADR-NNN — Title — Status (Accepted / Proposed / Superseded) — Da
 - **Consequences:** Full control over styling and bundle size; all new UI must
   match the documented tokens. A component library can still be layered later if
   needed (revisit under OQ-6.1).
+
+### ADR-010 — Source-agnostic ingestion abstraction — Accepted — 2026-07
+- **Context:** Customer data arrives from multiple inbound sources (uploads, SFTP
+  drops, and partner ad-platform reporting APIs — Meta, Google Ads, DV360,
+  TikTok), but all of it must feed the **same** mapping→transform→validation→output
+  pipeline. Bolting connectors on later would force a refactor of everything
+  downstream.
+- **Decision:** Introduce a `SourceConnector` contract
+  (`test_connection` / `list_available` / `fetch`) that every source implements,
+  producing one common `LandedDataset` tagged with `source_type` + `source_ref`.
+  Downstream phases consume the landed representation and never branch on source
+  (CC-9). **Uploads are the first real implementation (`FileSource`), reusing the
+  existing Phase-1 parsing/structure detection**; SFTP and API connectors are
+  designed but deferred to Phase 9. New source/connector data-model entities
+  (`source`, `connector`, `connector_config`, `connector_credential`, `sync_run`)
+  are **documented now, not yet ORM-modelled**, so migrations stay clean until
+  Phase 9 builds them.
+- **Consequences:** Connectors attach at a single, stable seam. Credentials get a
+  dedicated, encrypted, tenant-scoped, never-logged store (CC-10). Idempotent
+  re-pulls (CC-6) and traceability to `source`/`sync_run` (CC-3) extend the
+  existing invariants rather than replacing them. Two-DB strategy and all prior
+  ADRs are untouched.
 
 ---
 

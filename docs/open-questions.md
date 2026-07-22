@@ -43,11 +43,32 @@ recorded here and, where architectural, in [`architecture.md`](./architecture.md
 
 ---
 
+## Partner-connector questions (Phase 9 — deferred)
+
+Surfaced when designing the source-agnostic abstraction (ADR-010). The
+architecture is settled; these are **implementation inputs** needed before the
+relevant Phase-9 sub-phase, several with **external lead times**. Do not assume —
+confirm before building.
+
+| ID | Question | Sub-phase | Status |
+|---|---|---|---|
+| OQ-9.1 | Partner priority/order for implementation (which partner first?). | 09.4/09.5 | ⏸️ Deferred — Meta is the assumed reference (09.4); confirm ordering of Google Ads / DV360 / TikTok. |
+| OQ-9.2 | OAuth app registration / API access approval per platform (Meta app review, Google Ads developer token, TikTok API access). | 09.2/09.4/09.5 | ⏸️ Deferred — **external lead times**; start approvals early. |
+| OQ-9.3 | Auth model per partner: OAuth2 (per-customer) vs long-lived/system-user tokens. | 09.2 | ⏸️ Deferred — contract is auth-agnostic; per-partner choice set at build. |
+| OQ-9.4 | Incremental strategy + rolling lookback window (restatement handling) and historical backfill depth. | 09.6 | ⏸️ Deferred — needs per-partner restatement behaviour. |
+| OQ-9.5 | Per-partner rate limits / quotas. | 09.6 | ⏸️ Deferred — from each partner's API docs. |
+| OQ-9.6 | Confirm aggregate-only (no user-level PII) scope per partner. | 09.2/09.4/09.5 | ⏸️ Deferred — assumed aggregate-only; confirm requested scopes per partner. |
+| OQ-9.7 | Currency/timezone normalization: source of truth across partners. | 09.6/09.7 | ⏸️ Deferred — ties to canonical schema; likely per `connector_config`. |
+| OQ-9.8 | SFTP specifics: per-tenant directory layout, file-naming contract, PGP encryption. | 09.3 | ⏸️ Deferred — define the drop contract with the first SFTP customer. |
+
+---
+
 ## Still open (need input before their phase)
 
 - **OQ-5.1 (cost ceiling per file)** — set once we have real per-file token/cost data.
 - **OQ-5.2 (confidence calibration)** — needs labelled accept/reject outcomes.
 - **OQ-8.1 (compliance controls)** — SOC 2 Type II is the working target; confirm scope + controls with legal in Phase 8.
+- **OQ-9.1…OQ-9.8 (partner connectors)** — Phase 9 implementation inputs; OQ-9.2 has external approval lead times worth starting early.
 
 ---
 
@@ -63,6 +84,7 @@ Recorded in [`architecture.md`](./architecture.md) (ADR log) and the relevant do
 - **Async queue = Celery + Redis** (ADR-007, OQ-7.1).
 - **AI provider = Claude via the Anthropic API**, env-injected creds, profile-only inputs (ADR-008, OQ-5.1/INIT.4).
 - **Design system = extracted tokens + hand-built shadcn-style primitives** (ADR-009, OQ-6.1).
+- **Source-agnostic ingestion abstraction** — every source (upload/SFTP/API) emits one `LandedDataset` via `SourceConnector`; `FileSource` real now, connectors deferred to Phase 9 (ADR-010, CC-9/CC-10).
 - Required canonical fields: `date` + `channel` + ≥1 measure (OQ-2.2).
 - Python targets **3.10+**; backend SQLAlchemy 2.0 + Alembic; UI Prisma.
 - Front-end design language replicated from the reference UI (`../front-end/CLAUDE.md`).

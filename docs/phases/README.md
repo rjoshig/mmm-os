@@ -3,7 +3,7 @@
 The platform is built **strictly phase by phase, in order**. Do not start a phase
 until the prior phase's acceptance criteria pass. Each phase spec derives from
 [`../build-plan.md`](../build-plan.md) and honours the cross-cutting requirements
-(CC-1…CC-8) documented there.
+(CC-1…CC-10) documented there.
 
 Before working on a phase, read its spec **and the spec(s) it depends on**, plus
 the relevant items in [`../open-questions.md`](../open-questions.md).
@@ -27,7 +27,27 @@ explicitly future/deferred.
 | 6 | [phase-06](./phase-06-review-ui-nextjs.md) | Next.js review UI: dashboards, mapping review, transformation builder, validation review. | 2–5 | Not started |
 | 7 | [phase-07](./phase-07-multitenancy-async-scale.md) | Queue + workers; batch fan-out; per-tenant fairness; isolation hardening; observability. | all above | Not started |
 | 8 | [phase-08](./phase-08-governance-security.md) | RBAC, audit logging, encryption, admin UI. | 7 | Not started |
-| 9 | [phase-09](./phase-09-future-connectors-extraction.md) | *(Future)* API connectors; PDF/email extraction. | deferred | Deferred |
+| 9 | [phase-09](./phase-09-future-connectors-extraction.md) | *(Future)* Partner data connectors (SFTP + Meta/Google Ads/DV360/TikTok); PDF/email extraction. Fully designed (09.1–09.8); 09.1 realised as the Phase-1 source seam. | 0–8 (+ Phase 1 seam) | Deferred |
+
+## Phase 9 sub-phases (deferred; fully designed)
+
+Phase 9 (partner data connectors) is broken into sub-phases now so it attaches to
+the existing source seam without a refactor. **09.1 is foundational** — it is the
+source-agnostic abstraction that is **already realised in code** as the Phase-1
+seam (`src/mmm_os/sources/`), and is referenced by
+[phase-01](./phase-01-file-ingestion-structure-detection.md).
+
+- [09.1](./phase-09.1-source-abstraction-landed-dataset.md) — source abstraction + landed dataset *(foundational; realised in Phase 1)*.
+- [09.2](./phase-09.2-connector-framework-credentials.md) — connector framework + OAuth/credentials.
+- [09.3](./phase-09.3-sftp-source.md) — SFTP file source.
+- [09.4](./phase-09.4-partner-connector-meta.md) — Meta reference connector.
+- [09.5](./phase-09.5-partner-connectors-google-dv360-tiktok.md) — Google Ads / DV360 / TikTok.
+- [09.6](./phase-09.6-scheduling-incremental-backfill.md) — scheduling, incremental, backfill.
+- [09.7](./phase-09.7-partner-mapping-taxonomy-templates.md) — per-partner mapping/taxonomy templates.
+- [09.8](./phase-09.8-connector-observability-admin.md) — connector observability + admin.
+
+PDF/email extraction is preserved as a **separate deferred sub-track** in the
+Phase-9 spec.
 
 ## Sub-phase convention
 

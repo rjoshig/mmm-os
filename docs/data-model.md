@@ -43,6 +43,36 @@ Core tables (all tenant-scoped where applicable):
 
 ---
 
+## Appendix C.1 — Source & Connector entities (documented for Phase 9)
+
+The source-agnostic ingestion abstraction (CC-9, ADR-010) generalises "a file"
+into "a source". These entities are **documented now but not yet ORM-modelled** —
+they are built in [Phase 9](./phases/phase-09-future-connectors-extraction.md).
+The **realised code seam exists today** (`src/mmm_os/sources/`): the common landed
+representation is a `LandedDataset`, and for **file sources** it is already
+persisted via the existing `file` / `sheet` / `profile` records.
+
+| Entity | Purpose | Key notes |
+|---|---|---|
+| `source` | Generalised inbound source. | `type ∈ {upload, sftp, api_connector}`. The existing `file` is the `upload`/`sftp` realisation; API pulls realise `api_connector`. Tenant-scoped. |
+| `landed_dataset` | The common post-ingestion representation both files and API pulls produce; what downstream phases consume. | For file sources, **realised by the existing `file`→`sheet`→`profile`** entities. For API sources, realised by normalised rows. Not a new table for file sources. |
+| `connector` | Catalog of partner types. | `{meta, google_ads, dv360, tiktok, sftp}`. Ships default mapping/taxonomy templates (Phase-2 template layer). |
+| `connector_config` | Per tenant + connector settings. | Account IDs, metrics/dimensions, currency, timezone, lookback window, backfill range, schedule. Tenant-scoped. |
+| `connector_credential` | Encrypted tokens/secrets, scopes, expiry. | **Kept separate from config for security** — encrypted at rest, tenant-scoped, least-privilege, **never logged** (CC-10). |
+| `sync_run` | One partner pull. | `connector_config` ref, requested window, status, row counts, errors, started/finished timestamps. Observability (CC-7); idempotent re-pull (CC-6). |
+
+**Traceability (CC-3), generalised:** landed data and every `output_row` MUST
+trace back to the `source` (and, for API pulls, the `sync_run`) they came from —
+the source-agnostic generalisation of "source file + sheet + row". For file
+sources this is the existing `source_file_id`/`source_sheet`/`source_row` chain.
+
+**Relationships (high level, Phase 9):**
+- `tenant` 1—* `source`, `connector_config`.
+- `connector` 1—* `connector_config`; `connector_config` 1—1 `connector_credential`.
+- `connector_config` 1—* `sync_run`; `sync_run` 1—* `landed_dataset` (→ downstream).
+
+---
+
 ## Appendix D — Rule Schema (draft)
 
 Each transformation is stored as **data**, not code (CC-4). A rule:
