@@ -1,6 +1,6 @@
 # Phase 2 — Mapping Engine & Saved Configs
 
-**Depends on:** Phases 0–1 · **Status:** Not started · **MVP:** yes (Phases 0–4)
+**Depends on:** Phases 0–1 · **Status:** Done (all sub-phases implemented; pending PR merge) · **MVP:** yes (Phases 0–4)
 
 Cross-cutting: config-as-data (CC-4), traceability (CC-3), multi-tenant (CC-1).
 
@@ -50,4 +50,7 @@ _All Phase-2 open questions resolved. See [`../open-questions.md`](../open-quest
 
 ## Sub-phases
 
-TBD — to be broken down before implementation.
+Phase 2 is implemented as two PR-sized sub-phases (one per branch/PR):
+
+- [`phase-02.1-mapping-engine.md`](./phase-02.1-mapping-engine.md) — column signature, mapping application, required-field validation (P2-1, P2-5). **Done.**
+- [`phase-02.2-saved-configs-matching.md`](./phase-02.2-saved-configs-matching.md) — saved/versioned configs, signature matching, layered resolution, re-map, API (P2-2, P2-3, P2-4, P2-6). **Done.**

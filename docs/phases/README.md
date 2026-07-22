@@ -20,7 +20,7 @@ explicitly future/deferred.
 |---|---|---|---|---|
 | 0 | [phase-00](./phase-00-foundations-canonical-schema-data-model.md) | Repo, canonical schema, taxonomies, data model, tenancy model. | — | Done, pending merge ([00.1](./phase-00.1-canonical-schema-taxonomies.md)/[00.2](./phase-00.2-data-model-migrations.md)/[00.3](./phase-00.3-tenancy-config-versioning.md)) |
 | 1 | [phase-01](./phase-01-file-ingestion-structure-detection.md) | Land files immutably; parse CSV/multi-tab XLSX; detect structure; profile. | 0 | Done, pending merge ([01.1](./phase-01.1-object-storage-ingestion.md)/[01.2](./phase-01.2-parsing-structure-detection.md)/[01.3](./phase-01.3-profiling.md)) |
-| 2 | [phase-02](./phase-02-mapping-engine-saved-configs.md) | Map columns to canonical schema; reusable, layered, versioned saved configs. | 0, 1 | Not started |
+| 2 | [phase-02](./phase-02-mapping-engine-saved-configs.md) | Map columns to canonical schema; reusable, layered, versioned saved configs. | 0, 1 | Done, pending merge ([02.1](./phase-02.1-mapping-engine.md)/[02.2](./phase-02.2-saved-configs-matching.md)) |
 | 3 | [phase-03](./phase-03-transformation-rule-engine.md) | Declarative, ordered, layered transformation rules with before/after preview. | 0, 2 | Not started |
 | 4 | [phase-04](./phase-04-validation-anomaly-detection.md) | Quality checks + anomaly detection; flag issues for human review. | 1, 2, 3 | Not started |
 | 5 | [phase-05](./phase-05-ai-suggestion-layer.md) | AI drafts mappings/labels/structure/anomaly explanations; humans ratify. | 2, 3, 4 | Not started |
