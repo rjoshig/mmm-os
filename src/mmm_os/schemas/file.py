@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
@@ -40,3 +41,24 @@ class IngestResponse(BaseModel):
 
     file: FileRead
     job: JobRead
+
+
+class SheetRead(BaseModel):
+    """A detected sheet as returned to callers."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    file_id: uuid.UUID
+    sheet_name: str | None
+    sheet_index: int
+    header_row_index: int | None
+    status: str
+    columns: list[dict[str, Any]]
+
+
+class ProcessResponse(BaseModel):
+    """Response returned after processing (structure detection) a file."""
+
+    job: JobRead
+    sheets: list[SheetRead]

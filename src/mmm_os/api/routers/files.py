@@ -9,9 +9,18 @@ from sqlalchemy.orm import Session
 
 from mmm_os.api.deps import get_storage
 from mmm_os.core.config import Settings, get_settings
+from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.db.session import get_session
+from mmm_os.ingestion.process import process_file
 from mmm_os.ingestion.service import ingest_file
-from mmm_os.schemas.file import FileRead, IngestResponse, JobRead
+from mmm_os.models import File as FileModel
+from mmm_os.schemas.file import (
+    FileRead,
+    IngestResponse,
+    JobRead,
+    ProcessResponse,
+    SheetRead,
+)
 from mmm_os.storage import ObjectStorage
 from mmm_os.storage.base import FileTooLargeError
 
@@ -61,3 +70,48 @@ def upload_file(
 
     session.commit()
     return IngestResponse(file=FileRead.model_validate(file), job=JobRead.model_validate(job))
+
+
+@router.post(
+    "/tenants/{tenant_id}/files/{file_id}/process",
+    response_model=ProcessResponse,
+)
+def process_file_route(
+    tenant_id: uuid.UUID,
+    file_id: uuid.UUID,
+    session: Session = Depends(get_session),
+    storage: ObjectStorage = Depends(get_storage),
+    settings: Settings = Depends(get_settings),
+) -> ProcessResponse:
+    """Run structure detection over a stored file and persist its sheets.
+
+    Args:
+        tenant_id: The owning tenant.
+        file_id: The file to process.
+        session: Database session (injected).
+        storage: Object-storage backend (injected).
+        settings: Application settings (injected).
+
+    Returns:
+        The job (succeeded/failed) and the detected sheets.
+
+    Raises:
+        HTTPException: 404 if the file does not exist for this tenant.
+    """
+    file = session.scalar(tenant_scoped_select(FileModel, tenant_id).where(FileModel.id == file_id))
+    if file is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="file not found")
+
+    job, sheets = process_file(
+        session,
+        storage,
+        file,
+        preview_rows=settings.structure_preview_rows,
+        distinct_limit=settings.profile_distinct_limit,
+        sample_limit=settings.profile_sample_limit,
+    )
+    session.commit()
+    return ProcessResponse(
+        job=JobRead.model_validate(job),
+        sheets=[SheetRead.model_validate(s) for s in sheets],
+    )

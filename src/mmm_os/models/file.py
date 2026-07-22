@@ -39,6 +39,8 @@ class Sheet(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):
     status: Mapped[str] = mapped_column(
         String(32), nullable=False, default=SheetStatus.DETECTED.value
     )
+    # Detected column structure: list of {index, name, type, date_format}.
+    columns: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False, default=list)
 
 
 class Profile(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):

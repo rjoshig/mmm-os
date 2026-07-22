@@ -15,6 +15,7 @@ dependencies = [
     "python-dotenv>=1.0",
     "python-multipart>=0.0.9",
     "pyyaml>=6.0",
+    "openpyxl>=3.1",
 ]
 
 [project.optional-dependencies]
@@ -94,6 +95,10 @@ explicit_package_bases = true
 [[tool.mypy.overrides]]
 module = ["migrations.*"]
 ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["openpyxl.*"]
+ignore_missing_imports = true
 
 # ---------------------------------------------------------------------------
 # pytest

@@ -45,6 +45,13 @@ class Settings(BaseSettings):
     # Max accepted upload size in bytes (OQ-1.1). Default ~200 MB.
     max_upload_bytes: int = 200 * 1024 * 1024
 
+    # Structure detection: rows previewed per sheet for header/type detection.
+    structure_preview_rows: int = 1000
+
+    # Profiling bounds (01.3): capped distinct values and sample size per column.
+    profile_distinct_limit: int = 1000
+    profile_sample_limit: int = 20
+
 
 @lru_cache
 def get_settings() -> Settings:

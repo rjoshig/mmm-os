@@ -1,7 +1,7 @@
 # Phase 1.1 — Object Storage & File Ingestion
 
 **Parent:** [`phase-01`](./phase-01-file-ingestion-structure-detection.md) ·
-**Depends on:** Phase 0 · **Status:** In progress
+**Depends on:** Phase 0 · **Status:** Done (pending PR merge)
 
 Covers **P1-1** (and the immutable-raw part of P1-6/P1-7). Realises ADR-006
 (object-storage abstraction) and OQ-1.1 (v1 size ceiling).

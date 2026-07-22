@@ -1,7 +1,7 @@
 # Phase 1.2 — Parsing & Structure Detection
 
 **Parent:** [`phase-01`](./phase-01-file-ingestion-structure-detection.md) ·
-**Depends on:** 01.1 · **Status:** Not started
+**Depends on:** 01.1 · **Status:** Done (pending PR merge)
 
 Covers **P1-2, P1-3, P1-4** and the streaming/failure aspects of **P1-6, P1-7**.
 

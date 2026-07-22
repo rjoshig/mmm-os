@@ -25,7 +25,18 @@ class SheetStatus(str, Enum):
     DETECTED = "detected"
     SKIPPED_EMPTY = "skipped_empty"
     PARSED = "parsed"
+    NEEDS_REVIEW = "needs_review"
     FAILED = "failed"
+
+
+class ColumnType(str, Enum):
+    """Inferred column data type (structure detection)."""
+
+    STRING = "string"
+    NUMBER = "number"
+    CURRENCY = "currency"
+    DATE = "date"
+    BOOLEAN = "boolean"
 
 
 class RuleLayer(str, Enum):

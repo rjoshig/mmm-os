@@ -1,7 +1,7 @@
 # Phase 1.3 — Profiling
 
 **Parent:** [`phase-01`](./phase-01-file-ingestion-structure-detection.md) ·
-**Depends on:** 01.2 · **Status:** Not started
+**Depends on:** 01.2 · **Status:** Done (pending PR merge)
 
 Covers **P1-5**.
 
