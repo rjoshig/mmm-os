@@ -38,7 +38,9 @@ Phase 7.
 
 ## Open Questions
 
-- **OQ-8.1** Target compliance framework (e.g. SOC 2) and required controls.
+- **OQ-8.1** — ⏸️ Deferred: working target **SOC 2 Type II** (per PRD); specific controls/scope to be confirmed with legal before this phase.
+
+See [`../open-questions.md`](../open-questions.md) for status.
 
 ## Sub-phases
 

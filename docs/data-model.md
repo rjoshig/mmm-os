@@ -31,7 +31,7 @@ Core tables (all tenant-scoped where applicable):
 | `job_event` | Per-stage status/timing/errors. | Observability (CC-7). |
 | `validation_flag` | Issue found; severity; location; review status. | Phase 4 lifecycle. |
 | `suggestion` | AI suggestion + confidence + rationale + accept/reject state. | Phase 5; human-in-the-loop (CC-5). |
-| `output_row` (or warehouse table) | Clean canonical data with traceability metadata. | Traceability (CC-3). |
+| `output_row` | Clean canonical data with traceability metadata. | Traceability (CC-3). **v1 = a table in the backend DB** (SQLite→Postgres); dedicated warehouse deferred (ADR-005). |
 
 **Relationships (high level):**
 - `tenant` 1—* `user`, `file`, `mapping_config`, `rule_set`, `job`, …
@@ -67,8 +67,11 @@ Rule:
 **Operation library (v1)** — see [`phases/phase-03-transformation-rule-engine.md`](./phases/phase-03-transformation-rule-engine.md):
 `map_value`, `rename_column`, `cast_type`, `parse_date`, `convert_currency`,
 `dedupe`, `reshape` (wide→long), `fill_missing`, `normalize_text`, plus a
-`custom` escape hatch (scope is OQ-3.1). Adding a capability = adding a new
-operation handler, not rewriting per customer.
+`custom` escape hatch. **OQ-3.1 resolved:** the `custom` op's payload is a
+**sandboxed expression language** (restricted DSL over the row/field context; no
+arbitrary code, imports, or I/O; allowlisted ops; resource-bounded) — see
+ADR-004. Adding a capability = adding a new operation handler, not rewriting per
+customer.
 
 ---
 

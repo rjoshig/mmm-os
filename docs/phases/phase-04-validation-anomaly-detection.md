@@ -40,8 +40,10 @@ Phases 1–3.
 
 ## Open Questions
 
-- **OQ-4.1** Default severity policy (what blocks vs warns).
-- **OQ-4.2** Anomaly method for v1 (simple z-score/IQR vs more).
+- **OQ-4.1** — ✅ Resolved: default policy — **BLOCK** = missing/unmapped required field, negative measure, type mismatch on a required field; **WARN** = date gaps, duplicate rows, statistical outliers, out-of-range non-required. Configurable per tenant.
+- **OQ-4.2** — ✅ Resolved: v1 = **z-score (robust/median variant) + IQR** per dimension slice, behind a pluggable detector interface.
+
+_All Phase-4 open questions resolved. See [`../open-questions.md`](../open-questions.md)._
 
 ## Sub-phases
 

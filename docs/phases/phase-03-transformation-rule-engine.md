@@ -46,8 +46,10 @@ Phases 0, 2.
 
 ## Open Questions
 
-- **OQ-3.1** How far the `custom` escape hatch goes (expression language? sandboxed code? none for v1?).
-- **OQ-3.2** Reshape (wide→long) rules — exact configuration model.
+- **OQ-3.1** — ✅ Resolved: `custom` = a **sandboxed expression language** (restricted DSL over the row/field context; no arbitrary code, imports, or I/O; allowlisted ops; resource-bounded). The evaluator is security-critical — strict allowlist + hard resource limits + adversarial tests. Grammar/function set finalised in this phase. See ADR-004.
+- **OQ-3.2** — ✅ Resolved (draft): reshape config model `{ id_vars, value_vars | value_var_pattern, var_name → dimension, value_name → measure }`; deterministic. Edge cases refined during implementation.
+
+_All Phase-3 open questions resolved. See [`../open-questions.md`](../open-questions.md)._
 
 ## Sub-phases
 

@@ -46,10 +46,11 @@ Phase 0.
 
 ## Open Questions
 
-- **OQ-1.1** Max supported file size / row count for v1.
-- **OQ-1.2** Behaviour when a sheet has multiple header-like rows (pick vs ask).
+- **OQ-1.1** — ✅ Resolved: v1 ceiling **~200 MB / ~5M rows per sheet**, streamed/chunked, configurable; over-limit files fail the job with a clear reason.
+- **OQ-1.2** — ✅ Resolved: **pick + flag** — auto-select the highest-scoring header deterministically; below a confidence threshold, flag `needs-review` (AI assists in Phase 5).
+- **OQ-INIT.1** — ✅ Resolved: object storage via an **abstraction** — local filesystem in dev, S3-compatible (S3/MinIO) in prod. See ADR-006.
 
-(See also OQ-INIT.1 object-storage provider in [`../open-questions.md`](../open-questions.md).)
+_All Phase-1 open questions resolved. See [`../open-questions.md`](../open-questions.md)._
 
 ## Sub-phases
 

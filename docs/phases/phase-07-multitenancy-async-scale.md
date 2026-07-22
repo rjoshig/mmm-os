@@ -40,7 +40,9 @@ All prior phases.
 
 ## Open Questions
 
-- **OQ-7.1** Queue tech (Celery vs RQ vs managed) and worker hosting.
+- **OQ-7.1** — ✅ Resolved: **Celery + Redis** (broker + result backend); autoscaling workers; per-tenant rate limiting/fairness. RQ considered but rejected as less flexible at scale. See ADR-007. (Worker hosting to be sized during implementation.)
+
+_Phase-7 open question resolved. See [`../open-questions.md`](../open-questions.md)._
 
 ## Sub-phases
 

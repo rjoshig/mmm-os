@@ -46,10 +46,11 @@ Phases 2, 3, 4.
 
 ## Open Questions
 
-- **OQ-5.1** LLM provider/model + cost ceiling per file.
-- **OQ-5.2** Confidence calibration approach.
+- **OQ-5.1** — 🟡 Partial: provider = **Claude via the Anthropic API** (behind a provider abstraction); **per-file cost ceiling still open** (needs real usage data). See ADR-008.
+- **OQ-5.2** — ⏸️ Deferred: confidence calibration needs labelled accept/reject data. Interim: model-reported confidence + configurable thresholds; calibrate later (reliability curves / isotonic).
+- **OQ-INIT.4** — ✅ Resolved: **Anthropic SDK**; credentials via env (`ANTHROPIC_API_KEY`); only profile data sent to the model (P5-1). See ADR-008.
 
-(See also OQ-INIT.4 provider/SDK + credential injection in [`../open-questions.md`](../open-questions.md).)
+See [`../open-questions.md`](../open-questions.md) for status.
 
 ## Sub-phases
 

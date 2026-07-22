@@ -39,8 +39,9 @@ The field list below is a starting point — refine in Phase 0.
 | `revenue` | number | No | |
 | `reach` | number | No | |
 
-\* At least one measure MUST be present for a row to be meaningful. Exact
-"required" set is **OQ-2.2** (see [`open-questions.md`](./open-questions.md)).
+\* At least one measure MUST be present for a row to be meaningful. **OQ-2.2
+resolved (see A.4):** the required set for v1 is `date` + `channel` + **≥1
+measure**; all other fields are optional.
 
 ### A.3 Metadata fields (system-populated)
 
@@ -55,11 +56,16 @@ The field list below is a starting point — refine in Phase 0.
 | `rule_set_version` | int | Traceability. |
 | `ingested_at` | timestamp | |
 
-### A.4 Open schema decisions
+### A.4 Schema decisions
 
+**Resolved:**
+- **Required fields (OQ-2.2):** `date` + `channel` (dimensions) and **≥1 measure**
+  per row. All other dimension and measure fields are optional. A row missing a
+  required field blocks output (see Phase 2 P2-5 / Phase 4 severity policy).
+
+**Still open:**
 - Date granularity supported (daily/weekly/monthly) and how mixed granularities reconcile.
 - Whether measures are columns (wide) or a `metric`/`value` pair (long-long). Draft assumes measure-columns.
-- Required-measure policy (OQ-2.2).
 
 ---
 

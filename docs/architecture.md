@@ -14,12 +14,12 @@ Per cross-cutting requirement **CC-8**:
 |---|---|---|
 | Front-end | **Next.js** (React, TypeScript, App Router, Tailwind) | In `front-end/`. Rich mapping tables + approve/reject flows. Talks to the backend via API. |
 | Backend API | **Python 3.10+ / FastAPI** | Thin routers → services → models/db. Ideal for data work + LLM integration. |
-| Workers | **Celery / RQ** | Async batch file processing (introduced in Phase 7). |
+| Workers | **Celery + Redis** | Async batch file processing (introduced in Phase 7). Broker + result backend = Redis. See ADR-007. |
 | Backend metadata + config DB | **SQLite now → Postgres later** | SQLAlchemy 2.0 + Alembic. Tenants, files, mappings, jobs, rules. |
-| UI DB | **SQLite now → Postgres later** | Prisma. Separate from the backend DB. |
-| Raw files | **Object storage (S3/GCS)** | Immutable raw copies (CC-2). Introduced in Phase 1. |
-| Clean data | **Warehouse** | Model-ready structured output. Warehouse choice is OQ-0.2. |
-| AI | **LLM** | Mapping / labelling / structure / anomaly-explanation suggestions (Phase 5). |
+| UI DB | **SQLite now → Postgres later** | Prisma. Separate from the backend DB; UI-only concerns (OQ-INIT.3). |
+| Raw files | **Object storage (abstraction)** | Immutable raw copies (CC-2). Local filesystem in dev, S3-compatible (S3/MinIO) in prod. See ADR-006. Introduced in Phase 1. |
+| Clean data | **`output_row` table in the backend DB (v1)** | Model-ready structured output. Dedicated warehouse deferred until scale. See ADR-005. |
+| AI | **Claude (Anthropic API)** | Mapping / labelling / structure / anomaly-explanation suggestions (Phase 5). Provider abstraction; env-injected creds; profile-only inputs. See ADR-008. |
 
 **Layering (backend):** `api/` routers stay thin (no business logic) → services →
 `models/` / `db/`. Pydantic v2 schemas (`schemas/`) are kept separate from ORM
@@ -91,10 +91,11 @@ a **Postgres integration job MUST pass** in CI. CI on every PR runs `ruff`,
 
 ## 3. Tenant Isolation
 
-Recommended default (P0-4): **row-level isolation** — every domain table carries
+**Decision (OQ-0.1 resolved): row-level isolation.** Every domain table carries
 `tenant_id` (CC-1), and no query may return cross-tenant data. This is scaffolded
-from Phase 0 because it is **hard to reverse**. The final choice (row-level vs
-schema/DB-per-tenant) is **OQ-0.1** and must be confirmed in Phase 0.
+from Phase 0 because it is **hard to reverse**. Schema/DB-per-tenant was
+considered and rejected for v1 as too heavy to operate at many-tenant scale
+(migrations × N, connection routing). See ADR-003.
 
 ---
 
@@ -133,25 +134,83 @@ Format: **ADR-NNN — Title — Status (Accepted / Proposed / Superseded) — Da
 - **Consequences:** The swap is config-only. A Postgres integration job must pass
   before any environment moves to Postgres.
 
-### ADR-003 — Row-level tenant isolation (default recommendation) — Proposed — 2026-07
+### ADR-003 — Row-level tenant isolation — Accepted — 2026-07
 - **Context:** Tenant isolation is hard to reverse and must be scaffolded from
   Phase 0 (CC-1).
-- **Decision (proposed):** Default to row-level isolation — `tenant_id` on every
-  domain table, enforced in every query. Final confirmation is **OQ-0.1** in
-  Phase 0.
-- **Consequences:** Every model and query carries `tenant_id` from the start. If
-  schema/DB-per-tenant is later chosen instead, the change is significant — hence
-  confirm early.
+- **Decision (OQ-0.1 resolved):** Row-level isolation — `tenant_id` on every
+  domain table, enforced in every query. Schema/DB-per-tenant was considered and
+  rejected for v1 (heavier ops at many-tenant scale).
+- **Consequences:** Every model and query carries `tenant_id` from the start;
+  Phase 7 adds tenant-scoping tests to verify no cross-tenant access paths.
 
-### ADR-004 — Opinionated rule engine with an escape hatch — Proposed — 2026-07
+### ADR-004 — Opinionated rule engine with a sandboxed-expression escape hatch — Accepted — 2026-07
 - **Context:** The transformation engine must be flexible (config, not hardcode)
-  yet intuitive.
-- **Decision (proposed):** A fixed library of well-designed operations covering
-  ~90% of cases, plus a `custom` escape-hatch rule for the rest. Scope of the
-  escape hatch is **OQ-3.1**.
-- **Consequences:** Keeps the UI intuitive and AI suggestions sharp. The escape
-  hatch's exact power (expression language? sandboxed code? none for v1?) is
-  deferred to Phase 3.
+  yet intuitive, with an escape hatch for the ~10% of cases the fixed library
+  doesn't cover.
+- **Decision (OQ-3.1 resolved):** A fixed library of well-designed operations
+  plus a `custom` rule whose payload is a **sandboxed expression language** — a
+  restricted DSL evaluated over the row/field context. **No** arbitrary Python,
+  imports, or I/O; allowlisted operators/functions only; resource-bounded
+  (time/memory) evaluation.
+- **Consequences:** More expressive than named-handler-only, but the sandbox is
+  security-critical: the expression evaluator must be built with a strict
+  allowlist and hard resource limits, and covered by adversarial tests. The exact
+  grammar/function set is finalised in Phase 3.
+
+### ADR-005 — Clean output = a backend-DB table for v1 — Accepted — 2026-07
+- **Context:** The pipeline must land clean, model-ready rows somewhere. A
+  dedicated analytics warehouse is more infrastructure than the MVP needs.
+- **Decision (OQ-0.2 / OQ-INIT.2 resolved):** For v1, clean output is an
+  `output_row` table in the **backend database** (SQLite→Postgres), carrying full
+  traceability metadata (CC-3). A dedicated warehouse (e.g. BigQuery/Snowflake/
+  Postgres-DW) is deferred until scale or analytics needs demand it.
+- **Consequences:** No extra infra now; portability rules apply to `output_row`
+  like any other table. Revisit when output volume or query patterns outgrow the
+  operational DB.
+
+### ADR-006 — Object storage abstraction (local dev / S3-compatible prod) — Accepted — 2026-07
+- **Context:** Raw uploads must be stored immutably (CC-2) from Phase 1, without
+  forcing a cloud dependency for local development.
+- **Decision (OQ-INIT.1 resolved):** Introduce a storage abstraction with two
+  backends selected by env: **local filesystem** in dev and **S3-compatible**
+  (AWS S3 / MinIO) in prod. Callers depend on the abstraction, never a concrete
+  SDK.
+- **Consequences:** Dev needs no cloud credentials. Swapping/adding a backend is
+  localized behind the interface. Provider-specific settings live in env only.
+
+### ADR-007 — Async queue = Celery + Redis — Accepted — 2026-07
+- **Context:** Batch processing (50–60 files/customer) can't run inline; Phase 7
+  needs a queue with retries and per-tenant fairness.
+- **Decision (OQ-7.1 resolved):** **Celery** with **Redis** as broker + result
+  backend; autoscaling workers; per-tenant rate limiting/fairness. RQ was
+  considered (simpler) but rejected as less flexible for fairness/rate-limiting
+  at scale.
+- **Consequences:** A Redis dependency is added in Phase 7. Jobs must remain
+  idempotent (CC-6) so retries don't duplicate output.
+
+### ADR-008 — AI provider = Claude via the Anthropic API — Accepted (cost ceiling deferred) — 2026-07
+- **Context:** The suggestion layer (Phase 5) needs an LLM; provider and
+  credential handling must be pinned, and inputs kept privacy-preserving.
+- **Decision (OQ-5.1 / OQ-INIT.4):** Provider = **Claude via the Anthropic API**
+  (most-capable model), behind a provider abstraction so the model is swappable.
+  Credentials via env (`ANTHROPIC_API_KEY`), never in code. Only **profile data**
+  (distinct values + column stats) is sent to the model, never raw row dumps
+  (P5-1). **Open:** the per-file cost ceiling (OQ-5.1) — set once real usage data
+  exists.
+- **Consequences:** No secrets in the repo; the model choice is isolated behind
+  the abstraction. Confidence calibration (OQ-5.2) remains deferred pending
+  labelled accept/reject data.
+
+### ADR-009 — Design system = extracted tokens + hand-built primitives — Accepted — 2026-07
+- **Context:** The Review UI (Phase 6) needs a consistent design language without
+  adopting a heavy third-party component library.
+- **Decision (OQ-6.1 resolved):** Use the design tokens extracted from the
+  reference UI (documented in `../front-end/CLAUDE.md`) plus **hand-built,
+  shadcn-style primitives** (Card, Badge, Table, PageHeader, StatCard). No heavy
+  component-library dependency.
+- **Consequences:** Full control over styling and bundle size; all new UI must
+  match the documented tokens. A component library can still be layered later if
+  needed (revisit under OQ-6.1).
 
 ---
 

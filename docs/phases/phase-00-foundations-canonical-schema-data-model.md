@@ -46,10 +46,10 @@ None.
 
 ## Open Questions
 
-- **OQ-0.1** Confirm row-level vs schema/DB-per-tenant isolation.
-- **OQ-0.2** Confirm warehouse choice for clean output (Postgres schema vs dedicated warehouse).
+- **OQ-0.1** — ✅ Resolved: **row-level isolation** (`tenant_id` on every domain table). See ADR-003.
+- **OQ-0.2** — ✅ Resolved: clean output = an **`output_row` table in the backend DB** for v1; dedicated warehouse deferred. See ADR-005. (Also resolves OQ-INIT.2.)
 
-(See also OQ-INIT.2 in [`../open-questions.md`](../open-questions.md).)
+_All Phase-0 open questions resolved. See [`../open-questions.md`](../open-questions.md)._
 
 ## Sub-phases
 

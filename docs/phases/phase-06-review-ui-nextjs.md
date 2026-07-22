@@ -42,9 +42,12 @@ Phases 2–5.
 
 ## Open Questions
 
-- **OQ-6.1** Design system / component library. *(The base design language is
-  extracted from the reference UI — see [`../../front-end/CLAUDE.md`](../../front-end/CLAUDE.md);
-  confirm whether to formalize a component library on top.)*
+- **OQ-6.1** — ✅ Resolved: **extracted design tokens + hand-built shadcn-style
+  primitives** (Card/Badge/Table/PageHeader/StatCard); no heavy third-party
+  component library. See ADR-009 and [`../../front-end/CLAUDE.md`](../../front-end/CLAUDE.md).
+  A component library can still be layered later if needed.
+
+_Phase-6 open question resolved. See [`../open-questions.md`](../open-questions.md)._
 
 ## Sub-phases
 

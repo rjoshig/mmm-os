@@ -43,8 +43,10 @@ Phases 0–1.
 
 ## Open Questions
 
-- **OQ-2.1** Column-signature definition (exact names vs fuzzy vs position-tolerant).
-- **OQ-2.2** Required vs optional canonical fields for v1 (see Appendix A).
+- **OQ-2.1** — ✅ Resolved: column signature = **normalized header-name set** (lowercased, trimmed, whitespace/punctuation-collapsed), order-tolerant; match = exact set equality. Fuzzy/positional matching deferred to the AI layer (Phase 5).
+- **OQ-2.2** — ✅ Resolved: required = **`date` + `channel` + ≥1 measure**; all other fields optional. See [`../canonical-schema.md`](../canonical-schema.md) A.4.
+
+_All Phase-2 open questions resolved. See [`../open-questions.md`](../open-questions.md)._
 
 ## Sub-phases
 
