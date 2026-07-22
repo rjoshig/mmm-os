@@ -8,6 +8,9 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from fastapi import HTTPException, status
+
+from mmm_os.ai import LLMClient, LLMError, build_llm_client, load_llm_config
 from mmm_os.canonical import CanonicalConfig, load_and_validate
 from mmm_os.core.config import get_settings
 from mmm_os.storage import ObjectStorage, build_storage
@@ -39,3 +42,23 @@ def get_canonical() -> CanonicalConfig:
         The loaded ``CanonicalConfig``.
     """
     return _cached_canonical()
+
+
+def get_llm_client() -> LLMClient:
+    """Return an LLM client, or 503 if the LLM is disabled/unavailable.
+
+    The LLM is off by default (ADR-008); enable it via config/env. Tests override
+    this dependency with a fake client.
+
+    Returns:
+        A configured ``LLMClient``.
+
+    Raises:
+        HTTPException: 503 if the LLM is disabled or its SDK/config is unavailable.
+    """
+    try:
+        return build_llm_client(load_llm_config())
+    except LLMError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from exc
