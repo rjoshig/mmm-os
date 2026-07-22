@@ -49,7 +49,17 @@ Phases 0, 2.
 - **OQ-3.1** — ✅ Resolved: `custom` = a **sandboxed expression language** (restricted DSL over the row/field context; no arbitrary code, imports, or I/O; allowlisted ops; resource-bounded). The evaluator is security-critical — strict allowlist + hard resource limits + adversarial tests. Grammar/function set finalised in this phase. See ADR-004.
 - **OQ-3.2** — ✅ Resolved (draft): reshape config model `{ id_vars, value_vars | value_var_pattern, var_name → dimension, value_name → measure }`; deterministic. Edge cases refined during implementation.
 
-_All Phase-3 open questions resolved. See [`../open-questions.md`](../open-questions.md)._
+**Operation-library open items (future, connector-driven):**
+- **`extract_action`** — pull a measure for a chosen `action_type` from a nested
+  array (Meta's `actions` / `action_values`, keyed e.g. by `purchase`/`lead`).
+  Needed by the partner mapping templates (Phase 09.7); the chosen `action_type`
+  is a per-tenant config value. Add as a new operation handler when Phase 9 is
+  scoped (no rewrite — new handler only, per P3-2). See
+  [`phase-09.7`](./phase-09.7-partner-mapping-taxonomy-templates.md) and
+  [`../connectors/meta-mapping-template.md`](../connectors/meta-mapping-template.md).
+
+_All Phase-3 MVP open questions resolved; the `extract_action` item above is a
+deferred connector-era extension. See [`../open-questions.md`](../open-questions.md)._
 
 ## Sub-phases
 

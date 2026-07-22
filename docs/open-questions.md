@@ -60,6 +60,10 @@ confirm before building.
 | OQ-9.6 | Confirm aggregate-only (no user-level PII) scope per partner. | 09.2/09.4/09.5 | ⏸️ Deferred — assumed aggregate-only; confirm requested scopes per partner. |
 | OQ-9.7 | Currency/timezone normalization: source of truth across partners. | 09.6/09.7 | ⏸️ Deferred — ties to canonical schema; likely per `connector_config`. |
 | OQ-9.8 | SFTP specifics: per-tenant directory layout, file-naming contract, PGP encryption. | 09.3 | ⏸️ Deferred — define the drop contract with the first SFTP customer. |
+| OQ-9.9 | Default `action_type`(s) that count as conversions per customer (purchase vs lead vs custom). | 09.4/09.7 | ⏸️ Deferred — per-tenant KPI decision; template default = `purchase`. |
+| OQ-9.10 | Attribution-window policy across partners (consistency requirement over time + across partners). | 09.4/09.5/09.6 | ⏸️ Deferred — must stay consistent across pulls; confirm with customer. Materially changes numbers. |
+| OQ-9.11 | Should `channel` be fixed per connector, or derived from placement/`publisher_platform`? | 09.4/09.7 | ⏸️ Deferred — template default fixes `channel` (placement in `sub_channel`); overridable per tenant. |
+| OQ-9.12 | Confirm exact partner field names + attribution params against the current API version. | 09.4/09.5 | ⏸️ Deferred — Meta template field names are **provisional**; verify at implementation time. |
 
 ---
 
@@ -68,7 +72,7 @@ confirm before building.
 - **OQ-5.1 (cost ceiling per file)** — set once we have real per-file token/cost data.
 - **OQ-5.2 (confidence calibration)** — needs labelled accept/reject outcomes.
 - **OQ-8.1 (compliance controls)** — SOC 2 Type II is the working target; confirm scope + controls with legal in Phase 8.
-- **OQ-9.1…OQ-9.8 (partner connectors)** — Phase 9 implementation inputs; OQ-9.2 has external approval lead times worth starting early.
+- **OQ-9.1…OQ-9.12 (partner connectors)** — Phase 9 implementation inputs; OQ-9.2 has external approval lead times worth starting early; OQ-9.9…9.12 come from the Meta template pattern (conversion `action_type`, attribution policy, channel-fixed-vs-derived, provisional field names).
 
 ---
 

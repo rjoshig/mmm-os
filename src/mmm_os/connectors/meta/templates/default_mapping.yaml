@@ -1,0 +1,48 @@
+# Default mapping template: Meta (Facebook/Instagram) Marketing API Insights -> canonical schema
+# Applied automatically on Meta connector pulls; users may override per tenant (Phase 2 layered config).
+connector: meta
+schema_version: 0.1
+
+# Which report breakdowns are pulled by default. More breakdowns = more rows + higher API cost.
+default_breakdowns:
+  - publisher_platform      # facebook / instagram / audience_network / messenger  -> sub_channel
+  - country                 # -> geo
+# Attribution setting for conversions/revenue. Confirm against current API; affects MMM inputs.
+attribution_windows: ["7d_click", "1d_view"]
+
+# Column mappings: canonical_field <- meta source field
+column_map:
+  date:        { source: date_start, op: parse_date }
+  channel:     { source: __constant__, value: "Facebook" }
+  sub_channel: { source: publisher_platform, op: map_value, taxonomy: meta_publisher_platform }
+  campaign:    { source: campaign_name }
+  ad_group:    { source: adset_name }        # Meta "ad set" == canonical ad_group
+  geo:         { source: country, op: map_value, taxonomy: geo }
+  product:     { source: null }              # not available from Meta; left null
+  funnel_stage: { source: objective, op: map_value, taxonomy: meta_objective_to_funnel }  # derived, optional
+  spend:       { source: spend }             # in account_currency
+  impressions: { source: impressions }
+  clicks:      { source: inline_link_clicks } # default to LINK clicks (not all-clicks); override available
+  reach:       { source: reach }
+  # conversions & revenue live INSIDE arrays and must be extracted, not direct-mapped:
+  conversions: { source: actions, op: extract_action, action_type: "purchase" }        # action_type configurable per tenant
+  revenue:     { source: action_values, op: extract_action, action_type: "purchase" }
+  currency:    { source: account_currency }  # drives downstream convert_currency if normalizing
+
+# Taxonomy defaults (value normalization) used by the map_value ops above
+taxonomies:
+  meta_publisher_platform:
+    facebook: "Facebook"
+    instagram: "Instagram"
+    audience_network: "Audience Network"
+    messenger: "Messenger"
+  meta_objective_to_funnel:
+    OUTCOME_AWARENESS: "Awareness"
+    BRAND_AWARENESS: "Awareness"
+    REACH: "Awareness"
+    OUTCOME_TRAFFIC: "Consideration"
+    LINK_CLICKS: "Consideration"
+    OUTCOME_ENGAGEMENT: "Consideration"
+    OUTCOME_LEADS: "Conversion"
+    OUTCOME_SALES: "Conversion"
+    CONVERSIONS: "Conversion"

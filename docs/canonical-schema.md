@@ -83,6 +83,17 @@ Each taxonomy MUST support **synonyms/aliases** (e.g. `FB`, `fb_ads`,
 `facebook ads` → `Facebook`). Aliases are stored in the data model as
 `taxonomy_alias` records (see [`data-model.md`](./data-model.md)).
 
+**Partner-supplied source taxonomies.** Partner connectors (Phase 9) ship their
+own **source-value taxonomies** that resolve **into** these canonical taxonomies —
+e.g. Meta's `meta_publisher_platform` (`instagram` → canonical `sub_channel`
+`Instagram`) and `meta_objective_to_funnel` (`OUTCOME_SALES` → canonical
+`funnel_stage` `Conversion`). These live **alongside their connector** (e.g.
+`src/mmm_os/connectors/meta/templates/default_mapping.yaml`), not here; the
+**canonical taxonomies above remain the single target** everything resolves to.
+See [`connectors/meta-mapping-template.md`](./connectors/meta-mapping-template.md)
+for the worked Meta example and [`phases/phase-09.7-partner-mapping-taxonomy-templates.md`](./phases/phase-09.7-partner-mapping-taxonomy-templates.md)
+for the per-partner contract.
+
 ---
 
 _Living document — the authoritative machine-readable spec (`canonical_schema.yaml`
