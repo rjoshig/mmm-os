@@ -37,6 +37,14 @@ class Settings(BaseSettings):
     # separately in front-end/.env via DATABASE_URL — they never share storage.
     backend_database_url: str = "sqlite:///./mmm_os.db"
 
+    # Object storage for immutable raw files (ADR-006). Backend is selected by
+    # env: "local" (dev) writes under storage_local_path; "s3" is the prod target.
+    storage_backend: str = "local"
+    storage_local_path: str = "./_storage"
+
+    # Max accepted upload size in bytes (OQ-1.1). Default ~200 MB.
+    max_upload_bytes: int = 200 * 1024 * 1024
+
 
 @lru_cache
 def get_settings() -> Settings:

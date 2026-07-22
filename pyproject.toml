@@ -13,6 +13,7 @@ dependencies = [
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
     "python-dotenv>=1.0",
+    "python-multipart>=0.0.9",
     "pyyaml>=6.0",
 ]
 
@@ -63,6 +64,17 @@ ignore = [
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI uses callables (Depends/File/Query/…) as argument defaults by design.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.File",
+    "fastapi.Query",
+    "fastapi.Body",
+    "fastapi.Path",
+    "fastapi.Form",
+]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D"]        # docstrings not required in tests

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
+from mmm_os.api.routers import files
 from mmm_os.canonical import load_and_validate
 from mmm_os.core.config import get_settings
 from mmm_os.core.logging import configure_logging
@@ -34,6 +35,8 @@ def create_app() -> FastAPI:
 
     # Fail fast: the app must not boot with an invalid canonical schema/taxonomy.
     app.state.canonical = load_and_validate()
+
+    app.include_router(files.router)
 
     @app.get("/health", tags=["system"])
     def health() -> dict[str, str]:
