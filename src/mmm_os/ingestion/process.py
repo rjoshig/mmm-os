@@ -1,9 +1,12 @@
 """Ingestion processing: structure detection over a stored file (P1-2..P1-4, P1-7).
 
-Opens the immutable raw file, previews each sheet, skips empty sheets, detects the
-header row and column types, and persists ``sheet`` records — all under a ``job``
-whose status and per-stage events are recorded (CC-7). Malformed files mark the
-job failed with a readable reason rather than crashing (P1-7).
+Routes the stored file through the source-agnostic :class:`~mmm_os.sources.FileSource`
+(CC-9): a file is simply the first kind of ``SourceConnector``. The returned
+:class:`~mmm_os.sources.LandedDataset` — one landed table per non-empty sheet,
+with detected header + column structure — is persisted as ``sheet`` records and
+then profiled, all under a ``job`` whose status and per-stage events are recorded
+(CC-7). Malformed files mark the job failed with a readable reason rather than
+crashing (P1-7).
 """
 
 from __future__ import annotations
@@ -13,19 +16,14 @@ import time
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from mmm_os.ingestion.parsing import iter_sheet_rows, read_preview
+from mmm_os.ingestion.parsing import iter_sheet_rows
 from mmm_os.ingestion.profiling import profile_rows
-from mmm_os.ingestion.service import safe_filename
-from mmm_os.ingestion.structure import detect_header, infer_columns
+from mmm_os.ingestion.service import storage_key_for
 from mmm_os.models import File, Job, Profile, Sheet
 from mmm_os.models.enums import JobStatus, SheetStatus
 from mmm_os.models.mixins import utcnow
+from mmm_os.sources import FetchRequest, FileSource
 from mmm_os.storage.base import ObjectStorage
-
-
-def storage_key_for(file: File) -> str:
-    """Return the storage key a file's raw bytes were written to."""
-    return f"{file.tenant_id}/{file.id}/{safe_filename(file.filename)}"
 
 
 def _latest_job(session: Session, file: File) -> Job:
@@ -73,25 +71,27 @@ def process_file(
     started = time.monotonic()
     sheets: list[Sheet] = []
     try:
-        with storage.open(storage_key_for(file)) as stream:
-            preview = read_preview(stream, file.filename, preview_rows)
-
-        for raw in preview:
-            if raw.is_empty():
-                continue
-            detection = detect_header(raw.rows)
-            columns = infer_columns(raw.rows, detection.index)
-            status = (
-                SheetStatus.PARSED.value if detection.confident else SheetStatus.NEEDS_REVIEW.value
+        dataset = FileSource(storage).fetch(
+            FetchRequest(
+                ref={
+                    "file_id": str(file.id),
+                    "storage_key": storage_key_for(file),
+                    "filename": file.filename,
+                },
+                options={"preview_rows": preview_rows},
             )
+        )
+
+        for table in dataset.tables:
+            status = SheetStatus.PARSED.value if table.confident else SheetStatus.NEEDS_REVIEW.value
             sheet = Sheet(
                 tenant_id=file.tenant_id,
                 file_id=file.id,
-                sheet_name=raw.name,
-                sheet_index=raw.index,
-                header_row_index=detection.index,
+                sheet_name=table.name,
+                sheet_index=table.index,
+                header_row_index=table.header_row_index,
                 status=status,
-                columns=[c.as_dict() for c in columns],
+                columns=table.columns,
             )
             session.add(sheet)
             sheets.append(sheet)

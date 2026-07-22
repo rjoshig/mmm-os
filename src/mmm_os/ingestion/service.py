@@ -33,6 +33,16 @@ def safe_filename(filename: str) -> str:
     return cleaned or "upload"
 
 
+def storage_key_for(file: File) -> str:
+    """Return the storage key a file's raw bytes were written to.
+
+    Kept next to :func:`safe_filename` (which derives part of the key) so the
+    source layer can locate a stored upload without importing the processing
+    module, avoiding an import cycle.
+    """
+    return f"{file.tenant_id}/{file.id}/{safe_filename(file.filename)}"
+
+
 def ingest_file(
     session: Session,
     storage: ObjectStorage,
