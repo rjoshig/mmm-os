@@ -1,9 +1,21 @@
 # Phase 6 — Review UI (Next.js)
 
-**Depends on:** Phases 2–5 · **Status:** Not started
+**Depends on:** Phases 2–5 (+ **00.5 auth**, per the build order) · **Status:** In progress
 
 The UI shell is scaffolded during repo initialization; feature screens land here.
 All UI MUST match the design language in [`../../front-end/CLAUDE.md`](../../front-end/CLAUDE.md).
+
+> **Auth seam (interim).** The authoritative build order puts **00.5 Authentication**
+> before Phase 6 (CC-11). 00.5 is not built yet, so this phase ships a **tenant/auth
+> seam** — a single provider (`lib/tenant.ts`) that supplies the active `tenant_id`
+> to every API call. When 00.5 lands, it replaces the seam's source (a real
+> session) **without touching the screens**. This is a deliberate, temporary
+> deviation to deliver the UI now; the retrofit surface is one module.
+>
+> **Backend read endpoints.** The dashboard/mapping screens need tenant-scoped
+> **GET/list** endpoints that Phases 1–5 did not add (they exposed only
+> POST/actions). Phase 6 adds thin read routes (list files+jobs, file detail with
+> sheets, sheet detail with profile) following the existing router patterns.
 
 ## Objective
 
@@ -51,4 +63,8 @@ _Phase-6 open question resolved. See [`../open-questions.md`](../open-questions.
 
 ## Sub-phases
 
-TBD — to be broken down before implementation.
+- [`phase-06.1-ui-foundation.md`](./phase-06.1-ui-foundation.md) — design primitives, typed API client, tenant/auth seam, app shell + backend read endpoints (P6 infra).
+- [`phase-06.2-job-dashboard.md`](./phase-06.2-job-dashboard.md) — file/job dashboard + upload + what-needs-attention (P6-1).
+- [`phase-06.3-mapping-review.md`](./phase-06.3-mapping-review.md) — mapping review with AI suggestions; accept/reject/modify writes config (P6-2, P6-6).
+- [`phase-06.4-transformation-builder.md`](./phase-06.4-transformation-builder.md) — action-based rule authoring with live before/after preview (P6-3, P6-4).
+- [`phase-06.5-validation-review.md`](./phase-06.5-validation-review.md) — validation flags with severity + AI explanation; acknowledge/resolve/override (P6-5).

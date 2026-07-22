@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { Sidebar } from "@/components/sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
 
 // Inter is the reference UI's typeface (see front-end/CLAUDE.md).
@@ -18,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ThemeProvider>
           <div className="flex">
-            {/* Feature navigation (sidebar) is built in Phase 6. */}
+            <Sidebar />
             <main className="h-screen flex-1 overflow-y-auto">
               <div className="mx-auto max-w-7xl px-6 py-5">{children}</div>
             </main>

@@ -62,3 +62,38 @@ class ProcessResponse(BaseModel):
 
     job: JobRead
     sheets: list[SheetRead]
+
+
+class FileListItem(BaseModel):
+    """A file summarised for the dashboard list (P6-1)."""
+
+    file: FileRead
+    latest_job_status: str | None
+    sheet_count: int
+    needs_review_sheets: int
+
+
+class FileDetail(BaseModel):
+    """A file with its detected sheets and latest job (drill-in view)."""
+
+    file: FileRead
+    latest_job: JobRead | None
+    sheets: list[SheetRead]
+
+
+class ProfileRead(BaseModel):
+    """A sheet's profile (per-column stats) as returned to callers."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    sheet_id: uuid.UUID
+    row_count: int | None
+    column_stats: dict[str, Any]
+
+
+class SheetDetail(BaseModel):
+    """A sheet with its profile (mapping-review input)."""
+
+    sheet: SheetRead
+    profile: ProfileRead | None

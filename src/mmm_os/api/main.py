@@ -8,8 +8,9 @@ AI) are added thinly in their respective phases — routers hold no business log
 from __future__ import annotations
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from mmm_os.api.routers import ai, files, mapping, transform, validation
+from mmm_os.api.routers import ai, files, mapping, reads, transform, validation
 from mmm_os.canonical import load_and_validate
 from mmm_os.core.config import get_settings
 from mmm_os.core.logging import configure_logging
@@ -36,7 +37,17 @@ def create_app() -> FastAPI:
     # Fail fast: the app must not boot with an invalid canonical schema/taxonomy.
     app.state.canonical = load_and_validate()
 
+    # Allow the Review UI (Phase 6) to call the API from the browser.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     app.include_router(files.router)
+    app.include_router(reads.router)
     app.include_router(mapping.router)
     app.include_router(transform.router)
     app.include_router(validation.router)

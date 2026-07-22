@@ -52,6 +52,15 @@ class Settings(BaseSettings):
     profile_distinct_limit: int = 1000
     profile_sample_limit: int = 20
 
+    # CORS: comma-separated origins allowed to call the API (the Review UI, Phase 6).
+    # Dev default is the Next.js dev server; tighten per environment.
+    cors_allow_origins: str = "http://localhost:3000"
+
+    @property
+    def cors_origins(self) -> list[str]:
+        """Parse ``cors_allow_origins`` into a list of trimmed origins."""
+        return [o.strip() for o in self.cors_allow_origins.split(",") if o.strip()]
+
 
 @lru_cache
 def get_settings() -> Settings:
