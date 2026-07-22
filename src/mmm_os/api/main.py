@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from mmm_os.api.routers import files, mapping, transform
+from mmm_os.api.routers import files, mapping, transform, validation
 from mmm_os.canonical import load_and_validate
 from mmm_os.core.config import get_settings
 from mmm_os.core.logging import configure_logging
@@ -39,6 +39,7 @@ def create_app() -> FastAPI:
     app.include_router(files.router)
     app.include_router(mapping.router)
     app.include_router(transform.router)
+    app.include_router(validation.router)
 
     @app.get("/health", tags=["system"])
     def health() -> dict[str, str]:
