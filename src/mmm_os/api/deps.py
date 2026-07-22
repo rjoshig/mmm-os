@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from mmm_os.canonical import CanonicalConfig, load_and_validate
 from mmm_os.core.config import get_settings
 from mmm_os.storage import ObjectStorage, build_storage
 
@@ -24,3 +25,17 @@ def get_storage() -> ObjectStorage:
         The configured ``ObjectStorage`` instance.
     """
     return _cached_storage()
+
+
+@lru_cache
+def _cached_canonical() -> CanonicalConfig:
+    return load_and_validate()
+
+
+def get_canonical() -> CanonicalConfig:
+    """Return the process-wide validated canonical schema + taxonomies.
+
+    Returns:
+        The loaded ``CanonicalConfig``.
+    """
+    return _cached_canonical()
