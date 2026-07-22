@@ -1,0 +1,35 @@
+# Default mapping template: TikTok Marketing API (/report/integrated/get/) -> canonical schema
+# Auto-applied on TikTok pulls; overridable per tenant (Phase 2 layered config).
+connector: tiktok
+schema_version: 0.1
+
+report:
+  endpoint: "/report/integrated/get/"
+  report_type: BASIC
+  data_level: AUCTION_CAMPAIGN        # AUCTION_CAMPAIGN | AUCTION_ADGROUP | AUCTION_AD
+  dimensions: ["campaign_id", "stat_time_day", "country_code"]
+  metrics: ["campaign_name", "spend", "impressions", "clicks", "reach", "conversion"]
+  # NOTE: response returns per-row {dimensions:{...}, metrics:{...}} as SEPARATE objects.
+  # Must flatten into one row before mapping (op: flatten_report_row).
+  # NOTE: numeric metrics are returned as STRINGS -> cast to number.
+  # NOTE: dimensions give IDs; names (campaign_name) must be requested in metrics.
+  # NOTE: large pulls use the async report task endpoints, not the sync one.
+
+column_map:
+  date:        { source: dimensions.stat_time_day, op: parse_date }
+  channel:     { source: __constant__, value: "TikTok" }
+  sub_channel: { source: null }
+  campaign:    { source: metrics.campaign_name }
+  ad_group:    { source: null }          # set adgroup_name when data_level = AUCTION_ADGROUP
+  geo:         { source: dimensions.country_code, op: map_value, taxonomy: geo }
+  product:     { source: null }
+  funnel_stage: { source: null }          # optional; could derive from objective_type
+  spend:       { source: metrics.spend, op: cast_type, to: number }   # account currency
+  impressions: { source: metrics.impressions, op: cast_type, to: number }
+  clicks:      { source: metrics.clicks, op: cast_type, to: number }   # "all" clicks; prefer destination clicks (configurable)
+  reach:       { source: metrics.reach, op: cast_type, to: number }
+  conversions: { source: metrics.conversion, op: cast_type, to: number }  # event depends on optimization goal
+  revenue:     { source: null }          # PROVISIONAL: value metric name depends on conversion event; set per tenant
+  currency:    { source: __account__ }   # NOT in report row; fetched from advertiser account info
+
+taxonomies: {}   # geo uses canonical geo taxonomy; TikTok country_code is ISO-like

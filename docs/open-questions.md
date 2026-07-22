@@ -63,7 +63,12 @@ confirm before building.
 | OQ-9.9 | Default `action_type`(s) that count as conversions per customer (purchase vs lead vs custom). | 09.4/09.7 | ⏸️ Deferred — per-tenant KPI decision; template default = `purchase`. |
 | OQ-9.10 | Attribution-window policy across partners (consistency requirement over time + across partners). | 09.4/09.5/09.6 | ⏸️ Deferred — must stay consistent across pulls; confirm with customer. Materially changes numbers. |
 | OQ-9.11 | Should `channel` be fixed per connector, or derived from placement/`publisher_platform`? | 09.4/09.7 | ⏸️ Deferred — template default fixes `channel` (placement in `sub_channel`); overridable per tenant. |
-| OQ-9.12 | Confirm exact partner field names + attribution params against the current API version. | 09.4/09.5 | ⏸️ Deferred — Meta template field names are **provisional**; verify at implementation time. |
+| OQ-9.12 | Confirm exact partner field names + attribution params against the current API version. | 09.4/09.5 | ⏸️ Deferred — Meta/Google/TikTok template field names are **provisional**; verify at implementation time. |
+| OQ-9.13 | Google Ads: which `conversion_action`(s) count as conversions per customer; `conversions` vs `all_conversions`. | 09.5 | ⏸️ Deferred — per-tenant KPI decision (parallels Meta OQ-9.9). |
+| OQ-9.14 | Google Ads: geo-target-constant → country resolution source (for `resolve_geo_target`). | 09.5 | ⏸️ Deferred — need the geo-target-constant reference data. |
+| OQ-9.15 | TikTok: which conversion event + **value** metric per customer (drives `revenue`, left null by default). | 09.5 | ⏸️ Deferred — per-tenant; value-metric name provisional. |
+| OQ-9.16 | TikTok: all vs destination clicks; sync vs async report thresholds; how advertiser currency is fetched. | 09.5 | ⏸️ Deferred — config + API-behaviour details. |
+| OQ-9.17 | Cross-partner: consistent channel-naming (fixed constant per connector vs derived) applied uniformly across Meta/Google/TikTok/DV360. | 09.4/09.5 | ⏸️ Deferred — templates fix `channel` per connector today (Meta OQ-9.11); confirm uniform resolution. |
 
 ---
 
@@ -72,7 +77,7 @@ confirm before building.
 - **OQ-5.1 (cost ceiling per file)** — set once we have real per-file token/cost data.
 - **OQ-5.2 (confidence calibration)** — needs labelled accept/reject outcomes.
 - **OQ-8.1 (compliance controls)** — SOC 2 Type II is the working target; confirm scope + controls with legal in Phase 8.
-- **OQ-9.1…OQ-9.12 (partner connectors)** — Phase 9 implementation inputs; OQ-9.2 has external approval lead times worth starting early; OQ-9.9…9.12 come from the Meta template pattern (conversion `action_type`, attribution policy, channel-fixed-vs-derived, provisional field names).
+- **OQ-9.1…OQ-9.17 (partner connectors)** — Phase 9 implementation inputs; OQ-9.2 has external approval lead times worth starting early; OQ-9.9…9.12 come from the Meta template pattern; OQ-9.13…9.17 from the Google Ads & TikTok templates (per-tenant conversion choices, geo/currency resolution, click definitions, sync/async pulls, uniform channel naming).
 
 ---
 

@@ -1,0 +1,51 @@
+# Default mapping template: Google Ads API (GAQL reporting) -> canonical schema
+# Auto-applied on Google Ads pulls; overridable per tenant (Phase 2 layered config).
+connector: google_ads
+schema_version: 0.1
+
+# Google Ads reporting uses GAQL: SELECT metrics/segments FROM <resource>.
+# The resource queried determines granularity; metrics/segments/resource fields
+# have compatibility rules (not all combine). Default pull below is campaign-level.
+report:
+  resource: campaign            # campaign-level; use geographic_view for geo breakdown
+  gaql_fields:
+    - segments.date
+    - campaign.name
+    - campaign.advertising_channel_type
+    - metrics.cost_micros
+    - metrics.impressions
+    - metrics.clicks
+    - metrics.conversions
+    - metrics.conversions_value
+  date_range: rolling            # lookback window handled by scheduler
+
+# For geo, a separate geographic_view pull is needed (country comes as a geo-target-constant ID).
+geo_report:
+  resource: geographic_view
+  country_field: geographic_view.country_criterion_id   # ID, NOT a name -> must resolve
+
+column_map:
+  date:        { source: segments.date, op: parse_date }
+  channel:     { source: __constant__, value: "Google" }
+  sub_channel: { source: campaign.advertising_channel_type, op: map_value, taxonomy: google_channel_type }
+  campaign:    { source: campaign.name }
+  ad_group:    { source: null }          # null at campaign level; set when pulling ad_group resource
+  geo:         { source: geographic_view.country_criterion_id, op: resolve_geo_target, taxonomy: geo }
+  product:     { source: null }
+  funnel_stage: { source: null }          # not reliably derivable; optional
+  spend:       { source: metrics.cost_micros, op: micros_to_currency }   # divide by 1,000,000
+  impressions: { source: metrics.impressions }
+  clicks:      { source: metrics.clicks }
+  conversions: { source: metrics.conversions }         # depends on chosen conversion_action(s)
+  revenue:     { source: metrics.conversions_value }
+  reach:       { source: null }          # Google Ads does not report reach like Meta/TikTok
+  currency:    { source: customer.currency_code }
+
+taxonomies:
+  google_channel_type:
+    SEARCH: "Google Search"
+    DISPLAY: "Google Display"
+    VIDEO: "YouTube"
+    SHOPPING: "Google Shopping"
+    PERFORMANCE_MAX: "Performance Max"
+    DEMAND_GEN: "Demand Gen"

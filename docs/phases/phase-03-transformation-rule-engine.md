@@ -49,17 +49,24 @@ Phases 0, 2.
 - **OQ-3.1** — ✅ Resolved: `custom` = a **sandboxed expression language** (restricted DSL over the row/field context; no arbitrary code, imports, or I/O; allowlisted ops; resource-bounded). The evaluator is security-critical — strict allowlist + hard resource limits + adversarial tests. Grammar/function set finalised in this phase. See ADR-004.
 - **OQ-3.2** — ✅ Resolved (draft): reshape config model `{ id_vars, value_vars | value_var_pattern, var_name → dimension, value_name → measure }`; deterministic. Edge cases refined during implementation.
 
-**Operation-library open items (future, connector-driven):**
-- **`extract_action`** — pull a measure for a chosen `action_type` from a nested
-  array (Meta's `actions` / `action_values`, keyed e.g. by `purchase`/`lead`).
-  Needed by the partner mapping templates (Phase 09.7); the chosen `action_type`
-  is a per-tenant config value. Add as a new operation handler when Phase 9 is
-  scoped (no rewrite — new handler only, per P3-2). See
-  [`phase-09.7`](./phase-09.7-partner-mapping-taxonomy-templates.md) and
-  [`../connectors/meta-mapping-template.md`](../connectors/meta-mapping-template.md).
+**Operation-library open items (future, connector-driven).** Each is a **new
+operation handler** added when Phase 9 is scoped (no rewrite — new handler only,
+per P3-2). Driven by the partner mapping templates (Phase 09.7); see the connector
+docs under [`../connectors/`](../connectors/):
+- **`extract_action`** (Meta) — pull a measure for a chosen `action_type` from a
+  nested array (`actions` / `action_values`, keyed e.g. by `purchase`/`lead`); the
+  chosen `action_type` is a per-tenant config value.
+- **`micros_to_currency`** (Google Ads) — divide `cost_micros` by 1,000,000 to get
+  account-currency spend.
+- **`resolve_geo_target`** (Google Ads) — resolve a geo-target-constant **ID**
+  (`country_criterion_id`) to a country before taxonomy mapping.
+- **`flatten_report_row`** (TikTok) — merge the split `dimensions` / `metrics`
+  objects of a report row into one flat row before mapping.
+- **string→number `cast_type`** (TikTok) — numeric metrics arrive as strings and
+  must be cast (an extension of the existing `cast_type` op).
 
-_All Phase-3 MVP open questions resolved; the `extract_action` item above is a
-deferred connector-era extension. See [`../open-questions.md`](../open-questions.md)._
+_All Phase-3 MVP open questions resolved; the operation-library items above are
+deferred connector-era extensions. See [`../open-questions.md`](../open-questions.md)._
 
 ## Sub-phases
 
