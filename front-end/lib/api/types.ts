@@ -357,6 +357,19 @@ export interface ConfigVersionItem {
   summary: string;
 }
 
+// --- Assignments / review queue (Phase 13.4) ---
+export interface Assignment {
+  id: Uuid;
+  target_type: string;
+  target_id: Uuid;
+  assignee_user_id: Uuid;
+  assignee_email: string | null;
+  assigned_by: Uuid | null;
+  status: string;
+  note: string | null;
+  created_at: string;
+}
+
 export interface GenerateOutputResponse {
   job_id: Uuid;
   file_id: Uuid;

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Inbox,
   Layers,
   LayoutDashboard,
   Library,
@@ -22,6 +23,7 @@ const NAV = [
   { href: "/sources", label: "Sources", icon: Plug },
   { href: "/runs", label: "Runs", icon: ListChecks },
   { href: "/configs", label: "Configs", icon: Library },
+  { href: "/queue", label: "Queue", icon: Inbox },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

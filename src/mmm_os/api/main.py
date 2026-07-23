@@ -18,6 +18,7 @@ from mmm_os.api.deps import require_auth
 from mmm_os.api.routers import (
     ai,
     auth,
+    collaboration,
     configs,
     connectors,
     files,
@@ -106,6 +107,7 @@ def create_app() -> FastAPI:
     app.include_router(pipeline.router, dependencies=protected)
     app.include_router(settings_router.router, dependencies=protected)
     app.include_router(configs.router, dependencies=protected)
+    app.include_router(collaboration.router, dependencies=protected)
     app.include_router(ai.router, dependencies=protected)
     # Governance/admin routes gate on Permission.ADMIN per-route (require_auth is
     # applied within them via require_permission).

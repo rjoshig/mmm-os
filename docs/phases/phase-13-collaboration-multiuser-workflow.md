@@ -1,7 +1,7 @@
 # Phase 13 — Collaboration & Multi-User Workflow
 
 **Depends on:** 2 (mapping configs), 3 (rule sets), 6 (Review UI), 8 (RBAC + audit)
-· **Status:** Build (scoped; not yet implemented).
+· **Status:** In progress — 13.1 (config library + authorship), 13.3 (runs UI), 13.4 (review queue) Done; 13.2 (draft→publish) + 13.5 (comments/notifications) remain.
 
 Enterprise-overhaul theme: make the platform a place where **a team works the data
 together** — one person configures, another continues, a third reviews — with full
@@ -87,9 +87,11 @@ at build time (per the sub-phase convention in [`README.md`](./README.md)).
   a `/runs` view over `job` (with stage `job_event`s) + tenant-wide `sync_run`
   records — status, timing, errors, stage logs (CC-7). Endpoints: `GET /jobs/{id}`
   (detail + events), `GET /sync-runs` (tenant-wide). Read-only.
-- **13.4 — Review queue & work assignment** (P13-5). `assignment` records
-  (target_type/target_id → assignee); "Assigned to me" + tenant "Needs review"
-  boards; assign/reassign/clear actions gated by `review`.
+- **13.4 — Review queue & work assignment** (P13-5). **Done**: `assignment` records
+  (target_type/target_id → assignee, note, status), gated by `review` + audited.
+  Endpoints: `POST /assignments`, `GET /assignments?assignee=` (a user's queue),
+  `POST /assignments/{id}/resolve`. UI: a `/queue` review-queue screen + "Assign"
+  dialog on the file detail.
 - **13.5 — Collaboration annotations & notifications** (P13-6). `comment` +
   `notification` records; comment threads on flags/mappings/files; @mentions;
   per-file activity feed; in-app notification center. A pluggable notification sink

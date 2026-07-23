@@ -1,17 +1,24 @@
 "use client";
 
-import { ArrowLeft, Play, ShieldCheck, Table2, Wand2 } from "lucide-react";
+import { ArrowLeft, Play, ShieldCheck, Table2, UserPlus, Wand2 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Badge, statusVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { EmptyState, ErrorBanner, Loading } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
 import { PipelineStepper } from "@/components/pipeline-stepper";
 import { Table, TD, TH, THead, TR } from "@/components/ui/table";
+import { useToast } from "@/components/ui/toast";
 import { api, ApiError } from "@/lib/api/client";
-import type { FileDetail, FilePipelineStatus, PipelineRunResponse } from "@/lib/api/types";
+import type {
+  FileDetail,
+  FilePipelineStatus,
+  PipelineRunResponse,
+  UserRead,
+} from "@/lib/api/types";
 import { formatBytes, formatDateTime } from "@/lib/format";
 
 export default function FileDetailPage() {
@@ -79,6 +86,7 @@ export default function FileDetailPage() {
             )}`}
             actions={
               <div className="flex items-center gap-2">
+                <AssignForReview fileId={params.fileId} />
                 <Button onClick={onRunPipeline} disabled={running || data.sheets.length === 0}>
                   <Play className="h-4 w-4" />
                   {running ? "Running pipeline…" : "Run pipeline"}
@@ -181,5 +189,99 @@ export default function FileDetailPage() {
         </>
       )}
     </div>
+  );
+}
+
+function AssignForReview({ fileId }: { fileId: string }) {
+  const toast = useToast();
+  const [open, setOpen] = useState(false);
+  const [users, setUsers] = useState<UserRead[]>([]);
+  const [assignee, setAssignee] = useState("");
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    api
+      .listUsers()
+      .then((u) => {
+        setUsers(u);
+        if (u[0]) setAssignee(u[0].id);
+        setLoadError(null);
+      })
+      .catch((err) =>
+        setLoadError(err instanceof ApiError ? err.message : "Could not load users.")
+      );
+  }, [open]);
+
+  async function assign() {
+    if (!assignee) return;
+    setSaving(true);
+    try {
+      await api.createAssignment({
+        target_type: "file",
+        target_id: fileId,
+        assignee_user_id: assignee,
+        note: note.trim() || undefined,
+      });
+      toast.success("Assigned for review.");
+      setOpen(false);
+      setNote("");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not assign.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Assign for review"
+        description="Hand this file to a teammate — it lands in their review queue."
+      >
+        <div className="space-y-4">
+          {loadError ? <ErrorBanner message={loadError} /> : null}
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium">Assignee</span>
+            <select
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              value={assignee}
+              onChange={(e) => setAssignee(e.target.value)}
+            >
+              {users.length === 0 ? <option value="">No users found</option> : null}
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.email}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium">Note (optional)</span>
+            <input
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              placeholder="please review the channel mapping"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </label>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={assign} disabled={saving || !assignee}>
+              {saving ? "Assigning…" : "Assign"}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+      <Button variant="outline" onClick={() => setOpen(true)}>
+        <UserPlus className="h-4 w-4" /> Assign
+      </Button>
+    </>
   );
 }

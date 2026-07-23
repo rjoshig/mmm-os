@@ -7,6 +7,7 @@
 import type {
   AcceptResponse,
   AccessReviewRow,
+  Assignment,
   AuditEntryRead,
   AutoMapResponse,
   AvailableConnector,
@@ -246,6 +247,24 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ flag_ids: flagIds, status }),
     }),
+
+  // --- Assignments / review queue (Phase 13.4) ---
+  createAssignment: (input: {
+    target_type: string;
+    target_id: string;
+    assignee_user_id: string;
+    note?: string;
+  }) =>
+    request<Assignment>(tenantPath("/assignments"), {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  listAssignments: (assignee?: string) =>
+    request<Assignment[]>(
+      tenantPath(`/assignments${assignee ? `?assignee=${assignee}` : ""}`)
+    ),
+  resolveAssignment: (id: string) =>
+    request<Assignment>(tenantPath(`/assignments/${id}/resolve`), { method: "POST" }),
 
   // --- Config library / authorship (Phase 13) ---
   getConfigLibrary: () =>
