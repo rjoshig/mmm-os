@@ -143,18 +143,20 @@ export default function TransformBuilderPage() {
     return () => clearTimeout(t);
   }, [runPreview]);
 
-  async function onSave() {
+  async function onSave(draft = false) {
     setSaving(true);
     setError(null);
     setNotice(null);
     try {
-      const res = await api.saveSheetRuleSet(sheetId, rules.map(toSpec));
+      const res = await api.saveSheetRuleSet(sheetId, rules.map(toSpec), draft);
       setRuleSetVersion(res.version);
       setNotice(
-        `Saved rule set (v${res.version}, ${res.rules.length} rule(s)). ` +
-          "Reused automatically by any file with these same columns."
+        draft
+          ? `Saved as draft (v${res.version}). Publish it from Configs to apply it to the pipeline.`
+          : `Saved rule set (v${res.version}, ${res.rules.length} rule(s)). ` +
+              "Reused automatically by any file with these same columns."
       );
-      toast.success(`Saved rule set v${res.version}.`);
+      toast.success(draft ? `Saved draft v${res.version}.` : `Saved rule set v${res.version}.`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Save failed.");
       toast.error("Could not save the rule set.");
@@ -191,9 +193,16 @@ export default function TransformBuilderPage() {
             <Button variant="outline" onClick={() => setRules((r) => [...r, newRule()])}>
               <Plus className="h-4 w-4" /> Add rule
             </Button>
-            <Button onClick={onSave} disabled={saving || rules.length === 0}>
+            <Button
+              variant="outline"
+              onClick={() => onSave(true)}
+              disabled={saving || rules.length === 0}
+            >
+              Save as draft
+            </Button>
+            <Button onClick={() => onSave(false)} disabled={saving || rules.length === 0}>
               <Save className="h-4 w-4" />
-              {saving ? "Saving…" : "Save rule set"}
+              {saving ? "Saving…" : "Save & publish"}
             </Button>
           </>
         }

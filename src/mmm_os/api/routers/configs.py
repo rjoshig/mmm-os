@@ -11,17 +11,23 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from mmm_os.auth.service import Principal
+from mmm_os.authz import Permission, require_permission
 from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.db.session import get_session
+from mmm_os.governance import record_audit
 from mmm_os.models import MappingConfig, Rule, RuleSet, User
 from mmm_os.schemas.config_library import (
     ConfigLibraryItem,
     ConfigLibraryResponse,
     ConfigVersionItem,
     ConfigVersionsResponse,
+    PublishRequest,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["config-library"])
+
+_REVIEW = Depends(require_permission(Permission.REVIEW))
 
 
 def _emails(session: Session, tenant_id: uuid.UUID) -> dict[uuid.UUID, str]:
@@ -108,6 +114,7 @@ def config_versions(
                 ConfigVersionItem(
                     version=m.version,
                     layer=m.layer,
+                    status=m.lifecycle_status,
                     created_at=m.created_at,
                     created_by_email=emails.get(m.created_by) if m.created_by else None,
                     summary=f"{mapped} columns mapped",
@@ -127,6 +134,7 @@ def config_versions(
                 ConfigVersionItem(
                     version=rs.version,
                     layer=rs.layer,
+                    status=rs.lifecycle_status,
                     created_at=rs.created_at,
                     created_by_email=emails.get(rs.created_by) if rs.created_by else None,
                     summary=f"{count} rules",
@@ -140,3 +148,68 @@ def config_versions(
     if not versions:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="config not found")
     return ConfigVersionsResponse(kind=kind, key=key, versions=versions)
+
+
+@router.post("/tenants/{tenant_id}/config-library/publish", response_model=ConfigVersionItem)
+def publish_config(
+    tenant_id: uuid.UUID,
+    body: PublishRequest,
+    session: Session = Depends(get_session),
+    principal: Principal | None = _REVIEW,
+) -> ConfigVersionItem:
+    """Publish (or archive) a specific config version (Phase 13.2, review-gated).
+
+    Only the latest *published* version resolves into the pipeline, so publishing a
+    draft promotes it live; archiving retires a version. Audited (CC-5).
+
+    Raises:
+        HTTPException: 400 for a bad kind/status; 404 if the version is not found.
+    """
+    if body.status not in ("published", "archived"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=f"invalid status {body.status!r}"
+        )
+    row: MappingConfig | RuleSet | None
+    if body.kind == "mapping":
+        row = session.scalar(
+            tenant_scoped_select(MappingConfig, tenant_id).where(
+                MappingConfig.file_signature == body.key, MappingConfig.version == body.version
+            )
+        )
+        summary = "mapping"
+    elif body.kind == "rule_set":
+        row = session.scalar(
+            tenant_scoped_select(RuleSet, tenant_id).where(
+                RuleSet.name == body.key, RuleSet.version == body.version
+            )
+        )
+        summary = "rule set"
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=f"unknown kind {body.kind!r}"
+        )
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="config version not found"
+        )
+
+    row.lifecycle_status = body.status
+    record_audit(
+        session,
+        tenant_id=tenant_id,
+        action="config.publish",
+        principal=principal,
+        target_type=body.kind,
+        target_id=f"{body.key}:v{body.version}",
+        detail={"status": body.status},
+    )
+    session.commit()
+    emails = _emails(session, tenant_id)
+    return ConfigVersionItem(
+        version=row.version,
+        layer=row.layer,
+        status=row.lifecycle_status,
+        created_at=row.created_at,
+        created_by_email=emails.get(row.created_by) if row.created_by else None,
+        summary=summary,
+    )

@@ -259,6 +259,7 @@ def save_sheet_rule_set_route(
         layer=body.layer,
         specs=[_to_spec(r) for r in body.rules],
         created_by=principal.user_id if principal else None,
+        lifecycle_status="draft" if body.draft else "published",
     )
     record_audit(
         session,

@@ -31,6 +31,7 @@ class ConfigVersionItem(BaseModel):
 
     version: int
     layer: str
+    status: str  # draft | published | archived (Phase 13.2)
     created_at: datetime
     created_by_email: str | None
     summary: str  # e.g. "6 columns mapped" or "3 rules"
@@ -42,3 +43,12 @@ class ConfigVersionsResponse(BaseModel):
     kind: str
     key: str
     versions: list[ConfigVersionItem]
+
+
+class PublishRequest(BaseModel):
+    """Publish (or archive) a specific config version (Phase 13.2)."""
+
+    kind: str  # "mapping" | "rule_set"
+    key: str
+    version: int
+    status: str = "published"  # published | archived

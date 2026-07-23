@@ -1,7 +1,7 @@
 # Phase 13 — Collaboration & Multi-User Workflow
 
 **Depends on:** 2 (mapping configs), 3 (rule sets), 6 (Review UI), 8 (RBAC + audit)
-· **Status:** In progress — 13.1 (config library + authorship), 13.3 (runs UI), 13.4 (review queue) Done; 13.2 (draft→publish) + 13.5 (comments/notifications) remain.
+· **Status:** In progress — 13.1, 13.2, 13.3, 13.4 Done; 13.5 (comments/notifications) remains.
 
 Enterprise-overhaul theme: make the platform a place where **a team works the data
 together** — one person configures, another continues, a third reviews — with full
@@ -80,9 +80,12 @@ at build time (per the sub-phase convention in [`README.md`](./README.md)).
   `GET /config-library` (families with latest version, version count, author) +
   `GET /config-library/versions`. UI: a **Configs** screen with version history +
   authorship. (Side-by-side value diff is a follow-up.)
-- **13.2 — Config draft → review → publish lifecycle** (P13-3). Add a `status`
-  (`draft` | `published` | `archived`) to config/rule-set versions; resolution reads
-  the latest *published*; a `review`-role publish/request-changes action; audited.
+- **13.2 — Config draft → review → publish lifecycle** (P13-3). **Done**:
+  `lifecycle_status` (`draft`|`published`|`archived`) on mapping-config + rule-set
+  versions (default published — back-compat); pipeline resolution reads the latest
+  *published* only; save-as-draft (transform builder) + a `review`-gated
+  `POST /config-library/publish` (audited). UI: status badges + Publish on the Configs
+  screen; "Save as draft" / "Save & publish" on the transform builder.
 - **13.3 — Jobs & pipeline-runs history UI** (P13-4). **Delivered by Cycle 3, Slice 2**:
   a `/runs` view over `job` (with stage `job_event`s) + tenant-wide `sync_run`
   records — status, timing, errors, stage logs (CC-7). Endpoints: `GET /jobs/{id}`

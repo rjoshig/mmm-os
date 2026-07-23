@@ -187,10 +187,10 @@ export const api = {
   // ("configure once, reuse forever"). The backend derives the name server-side.
   getSheetRuleSet: (sheetId: string) =>
     request<RuleSetRead>(tenantPath(`/sheets/${sheetId}/rule-set`)),
-  saveSheetRuleSet: (sheetId: string, rules: RuleSpecIn[]) =>
+  saveSheetRuleSet: (sheetId: string, rules: RuleSpecIn[], draft = false) =>
     request<RuleSetRead>(tenantPath(`/sheets/${sheetId}/rule-set`), {
       method: "POST",
-      body: JSON.stringify({ rules }),
+      body: JSON.stringify({ rules, draft }),
     }),
 
   // --- Validation ---
@@ -273,6 +273,11 @@ export const api = {
     request<{ kind: string; key: string; versions: ConfigVersionItem[] }>(
       tenantPath(`/config-library/versions?kind=${kind}&key=${encodeURIComponent(key)}`)
     ),
+  publishConfig: (kind: string, key: string, version: number, statusValue = "published") =>
+    request<ConfigVersionItem>(tenantPath("/config-library/publish"), {
+      method: "POST",
+      body: JSON.stringify({ kind, key, version, status: statusValue }),
+    }),
 
   // --- Tenant reporting settings (Cycle 2) ---
   getSettings: () => request<TenantSettings>(tenantPath("/settings")),

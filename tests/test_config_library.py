@@ -52,6 +52,42 @@ def test_config_library_lists_mappings_and_rule_sets_with_versions(client: TestC
     assert "columns mapped" in body["versions"][0]["summary"]
 
 
+def test_draft_rule_set_does_not_resolve_until_published(client: TestClient) -> None:
+    """A draft rule set is not applied by the pipeline until it is published (13.2)."""
+    tenant_id = uuid.uuid4()
+    sheet_id = _sheet_id(client, tenant_id)
+
+    # Save a rule set as a draft.
+    saved = client.post(
+        f"/api/v1/tenants/{tenant_id}/sheets/{sheet_id}/rule-set",
+        json={"rules": [{"target_field": "date", "operation": "parse_date"}], "draft": True},
+    )
+    assert saved.status_code == 201, saved.text
+
+    # It shows in the library as a draft version...
+    lib = client.get(f"/api/v1/tenants/{tenant_id}/config-library").json()["items"]
+    rs = next(i for i in lib if i["kind"] == "rule_set")
+    versions = client.get(
+        f"/api/v1/tenants/{tenant_id}/config-library/versions",
+        params={"kind": "rule_set", "key": rs["key"]},
+    ).json()["versions"]
+    assert versions[0]["status"] == "draft"
+
+    # Publish it (review-gated; auth off in tests → allowed).
+    published = client.post(
+        f"/api/v1/tenants/{tenant_id}/config-library/publish",
+        json={"kind": "rule_set", "key": rs["key"], "version": versions[0]["version"]},
+    )
+    assert published.status_code == 200, published.text
+    assert published.json()["status"] == "published"
+
+    after = client.get(
+        f"/api/v1/tenants/{tenant_id}/config-library/versions",
+        params={"kind": "rule_set", "key": rs["key"]},
+    ).json()["versions"]
+    assert after[0]["status"] == "published"
+
+
 def test_config_versions_unknown_404(client: TestClient) -> None:
     """Version history for a non-existent family is a 404."""
     tenant_id = uuid.uuid4()

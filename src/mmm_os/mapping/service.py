@@ -44,6 +44,7 @@ def save_sheet_mapping(
     mapping: dict[str, str | None],
     layer: str = RuleLayer.CUSTOMER.value,
     created_by: uuid.UUID | None = None,
+    lifecycle_status: str = "published",
 ) -> MappingConfig:
     """Persist a new version of a mapping for a sheet's column signature.
 
@@ -55,6 +56,7 @@ def save_sheet_mapping(
         mapping: ``{source_name: canonical_field | None}``.
         layer: The resolution layer (global/template/customer).
         created_by: The user id authoring this version (Phase 13), if known.
+        lifecycle_status: draft | published | archived (Phase 13.2).
 
     Returns:
         The newly created ``MappingConfig`` at the next version.
@@ -68,6 +70,7 @@ def save_sheet_mapping(
         mapping={"columns": mapping},
         layer=layer,
         created_by=created_by,
+        lifecycle_status=lifecycle_status,
     )
 
 
@@ -81,6 +84,8 @@ def _latest_config(
             MappingConfig.file_signature == signature,
             MappingConfig.layer == layer,
             MappingConfig.is_active.is_(True),
+            # Pipeline resolution uses only *published* versions (Phase 13.2).
+            MappingConfig.lifecycle_status == "published",
         )
         .order_by(MappingConfig.version.desc())
     )

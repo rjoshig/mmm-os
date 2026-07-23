@@ -352,6 +352,7 @@ export interface ConfigLibraryItem {
 export interface ConfigVersionItem {
   version: number;
   layer: string;
+  status: string;
   created_at: string;
   created_by_email: string | null;
   summary: string;

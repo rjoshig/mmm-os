@@ -54,6 +54,7 @@ class SaveSheetRuleSetRequest(BaseModel):
 
     layer: str = RuleLayer.CUSTOMER.value
     rules: list[RuleSpecIn]
+    draft: bool = False  # save as a draft (Phase 13.2); default publishes immediately
 
 
 class RuleSetRead(BaseModel):

@@ -2,10 +2,12 @@
 
 import { ChevronDown, ChevronRight, Library, User } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import { Badge, statusVariant } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorBanner } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
 import { TableSkeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/toast";
 import { api, ApiError } from "@/lib/api/client";
 import type { ConfigLibraryItem, ConfigVersionItem } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
@@ -56,6 +58,7 @@ export default function ConfigsPage() {
 }
 
 function ConfigCard({ item }: { item: ConfigLibraryItem }) {
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [versions, setVersions] = useState<ConfigVersionItem[] | null>(null);
 
@@ -66,6 +69,16 @@ function ConfigCard({ item }: { item: ConfigLibraryItem }) {
       setVersions([]);
     }
   }, [item.kind, item.key]);
+
+  async function publish(version: number) {
+    try {
+      await api.publishConfig(item.kind, item.key, version);
+      toast.success(`Published v${version}.`);
+      await loadVersions();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Publish failed.");
+    }
+  }
 
   useEffect(() => {
     if (open && versions === null) void loadVersions();
@@ -113,6 +126,7 @@ function ConfigCard({ item }: { item: ConfigLibraryItem }) {
               {versions.map((v) => (
                 <div key={v.version} className="flex flex-wrap items-center gap-3 text-sm">
                   <Badge variant="secondary">v{v.version}</Badge>
+                  <Badge variant={statusVariant(v.status)}>{v.status}</Badge>
                   <span className="text-muted-foreground">{v.summary}</span>
                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                     <User className="h-3 w-3" />
@@ -121,6 +135,11 @@ function ConfigCard({ item }: { item: ConfigLibraryItem }) {
                   <span className="ml-auto text-xs text-muted-foreground">
                     {formatDateTime(v.created_at)}
                   </span>
+                  {v.status === "draft" ? (
+                    <Button variant="outline" size="sm" onClick={() => publish(v.version)}>
+                      Publish
+                    </Button>
+                  ) : null}
                 </div>
               ))}
             </div>

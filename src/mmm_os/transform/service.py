@@ -54,6 +54,7 @@ def save_rule_set_with_rules(
     layer: str,
     specs: list[RuleSpec],
     created_by: uuid.UUID | None = None,
+    lifecycle_status: str = "published",
 ) -> RuleSet:
     """Persist a new version of a rule set and its ordered rules.
 
@@ -64,12 +65,18 @@ def save_rule_set_with_rules(
         layer: The resolution layer.
         specs: The ordered rule specs to persist.
         created_by: The user id authoring this version (Phase 13), if known.
+        lifecycle_status: draft | published | archived (Phase 13.2).
 
     Returns:
         The created ``RuleSet`` at the next version.
     """
     rule_set = save_rule_set(
-        session, tenant_id=tenant_id, name=name, layer=layer, created_by=created_by
+        session,
+        tenant_id=tenant_id,
+        name=name,
+        layer=layer,
+        created_by=created_by,
+        lifecycle_status=lifecycle_status,
     )
     for spec in specs:
         session.add(
@@ -107,19 +114,20 @@ def load_rule_specs(session: Session, rule_set: RuleSet) -> list[RuleSpec]:
 
 
 def _latest_rule_set(
-    session: Session, tenant_id: uuid.UUID, name: str, layer: str
+    session: Session, tenant_id: uuid.UUID, name: str, layer: str, *, published_only: bool = False
 ) -> RuleSet | None:
-    return session.scalar(
-        select(RuleSet)
-        .where(RuleSet.tenant_id == tenant_id, RuleSet.name == name, RuleSet.layer == layer)
-        .order_by(RuleSet.version.desc())
+    query = select(RuleSet).where(
+        RuleSet.tenant_id == tenant_id, RuleSet.name == name, RuleSet.layer == layer
     )
+    if published_only:
+        query = query.where(RuleSet.lifecycle_status == "published")
+    return session.scalar(query.order_by(RuleSet.version.desc()))
 
 
 def get_rule_set(
     session: Session, tenant_id: uuid.UUID, name: str, layer: str = "customer"
 ) -> RuleSet | None:
-    """Fetch the latest version of a named rule set, or ``None`` if none exists."""
+    """Fetch the latest version of a named rule set (any status), for editing."""
     return _latest_rule_set(session, tenant_id, name, layer)
 
 
@@ -136,7 +144,8 @@ def resolve_rule_specs(session: Session, tenant_id: uuid.UUID, name: str) -> lis
     """
     specs: list[RuleSpec] = []
     for layer in _LAYERS:
-        rule_set = _latest_rule_set(session, tenant_id, name, layer)
+        # Pipeline resolution uses only *published* versions (Phase 13.2).
+        rule_set = _latest_rule_set(session, tenant_id, name, layer, published_only=True)
         if rule_set is not None:
             specs.extend(load_rule_specs(session, rule_set))
     return specs

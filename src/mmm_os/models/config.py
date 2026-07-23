@@ -33,6 +33,9 @@ class MappingConfig(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("user.id", ondelete="SET NULL")
     )
+    # Lifecycle (Phase 13.2): draft | published | archived. Only the latest
+    # *published* version resolves into the pipeline. Default published (back-compat).
+    lifecycle_status: Mapped[str] = mapped_column(String(16), nullable=False, default="published")
 
 
 class Taxonomy(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):
@@ -70,6 +73,9 @@ class RuleSet(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("user.id", ondelete="SET NULL")
     )
+    # Lifecycle (Phase 13.2): draft | published | archived. Only the latest
+    # *published* version resolves into the pipeline. Default published (back-compat).
+    lifecycle_status: Mapped[str] = mapped_column(String(16), nullable=False, default="published")
 
 
 class Rule(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):

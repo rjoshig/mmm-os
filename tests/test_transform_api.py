@@ -137,6 +137,29 @@ def test_rule_set_reused_across_sheets_of_same_signature(client: TestClient) -> 
     assert [r["operation"] for r in body["rules"]] == ["parse_date"]
 
 
+def test_draft_rule_set_is_not_resolved(engine: Engine) -> None:
+    """A draft rule set is not applied by the pipeline; publishing makes it resolve (13.2)."""
+    with Session(engine) as session:
+        tenant = Tenant(name="Acme", slug="acme")
+        session.add(tenant)
+        session.flush()
+        rule_set = save_rule_set_with_rules(
+            session,
+            tenant_id=tenant.id,
+            name="std",
+            layer="customer",
+            specs=[RuleSpec(target_field="date", operation="parse_date", order=0)],
+            lifecycle_status="draft",
+        )
+        # A draft does not resolve into the pipeline.
+        assert resolve_rule_specs(session, tenant.id, "std") == []
+
+        rule_set.lifecycle_status = "published"
+        session.flush()
+        resolved = resolve_rule_specs(session, tenant.id, "std")
+        assert [s.operation for s in resolved] == ["parse_date"]
+
+
 def test_layered_rule_resolution(engine: Engine) -> None:
     """resolve_rule_specs concatenates rules across layers (global→customer)."""
     with Session(engine) as session:
