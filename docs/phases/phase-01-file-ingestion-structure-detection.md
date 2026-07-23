@@ -70,8 +70,9 @@ _All Phase-1 open questions resolved. See [`../open-questions.md`](../open-quest
 
 ## Sub-phases
 
-Phase 1 is implemented as three PR-sized sub-phases (one per branch/PR):
+Phase 1 is implemented as PR-sized sub-phases (one per branch/PR):
 
 - [`phase-01.1-object-storage-ingestion.md`](./phase-01.1-object-storage-ingestion.md) — object-storage abstraction + upload endpoint + file/job records (P1-1). **Done.**
 - [`phase-01.2-parsing-structure-detection.md`](./phase-01.2-parsing-structure-detection.md) — CSV/multi-tab XLSX parsing, sheet split, header detection, type inference (P1-2, P1-3, P1-4). **Done.**
 - [`phase-01.3-profiling.md`](./phase-01.3-profiling.md) — per-column profiling stats persisted as a profile artifact (P1-5). **Done.**
+- [`phase-01.4-large-file-path-ingestion.md`](./phase-01.4-large-file-path-ingestion.md) — ingest large files **by path/URI** (landing zone) via the source seam, no browser upload. **Build (scoped).**
