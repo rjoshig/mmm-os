@@ -64,6 +64,12 @@ class Settings(BaseSettings):
     # deployment (never commit a real key). Used only by the local backend.
     secret_master_key: str = "dev-insecure-master-key-change-me"
 
+    # LLM cost controls (Phase 05.1, CC-13). Per-tenant daily caps (0 = unlimited);
+    # a per-tenant llm_budget row overrides these. Response caching reduces spend.
+    llm_tenant_daily_token_cap: int = 0
+    llm_tenant_daily_call_cap: int = 0
+    llm_cache_enabled: bool = True
+
     # Authentication (Phase 00.5, CC-11). When enabled, feature endpoints require a
     # valid session. Defaults off so the API/tests run unauthenticated in dev; the
     # Review UI enables it. Session lifetime is in hours.

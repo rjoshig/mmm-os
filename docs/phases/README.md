@@ -36,7 +36,7 @@ until scoped.
 | 6 | 3 | [phase-03](./phase-03-transformation-rule-engine.md) | Declarative, ordered, layered transformation rules with preview. | 0, 2 | Done |
 | 7 | 4 | [phase-04](./phase-04-validation-anomaly-detection.md) | Quality checks + anomaly detection; flag issues for review. | 1, 2, 3 | Done |
 | 8 | 5 | [phase-05](./phase-05-ai-suggestion-layer.md) | AI drafts mappings/labels/structure/anomaly; humans ratify. | 2, 3, 4 | Done |
-| 9 | 05.1 | [phase-05.1](./phase-05.1-llm-cost-controls.md) | LLM cost controls: per-tenant metering, budgets/caps, caching, tier routing (CC-13). | 5 | Build |
+| 9 | 05.1 | [phase-05.1](./phase-05.1-llm-cost-controls.md) | LLM cost controls: per-tenant metering, budgets/caps (429), caching, tier routing (CC-13). | 5 | Done |
 | 10 | 6 | [phase-06](./phase-06-review-ui-nextjs.md) | Next.js review UI: dashboards, mapping review, transform builder, validation review. | 2–5, **00.5** | Build |
 | 11 | 7 | [phase-07](./phase-07-multitenancy-async-scale.md) | Queue abstraction + per-tenant fairness + batch fan-out + idempotency + isolation tests (Celery+Redis = prod backend). | all above | Done |
 | 12 | 07.1 | [phase-07.1](./phase-07.1-observability-monitoring.md) | Observability: metrics registry + structured context (CC-7); prod backend exports the same signals. | 7 | Done |

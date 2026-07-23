@@ -17,3 +17,7 @@ class LLMConfigError(LLMError):
 
 class LLMResponseError(LLMError):
     """Raised when the model's response cannot be parsed into the expected shape."""
+
+
+class LLMBudgetExceededError(LLMError):
+    """Raised when a tenant's LLM usage would exceed its configured budget (CC-13)."""

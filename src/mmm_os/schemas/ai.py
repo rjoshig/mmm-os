@@ -33,3 +33,13 @@ class AcceptResponse(BaseModel):
 
     suggestion: SuggestionRead
     mapping_config_version: int | None
+
+
+class LlmUsageRead(BaseModel):
+    """A tenant's LLM usage over the last 24h vs its caps (05.1, CC-13)."""
+
+    calls: int
+    tokens: int
+    call_cap: int
+    token_cap: int
+    over_budget: bool

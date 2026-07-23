@@ -7,9 +7,11 @@ AI) are added thinly in their respective phases — routers hold no business log
 
 from __future__ import annotations
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
+from mmm_os.ai.errors import LLMBudgetExceededError
 from mmm_os.api.deps import require_auth
 from mmm_os.api.routers import (
     ai,
@@ -71,6 +73,13 @@ def create_app() -> FastAPI:
     # Governance/admin routes gate on Permission.ADMIN per-route (require_auth is
     # applied within them via require_permission).
     app.include_router(governance.router, dependencies=protected)
+
+    @app.exception_handler(LLMBudgetExceededError)
+    def _budget_exceeded(_request: Request, exc: LLMBudgetExceededError) -> JSONResponse:
+        """Map an over-budget LLM call to 429 Too Many Requests (CC-13)."""
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS, content={"detail": str(exc)}
+        )
 
     @app.get("/health", tags=["system"])
     def health() -> dict[str, str]:

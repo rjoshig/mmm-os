@@ -1,7 +1,7 @@
 # Phase 05.1 — LLM Cost Controls
 
 **Inserted phase** (standalone, not a sub-phase) · **Depends on:** Phase 5 ·
-**Status:** Build — extends the Phase 5 AI layer.
+**Status:** Done (per-tenant metering + budgets/429 + response cache + tier routing) — pending PR merge.
 
 Cross-cutting: human-in-the-loop (CC-5), LLM budget enforcement (CC-13),
 observability (CC-7).

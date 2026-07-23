@@ -23,6 +23,8 @@ _ENV_MAP = {
     "enabled": "LLM_ENABLED",
     "provider": "LLM_PROVIDER",
     "model": "LLM_MODEL",
+    "model_cheap": "LLM_MODEL_CHEAP",
+    "model_strong": "LLM_MODEL_STRONG",
     "api_key": "LLM_API_KEY",
     "base_url": "LLM_BASE_URL",
     "temperature": "LLM_TEMPERATURE",
@@ -52,6 +54,9 @@ class LLMConfig(BaseModel):
     enabled: bool = False
     provider: str = "auto"
     model: str = ""
+    # Model-tier routing (05.1 cost reduction): cheap default, strong for hard cases.
+    model_cheap: str = ""
+    model_strong: str = ""
     api_key: str | None = None
     base_url: str | None = None
     temperature: float = 0.0
@@ -89,6 +94,17 @@ def resolve_provider(config: LLMConfig, *, strict: bool = True) -> str:
             f"cannot resolve provider (provider={config.provider!r}, model={config.model!r})"
         )
     return "unknown"
+
+
+def route_model(config: LLMConfig, *, needs_strong: bool = False) -> str:
+    """Return the model to use for a call (tier routing, 05.1 P5.1-7).
+
+    Easy cases use ``model_cheap`` (falling back to ``model``); hard/low-confidence
+    cases escalate to ``model_strong`` when configured.
+    """
+    if needs_strong and config.model_strong:
+        return config.model_strong
+    return config.model_cheap or config.model
 
 
 def _env_overrides() -> dict[str, str]:

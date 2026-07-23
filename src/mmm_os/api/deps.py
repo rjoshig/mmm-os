@@ -6,12 +6,14 @@ that tests override via ``app.dependency_overrides``.
 
 from __future__ import annotations
 
+import uuid
 from functools import lru_cache
 
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 
 from mmm_os.ai import LLMClient, LLMError, build_llm_client, load_llm_config
+from mmm_os.ai.metering import MeteringLLMClient
 from mmm_os.auth.service import Principal, resolve_session
 from mmm_os.canonical import CanonicalConfig, load_and_validate
 from mmm_os.core.config import get_settings
@@ -85,21 +87,33 @@ def get_canonical() -> CanonicalConfig:
     return _cached_canonical()
 
 
-def get_llm_client() -> LLMClient:
-    """Return an LLM client, or 503 if the LLM is disabled/unavailable.
+def get_llm_client(
+    tenant_id: uuid.UUID,
+    session: Session = Depends(get_session),
+) -> LLMClient:
+    """Return a tenant-metered LLM client, or 503 if the LLM is disabled.
 
-    The LLM is off by default (ADR-008); enable it via config/env. Tests override
-    this dependency with a fake client.
+    The LLM is off by default (ADR-008); enable it via config/env. The returned
+    client is wrapped with per-tenant metering + budget enforcement + caching
+    (Phase 05.1, CC-13). Tests override this dependency with a fake client.
 
     Returns:
-        A configured ``LLMClient``.
+        A configured, metered ``LLMClient``.
 
     Raises:
         HTTPException: 503 if the LLM is disabled or its SDK/config is unavailable.
     """
+    config = load_llm_config()
     try:
-        return build_llm_client(load_llm_config())
+        inner = build_llm_client(config)
     except LLMError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
         ) from exc
+    return MeteringLLMClient(
+        inner,
+        session=session,
+        tenant_id=tenant_id,
+        model=config.model,
+        settings=get_settings(),
+    )

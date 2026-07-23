@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from mmm_os.ai import LLMClient
+from mmm_os.ai.budget import usage_snapshot
 from mmm_os.ai.config import load_llm_config
 from mmm_os.ai.service import (
     accept_suggestion,
@@ -20,11 +21,17 @@ from mmm_os.ai.suggestions import SuggestionService
 from mmm_os.api.deps import get_canonical, get_llm_client, require_auth
 from mmm_os.auth.service import Principal
 from mmm_os.canonical import CanonicalConfig
+from mmm_os.core.config import get_settings
 from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.db.session import get_session
 from mmm_os.governance import record_audit
 from mmm_os.models import Profile, Sheet
-from mmm_os.schemas.ai import AcceptResponse, SuggestionRead, SuggestMappingResponse
+from mmm_os.schemas.ai import (
+    AcceptResponse,
+    LlmUsageRead,
+    SuggestionRead,
+    SuggestMappingResponse,
+)
 
 router = APIRouter(prefix="/api/v1", tags=["ai"])
 
@@ -78,6 +85,22 @@ def suggest_mapping(
     )
     session.commit()
     return SuggestMappingResponse(suggestions=[SuggestionRead.model_validate(r) for r in records])
+
+
+@router.get("/tenants/{tenant_id}/llm-usage", response_model=LlmUsageRead)
+def llm_usage(
+    tenant_id: uuid.UUID,
+    session: Session = Depends(get_session),
+) -> LlmUsageRead:
+    """Return the tenant's LLM usage over the last 24h vs its caps (CC-13)."""
+    snap = usage_snapshot(session, tenant_id, get_settings())
+    return LlmUsageRead(
+        calls=snap.calls,
+        tokens=snap.tokens,
+        call_cap=snap.call_cap,
+        token_cap=snap.token_cap,
+        over_budget=snap.over_budget,
+    )
 
 
 @router.get(
