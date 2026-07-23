@@ -16,6 +16,7 @@ import type {
   ConfigLibraryItem,
   ConfigVersionItem,
   ConnectorConfig,
+  Customer,
   Notification,
   JobDetail,
   JobListItem,
@@ -112,6 +113,11 @@ function tenantPath(suffix: string): string {
 }
 
 export const api = {
+  // --- Customers / workspaces (platform-level, not tenant-scoped; Cycle 7) ---
+  listCustomers: () => request<Customer[]>("/api/v1/customers"),
+  createCustomer: (input: { name: string; slug?: string; tier?: string; region?: string }) =>
+    request<Customer>("/api/v1/customers", { method: "POST", body: JSON.stringify(input) }),
+
   // --- Auth (not tenant-scoped) ---
   login: (email: string, password: string) =>
     request<LoginResponse>("/api/v1/auth/login", {

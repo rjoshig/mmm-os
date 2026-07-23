@@ -345,6 +345,17 @@ export interface OutputLineage {
   sources: LineageSource[];
 }
 
+// --- Customers / workspaces (Cycle 7) ---
+export interface Customer {
+  id: Uuid;
+  name: string;
+  slug: string;
+  tier: string;
+  region: string;
+  status: string;
+  created_at: string;
+}
+
 // --- Data governance / retention (Phase 10) ---
 export interface RetentionPolicy {
   raw_file_days: number;

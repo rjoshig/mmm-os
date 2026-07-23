@@ -12,16 +12,22 @@ from mmm_os.models.mixins import TenantScopedMixin, TimestampMixin, UUIDPrimaryK
 
 
 class Tenant(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """A customer organisation — the isolation root.
+    """A customer organisation / workspace — the isolation root.
 
     The ``tenant`` table is intentionally not tenant-scoped: it *is* the tenant.
-    Every other domain table carries ``tenant_id`` referencing this table.
+    Every other domain table carries ``tenant_id`` referencing this table. A tenant
+    is surfaced in the UI as a **Customer / Workspace** (Cycle 7).
     """
 
     __tablename__ = "tenant"
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    # Customer/workspace attributes (Cycle 7). tier drives the isolation model
+    # (standard = shared pool DB; enterprise = optional dedicated DB, see 7.2).
+    tier: Mapped[str] = mapped_column(String(16), nullable=False, default="standard")
+    region: Mapped[str] = mapped_column(String(32), nullable=False, default="us")
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
 
 
 class TenantSettings(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):

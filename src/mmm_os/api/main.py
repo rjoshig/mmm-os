@@ -21,6 +21,7 @@ from mmm_os.api.routers import (
     collaboration,
     configs,
     connectors,
+    customers,
     files,
     governance,
     mapping,
@@ -94,6 +95,8 @@ def create_app() -> FastAPI:
 
     # Auth routes are the entry point and are NOT behind require_auth.
     app.include_router(auth.router)
+    # Customer/workspace management is platform-level (its endpoints are admin-gated).
+    app.include_router(customers.router)
 
     # Every feature router requires authenticated access (CC-11). The dependency
     # is a no-op when auth_enabled is false (dev/tests default).

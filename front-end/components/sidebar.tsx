@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Building2,
   Inbox,
   Layers,
   LayoutDashboard,
@@ -14,12 +15,14 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import { api } from "@/lib/api/client";
 import { clearSession, getStoredPrincipal } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/customers", label: "Customers", icon: Building2 },
   { href: "/sources", label: "Sources", icon: Plug },
   { href: "/runs", label: "Runs", icon: ListChecks },
   { href: "/configs", label: "Configs", icon: Library },
@@ -58,6 +61,8 @@ export function Sidebar() {
           <div className="text-[11px] text-muted-foreground">Data Ingestion</div>
         </div>
       </div>
+
+      <WorkspaceSwitcher />
 
       <nav className="flex-1 space-y-1 px-2 py-2">
         {nav.map(({ href, label, icon: Icon }) => {
