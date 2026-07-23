@@ -72,6 +72,52 @@ def test_save_rule_set_versions(client: TestClient) -> None:
     assert v2.json()["version"] == 2
 
 
+def _upload_and_process(client: TestClient, tenant_id: uuid.UUID, filename: str) -> str:
+    """Upload a CSV with a fixed header and return the resulting sheet id."""
+    upload = client.post(
+        f"/api/v1/tenants/{tenant_id}/files",
+        files={
+            "upload": (filename, b"date,channel,spend\n2026-01-01,Facebook,100\n", "text/csv")
+        },
+    )
+    file_id = upload.json()["file"]["id"]
+    processed = client.post(f"/api/v1/tenants/{tenant_id}/files/{file_id}/process")
+    sheet_id: str = processed.json()["sheets"][0]["id"]
+    return sheet_id
+
+
+def test_rule_set_reused_across_sheets_of_same_signature(client: TestClient) -> None:
+    """A rule set saved on one sheet is found by a *different* sheet with identical headers.
+
+    This is the Slice-3 "configure once, reuse forever" property: rule sets are keyed
+    by column signature (like mappings), not by ``sheet_id``, so a new file's new sheet
+    inherits the rules as long as its columns match (CC-3 config-as-data reuse).
+    """
+    tenant_id = uuid.uuid4()
+    sheet_a = _upload_and_process(client, tenant_id, "file_a.csv")
+    sheet_b = _upload_and_process(client, tenant_id, "file_b.csv")
+    assert sheet_a != sheet_b  # genuinely different sheets/files
+
+    # No rule set exists for sheet B's signature yet.
+    assert (
+        client.get(f"/api/v1/tenants/{tenant_id}/sheets/{sheet_b}/rule-set").status_code == 404
+    )
+
+    # Save a rule set against sheet A by its column signature.
+    save = client.post(
+        f"/api/v1/tenants/{tenant_id}/sheets/{sheet_a}/rule-set",
+        json={"rules": [{"target_field": "date", "operation": "parse_date"}]},
+    )
+    assert save.status_code == 201, save.text
+
+    # Sheet B (same headers, different sheet_id) now resolves the same rule set.
+    found = client.get(f"/api/v1/tenants/{tenant_id}/sheets/{sheet_b}/rule-set")
+    assert found.status_code == 200, found.text
+    body = found.json()
+    assert body["name"].startswith("sig:")
+    assert [r["operation"] for r in body["rules"]] == ["parse_date"]
+
+
 def test_layered_rule_resolution(engine: Engine) -> None:
     """resolve_rule_specs concatenates rules across layers (global→customer)."""
     with Session(engine) as session:

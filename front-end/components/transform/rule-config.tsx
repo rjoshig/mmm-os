@@ -17,6 +17,14 @@ export const OPERATIONS: { value: string; label: string; hint: string }[] = [
   { value: "rename_column", label: "Rename column", hint: "Rename a source column" },
   { value: "cast_type", label: "Cast type", hint: "number / string / boolean" },
   { value: "parse_date", label: "Parse date", hint: "Normalize to ISO date" },
+  {
+    value: "convert_currency",
+    label: "Convert currency",
+    hint: "Multiply a numeric column by an FX rate",
+  },
+  { value: "dedupe", label: "Deduplicate rows", hint: "Drop duplicate rows (by key or whole row)" },
+  { value: "reshape", label: "Reshape wide → long", hint: "Unpivot columns into rows" },
+  { value: "custom", label: "Custom expression", hint: "Compute a field from an expression" },
 ];
 
 const inputCls =
@@ -133,7 +141,128 @@ export function RuleConfig({
             onChange={(e) => setParams({ output: e.target.value })}
           />
         ) : null}
+
+        {rule.operation === "convert_currency" ? (
+          <div className="space-y-1">
+            <label className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">Fixed rate (multiplier)</span>
+              <input
+                className={`${inputCls} w-32`}
+                type="number"
+                step="any"
+                placeholder="e.g. 1.08"
+                value={rule.params.rate == null ? "" : String(rule.params.rate)}
+                onChange={(e) =>
+                  setParams({ rate: e.target.value === "" ? undefined : Number(e.target.value) })
+                }
+              />
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Multiplies the selected numeric column by this rate.
+            </p>
+          </div>
+        ) : null}
+
+        {rule.operation === "dedupe" ? (
+          <div className="space-y-1.5">
+            <p className="text-xs text-muted-foreground">
+              Key columns (none = dedupe by the whole row):
+            </p>
+            <ColumnChecklist
+              columns={columns}
+              selected={(rule.params.keys as string[]) ?? []}
+              onChange={(keys) => setParams({ keys: keys.length ? keys : undefined })}
+            />
+          </div>
+        ) : null}
+
+        {rule.operation === "reshape" ? (
+          <div className="space-y-2">
+            <div>
+              <p className="mb-1 text-xs text-muted-foreground">Keep per row (id columns):</p>
+              <ColumnChecklist
+                columns={columns}
+                selected={(rule.params.id_vars as string[]) ?? []}
+                onChange={(id_vars) => setParams({ id_vars })}
+              />
+            </div>
+            <div>
+              <p className="mb-1 text-xs text-muted-foreground">Unpivot (value columns):</p>
+              <ColumnChecklist
+                columns={columns}
+                selected={(rule.params.value_vars as string[]) ?? []}
+                onChange={(value_vars) => setParams({ value_vars })}
+              />
+            </div>
+            <div className="flex flex-wrap gap-2 text-sm">
+              <input
+                className={`${inputCls} w-40`}
+                placeholder="dimension name (var_name)"
+                value={String(rule.params.var_name ?? "")}
+                onChange={(e) => setParams({ var_name: e.target.value })}
+              />
+              <input
+                className={`${inputCls} w-40`}
+                placeholder="measure name (value_name)"
+                value={String(rule.params.value_name ?? "")}
+                onChange={(e) => setParams({ value_name: e.target.value })}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        {rule.operation === "custom" ? (
+          <div className="space-y-1.5">
+            <input
+              className={`${inputCls} w-full`}
+              placeholder="Expression, e.g. spend / impressions * 1000"
+              value={String(rule.params.expression ?? "")}
+              onChange={(e) => setParams({ expression: e.target.value })}
+            />
+            <input
+              className={`${inputCls} w-64`}
+              placeholder="Output column (defaults to the selected column)"
+              value={String(rule.params.output ?? "")}
+              onChange={(e) => setParams({ output: e.target.value || undefined })}
+            />
+            <p className="text-xs text-muted-foreground">
+              Column names are the variables; a sandboxed expression is evaluated per row.
+            </p>
+          </div>
+        ) : null}
       </div>
+    </div>
+  );
+}
+
+/** A compact set of column checkboxes for list-valued params (keys / id_vars / value_vars). */
+function ColumnChecklist({
+  columns,
+  selected,
+  onChange,
+}: {
+  columns: string[];
+  selected: string[];
+  onChange: (next: string[]) => void;
+}) {
+  if (columns.length === 0) {
+    return <p className="text-xs text-muted-foreground">No columns detected on this sheet.</p>;
+  }
+  function toggle(col: string, on: boolean) {
+    onChange(on ? [...selected, col] : selected.filter((c) => c !== col));
+  }
+  return (
+    <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-sm">
+      {columns.map((col) => (
+        <label key={col} className="inline-flex items-center gap-1.5">
+          <input
+            type="checkbox"
+            checked={selected.includes(col)}
+            onChange={(e) => toggle(col, e.target.checked)}
+          />
+          {col}
+        </label>
+      ))}
     </div>
   );
 }

@@ -37,9 +37,21 @@ class PreviewResponse(BaseModel):
 
 
 class SaveRuleSetRequest(BaseModel):
-    """Request to save (version) a rule set."""
+    """Request to save (version) a rule set by explicit name."""
 
     name: str = Field(min_length=1, max_length=255)
+    layer: str = RuleLayer.CUSTOMER.value
+    rules: list[RuleSpecIn]
+
+
+class SaveSheetRuleSetRequest(BaseModel):
+    """Request to save a rule set for a sheet.
+
+    The rule-set name is derived server-side from the sheet's column signature
+    (rule sets are reused across files with identical headers), so callers supply
+    only the layer and rules — never a name.
+    """
+
     layer: str = RuleLayer.CUSTOMER.value
     rules: list[RuleSpecIn]
 

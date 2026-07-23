@@ -1,0 +1,43 @@
+"""Pydantic v2 schemas for the output-generation API."""
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict
+
+
+class GenerateOutputResponse(BaseModel):
+    """Result of generating clean output for a job/sheet."""
+
+    job_id: uuid.UUID
+    file_id: uuid.UUID
+    sheet_id: uuid.UUID
+    rows_written: int
+    mapping_config_version: int | None
+    rule_set_version: int | None
+
+
+class OutputRowRead(BaseModel):
+    """A persisted clean output row with traceability metadata."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    source_file_id: uuid.UUID | None
+    source_sheet: str | None
+    source_row: int | None
+    mapping_config_version: int | None
+    rule_set_version: int | None
+    ingested_at: datetime | None
+    data: dict[str, Any]
+
+
+class OutputListResponse(BaseModel):
+    """The clean output rows generated for a job."""
+
+    file_id: uuid.UUID
+    filename: str
+    rows: list[OutputRowRead]

@@ -21,6 +21,19 @@ from mmm_os.secrets.local import LocalEncryptedSecretStore
 from mmm_os.storage.local import LocalObjectStorage
 
 
+@pytest.fixture(autouse=True)
+def _isolate_llm_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Neutralize LLM env so tests never read a developer's .env or hit a live API.
+
+    ``core.config`` calls ``load_dotenv()`` at import, so a local ``.env`` with
+    ``LLM_ENABLED=true`` plus a real key would otherwise bleed into the test process
+    and make suggestion tests call the real provider. Tests that exercise the LLM
+    set these explicitly.
+    """
+    for var in ("LLM_ENABLED", "LLM_CONFIG_FILE", "OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
+        monkeypatch.delenv(var, raising=False)
+
+
 @pytest.fixture
 def engine(tmp_path: Path) -> Engine:
     """A SQLite engine backed by a temp file, with all tables created."""

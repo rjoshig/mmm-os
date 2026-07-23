@@ -72,3 +72,7 @@ front-end/node_modules/.prisma/
 *.swp
 .DS_Store
 Thumbs.db
+
+# Office temp/lock files
+~$*
+**/~$*

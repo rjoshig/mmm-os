@@ -20,6 +20,8 @@ from mmm_os.api.routers import (
     files,
     governance,
     mapping,
+    output,
+    pipeline,
     reads,
     transform,
     validation,
@@ -70,6 +72,8 @@ def create_app() -> FastAPI:
     app.include_router(mapping.router, dependencies=protected)
     app.include_router(transform.router, dependencies=protected)
     app.include_router(validation.router, dependencies=protected)
+    app.include_router(output.router, dependencies=protected)
+    app.include_router(pipeline.router, dependencies=protected)
     app.include_router(ai.router, dependencies=protected)
     # Governance/admin routes gate on Permission.ADMIN per-route (require_auth is
     # applied within them via require_permission).

@@ -9,7 +9,13 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Populate os.environ from .env so modules that read env vars directly (e.g.
+# mmm_os.ai.config, which is not a pydantic-settings model) see them too —
+# pydantic-settings' own env_file loading only feeds this Settings class.
+load_dotenv()
 
 
 class Settings(BaseSettings):

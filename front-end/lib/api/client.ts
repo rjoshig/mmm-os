@@ -13,8 +13,12 @@ import type {
   FileDetail,
   FileListItem,
   FlagRead,
+  GenerateOutputResponse,
   IngestResponse,
   LoginResponse,
+  OutputListResponse,
+  FilePipelineStatus,
+  PipelineRunResponse,
   PreviewResponse,
   PrincipalRead,
   ProcessResponse,
@@ -152,6 +156,18 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ name, rules }),
     }),
+  getRuleSet: (name: string) =>
+    request<RuleSetRead>(tenantPath(`/rule-sets/${encodeURIComponent(name)}`)),
+  // Signature-scoped rule set for a sheet: rules are keyed by the sheet's column
+  // signature (not sheet_id), so they are reused by any file with identical headers
+  // ("configure once, reuse forever"). The backend derives the name server-side.
+  getSheetRuleSet: (sheetId: string) =>
+    request<RuleSetRead>(tenantPath(`/sheets/${sheetId}/rule-set`)),
+  saveSheetRuleSet: (sheetId: string, rules: RuleSpecIn[]) =>
+    request<RuleSetRead>(tenantPath(`/sheets/${sheetId}/rule-set`), {
+      method: "POST",
+      body: JSON.stringify({ rules }),
+    }),
 
   // --- Validation ---
   getFlags: (jobId: string) => request<FlagRead[]>(tenantPath(`/jobs/${jobId}/validation-flags`)),
@@ -160,6 +176,29 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ rows }),
     }),
+  // Validates a sheet's real data after applying its saved mapping + rule set
+  // server-side (rather than raw, un-mapped columns).
+  validateSheet: (jobId: string, sheetId: string) =>
+    request<ValidateResponse>(tenantPath(`/jobs/${jobId}/sheets/${sheetId}/validate`), {
+      method: "POST",
+    }),
+
+  // --- Output generation (final pipeline step) ---
+  generateOutput: (jobId: string, sheetId: string, force = false) =>
+    request<GenerateOutputResponse>(
+      tenantPath(`/jobs/${jobId}/sheets/${sheetId}/generate-output?force=${force}`),
+      { method: "POST" }
+    ),
+  getOutput: (jobId: string, limit = 50) =>
+    request<OutputListResponse>(tenantPath(`/jobs/${jobId}/output?limit=${limit}`)),
+
+  // --- Full pipeline (map → transform → validate → output, one call) ---
+  runPipeline: (fileId: string) =>
+    request<PipelineRunResponse>(tenantPath(`/files/${fileId}/run-pipeline`), {
+      method: "POST",
+    }),
+  getPipelineStatus: (fileId: string) =>
+    request<FilePipelineStatus>(tenantPath(`/files/${fileId}/pipeline-status`)),
   reviewFlag: (flagId: string, status: string) =>
     request<FlagRead>(tenantPath(`/validation-flags/${flagId}/review`), {
       method: "POST",

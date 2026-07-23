@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ShieldCheck, Table2, Wand2 } from "lucide-react";
+import { ArrowLeft, Play, ShieldCheck, Table2, Wand2 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -8,9 +8,10 @@ import { Badge, statusVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorBanner, Loading } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
+import { PipelineStepper } from "@/components/pipeline-stepper";
 import { Table, TD, TH, THead, TR } from "@/components/ui/table";
 import { api, ApiError } from "@/lib/api/client";
-import type { FileDetail } from "@/lib/api/types";
+import type { FileDetail, FilePipelineStatus, PipelineRunResponse } from "@/lib/api/types";
 import { formatBytes, formatDateTime } from "@/lib/format";
 
 export default function FileDetailPage() {
@@ -18,10 +19,18 @@ export default function FileDetailPage() {
   const fileId = params.fileId;
   const [data, setData] = useState<FileDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [running, setRunning] = useState(false);
+  const [pipeline, setPipeline] = useState<PipelineRunResponse | null>(null);
+  const [status, setStatus] = useState<FilePipelineStatus | null>(null);
 
   const load = useCallback(async () => {
     try {
-      setData(await api.getFile(fileId));
+      const [detail, st] = await Promise.all([
+        api.getFile(fileId),
+        api.getPipelineStatus(fileId).catch(() => null),
+      ]);
+      setData(detail);
+      setStatus(st);
       setError(null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load file.");
@@ -31,6 +40,21 @@ export default function FileDetailPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function onRunPipeline() {
+    setRunning(true);
+    setError(null);
+    setPipeline(null);
+    try {
+      const res = await api.runPipeline(fileId);
+      setPipeline(res);
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Pipeline run failed.");
+    } finally {
+      setRunning(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -54,11 +78,33 @@ export default function FileDetailPage() {
               data.file.created_at
             )}`}
             actions={
-              <Badge variant={statusVariant(data.latest_job?.status)}>
-                {data.latest_job?.status ?? "pending"}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Button onClick={onRunPipeline} disabled={running || data.sheets.length === 0}>
+                  <Play className="h-4 w-4" />
+                  {running ? "Running pipeline…" : "Run pipeline"}
+                </Button>
+                <Badge variant={statusVariant(data.latest_job?.status)}>
+                  {data.latest_job?.status ?? "pending"}
+                </Badge>
+              </div>
             }
           />
+
+          {pipeline ? (
+            <div className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
+              Pipeline complete: {pipeline.rows_written} clean output row(s).
+              {pipeline.sheets.map((s) => (
+                <span key={s.sheet_id} className="ml-2">
+                  · {s.sheet_name ?? "sheet"}:{" "}
+                  {s.needs_mapping
+                    ? "needs mapping"
+                    : s.blocked
+                      ? `${s.flag_count} flag(s), blocked`
+                      : `${s.output_rows_written} rows`}
+                </span>
+              ))}
+            </div>
+          ) : null}
 
           {data.latest_job ? (
             <Link href={`/files/${fileId}/validation`}>
@@ -75,7 +121,23 @@ export default function FileDetailPage() {
               description="Processing found no non-empty sheets, or the job failed."
             />
           ) : (
-            <Table>
+            <div className="space-y-3">
+              {status ? (
+                <div className="space-y-2">
+                  {status.sheets.map((s) => (
+                    <div
+                      key={s.sheet_id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-card px-3 py-2"
+                    >
+                      <div className="text-xs font-medium text-muted-foreground">
+                        {s.sheet_name ?? "Sheet"}
+                      </div>
+                      <PipelineStepper sheet={s} file={status} />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              <Table>
               <THead>
                 <TR>
                   <TH>Sheet</TH>
@@ -114,6 +176,7 @@ export default function FileDetailPage() {
                 ))}
               </tbody>
             </Table>
+            </div>
           )}
         </>
       )}

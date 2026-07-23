@@ -1,7 +1,8 @@
 # Phase 06.4 — Transformation Builder + Live Preview
 
 **Parent:** [`phase-06`](./phase-06-review-ui-nextjs.md) · **Depends on:** 06.1,
-06.3 · **Status:** Planned. Covers **P6-3**, **P6-4**.
+06.3 · **Status:** Done (Cycle-1 UX overhaul: full operation set + signature-scoped
+rule-set reuse). Covers **P6-3**, **P6-4**.
 
 ## Objective
 
@@ -23,17 +24,32 @@ JSON.
 - **P6.4-2** Show the ordered rule list; allow reorder/remove.
 - **P6.4-3** Live before/after preview via the `/transform/preview` endpoint on
   sample rows, updating on every change (P6-4).
-- **P6.4-4** Save the rule set (versioned) via the existing endpoint.
+- **P6.4-4** Save the rule set (versioned). Rule sets are keyed by the sheet's
+  **column signature** (not `sheet_id`), so a rule set saved on one sheet is reused
+  by any file with identical headers ("configure once, reuse forever" — mirrors
+  mapping configs). Persisted via `GET`/`POST /sheets/{sheet_id}/rule-set`, which
+  derive the signature-scoped name server-side.
+- **P6.4-5** Expose the **full operation set** (all 10 registered operations):
+  `normalize_text`, `map_value`, `fill_missing`, `rename_column`, `cast_type`,
+  `parse_date`, `convert_currency`, `dedupe`, `reshape`, `custom` — each with a
+  typed config form (no JSON).
 
 ## Deliverables
 
-- Transformation-builder route + components (op picker, config forms, preview table).
+- Transformation-builder route + components (op picker, config forms incl.
+  currency/dedupe/reshape/custom, preview table).
+- Signature-scoped rule-set endpoints + `transform.service` signature helpers
+  (`rule_set_name_for_sheet`, `get_rule_set_for_sheet`); output/validation/
+  pipeline-status all resolve rules by signature.
 
 ## Acceptance Criteria
 
 - A user collapses messy channel values via the UI and sees live before/after;
   saving persists a versioned rule set; no JSON shown.
-- `typecheck`/`lint`/`build` pass.
+- A rule set saved on one sheet is found by a **different** sheet with identical
+  headers (covered by `test_rule_set_reused_across_sheets_of_same_signature`).
+- All 10 operations are selectable with typed config forms.
+- `typecheck`/`lint`/`build` pass; backend `ruff`/`mypy`/`pytest` pass.
 
 ## Dependencies
 

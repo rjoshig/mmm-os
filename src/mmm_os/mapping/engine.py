@@ -93,3 +93,24 @@ def apply_mapping(
         invalid=invalid,
         missing_required=_missing_required(targets, schema),
     )
+
+
+def map_rows(
+    rows: list[dict[str, Any]], mapping: dict[str, str | None]
+) -> list[dict[str, Any]]:
+    """Rename each row's keys from source column name to canonical field.
+
+    Columns with no (or null) mapping are dropped, matching ``apply_mapping``'s
+    treatment of "ignored" columns.
+
+    Args:
+        rows: Records keyed by source column name.
+        mapping: ``{source_name: canonical_field | None}`` (null/absent = dropped).
+
+    Returns:
+        Records keyed by canonical field name.
+    """
+    return [
+        {target: row[source] for source, target in mapping.items() if target and source in row}
+        for row in rows
+    ]

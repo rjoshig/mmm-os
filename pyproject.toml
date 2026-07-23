@@ -84,7 +84,7 @@ extend-immutable-calls = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D"]        # docstrings not required in tests
-"migrations/*" = ["D"]   # Alembic-generated files
+"migrations/*" = ["D", "E501", "I001"]   # Alembic-generated files (long FK lines, own import order)
 
 # ---------------------------------------------------------------------------
 # mypy — type-check as strict as practical.

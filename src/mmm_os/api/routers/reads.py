@@ -16,11 +16,12 @@ from mmm_os.api.deps import get_canonical, get_storage
 from mmm_os.canonical import CanonicalConfig
 from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.db.session import get_session
-from mmm_os.ingestion.parsing import iter_sheet_rows
-from mmm_os.ingestion.service import storage_key_for
+from mmm_os.ingestion.service import load_sheet_rows
+from mmm_os.mapping.service import resolve_mapping
+from mmm_os.mapping.signature import column_signature
 from mmm_os.models import File as FileModel
-from mmm_os.models import Job, Profile, Sheet
-from mmm_os.models.enums import SheetStatus
+from mmm_os.models import Job, OutputRow, Profile, Sheet, ValidationFlag
+from mmm_os.models.enums import ReviewStatus, Severity, SheetStatus
 from mmm_os.schemas.canonical import CanonicalFieldRead, CanonicalFieldsResponse
 from mmm_os.schemas.file import (
     FileDetail,
@@ -32,7 +33,9 @@ from mmm_os.schemas.file import (
     SheetRead,
     SheetRowsResponse,
 )
+from mmm_os.schemas.pipeline import FilePipelineStatus, SheetPipelineStatus
 from mmm_os.storage import ObjectStorage
+from mmm_os.transform.service import get_rule_set, rule_set_name_for_sheet
 
 router = APIRouter(prefix="/api/v1", tags=["reads"])
 
@@ -153,29 +156,17 @@ def get_sheet_rows(
 ) -> SheetRowsResponse:
     """Return the first ``limit`` real data rows of a sheet (below the header).
 
-    Streams from the immutable stored file (reusing ``iter_sheet_rows``) and keys
-    each row by the sheet's detected column names. Used by the transform-preview
-    and validation screens instead of zipped profile samples.
+    Streams from the immutable stored file and keys each row by the sheet's
+    detected column names. Used by the transform-preview and validation screens
+    instead of zipped profile samples.
     """
-    sheet = session.scalar(tenant_scoped_select(Sheet, tenant_id).where(Sheet.id == sheet_id))
-    if sheet is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="sheet not found")
-    file = session.scalar(
-        tenant_scoped_select(FileModel, tenant_id).where(FileModel.id == sheet.file_id)
-    )
-    if file is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="file not found")
-
+    try:
+        sheet, rows = load_sheet_rows(
+            session, storage, tenant_id=tenant_id, sheet_id=sheet_id, limit=limit
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     names = [str(c["name"]) for c in sheet.columns]
-    header_index = sheet.header_row_index
-    rows: list[dict[str, object]] = []
-    with storage.open(storage_key_for(file)) as stream:
-        for i, raw in enumerate(iter_sheet_rows(stream, file.filename, sheet.sheet_index)):
-            if header_index is not None and i <= header_index:
-                continue
-            rows.append({name: (raw[j] if j < len(raw) else None) for j, name in enumerate(names)})
-            if len(rows) >= limit:
-                break
     return SheetRowsResponse(columns=names, rows=rows)
 
 
@@ -189,3 +180,85 @@ def list_jobs(
         select(Job).where(Job.tenant_id == tenant_id).order_by(Job.created_at.desc())
     ).all()
     return [JobRead.model_validate(j) for j in jobs]
+
+
+# Stage states for the file-detail pipeline stepper (Phase 6 UX overhaul).
+_RESOLVED_REVIEW = {ReviewStatus.RESOLVED.value, ReviewStatus.OVERRIDDEN.value}
+
+
+@router.get(
+    "/tenants/{tenant_id}/files/{file_id}/pipeline-status",
+    response_model=FilePipelineStatus,
+)
+def get_pipeline_status(
+    tenant_id: uuid.UUID,
+    file_id: uuid.UUID,
+    session: Session = Depends(get_session),
+) -> FilePipelineStatus:
+    """Return the per-sheet + file-level pipeline stage for the UI stepper.
+
+    Per sheet: whether a saved mapping resolves for its column signature and
+    whether a saved rule set exists. File-level: whether validation has run
+    (flags exist), how many blocking flags are still open, and whether any clean
+    output rows exist.
+    """
+    file = session.scalar(
+        tenant_scoped_select(FileModel, tenant_id).where(FileModel.id == file_id)
+    )
+    if file is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="file not found")
+
+    sheets = session.scalars(
+        select(Sheet)
+        .where(Sheet.tenant_id == tenant_id, Sheet.file_id == file.id)
+        .order_by(Sheet.sheet_index)
+    ).all()
+
+    sheet_status: list[SheetPipelineStatus] = []
+    for sheet in sheets:
+        mapping = resolve_mapping(session, tenant_id, column_signature(sheet.columns))
+        rule_set = get_rule_set(session, tenant_id, rule_set_name_for_sheet(sheet))
+        sheet_status.append(
+            SheetPipelineStatus(
+                sheet_id=sheet.id,
+                sheet_name=sheet.sheet_name,
+                has_mapping=bool(mapping),
+                has_rule_set=rule_set is not None,
+            )
+        )
+
+    job = session.scalar(
+        select(Job)
+        .where(Job.tenant_id == tenant_id, Job.file_id == file.id)
+        .order_by(Job.created_at.desc())
+    )
+    flags = (
+        session.scalars(
+            select(ValidationFlag).where(
+                ValidationFlag.tenant_id == tenant_id, ValidationFlag.job_id == job.id
+            )
+        ).all()
+        if job is not None
+        else []
+    )
+    blocking_open = sum(
+        1
+        for f in flags
+        if f.severity == Severity.BLOCKING.value and f.review_status not in _RESOLVED_REVIEW
+    )
+    has_output = (
+        session.scalar(
+            select(OutputRow.id)
+            .where(OutputRow.tenant_id == tenant_id, OutputRow.source_file_id == file.id)
+            .limit(1)
+        )
+        is not None
+    )
+
+    return FilePipelineStatus(
+        file_id=file.id,
+        validated=bool(flags),
+        blocking_open=blocking_open,
+        has_output=has_output,
+        sheets=sheet_status,
+    )

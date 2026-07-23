@@ -30,12 +30,15 @@ class OpenAIClient:
         """Build the OpenAI client from config (SDK imported lazily)."""
         self._config = config
         try:
-            from openai import OpenAI
+            from openai import OpenAI, OpenAIError
         except ImportError as exc:  # pragma: no cover - exercised only without the SDK
             raise LLMError("openai package not installed; install 'mmm-os[llm]'") from exc
-        self._client = OpenAI(
-            api_key=config.api_key, base_url=config.base_url, timeout=config.timeout_seconds
-        )
+        try:
+            self._client = OpenAI(
+                api_key=config.api_key, base_url=config.base_url, timeout=config.timeout_seconds
+            )
+        except OpenAIError as exc:
+            raise LLMError(f"failed to initialize OpenAI client: {exc}") from exc
 
     def complete(self, *, system: str, user: str) -> str:
         """Return a chat completion using the configured model."""
@@ -61,7 +64,12 @@ class AnthropicClient:
             import anthropic
         except ImportError as exc:  # pragma: no cover - exercised only without the SDK
             raise LLMError("anthropic package not installed; install 'mmm-os[llm]'") from exc
-        self._client = anthropic.Anthropic(api_key=config.api_key, timeout=config.timeout_seconds)
+        try:
+            self._client = anthropic.Anthropic(
+                api_key=config.api_key, timeout=config.timeout_seconds
+            )
+        except anthropic.AnthropicError as exc:
+            raise LLMError(f"failed to initialize Anthropic client: {exc}") from exc
 
     def complete(self, *, system: str, user: str) -> str:
         """Return a message completion using the configured model."""
@@ -72,7 +80,7 @@ class AnthropicClient:
             max_tokens=self._config.max_tokens,
             temperature=self._config.temperature,
         )
-        parts = [block.text for block in message.content if getattr(block, "type", None) == "text"]
+        parts = [block.text for block in message.content if block.type == "text"]
         return str("".join(parts))
 
 

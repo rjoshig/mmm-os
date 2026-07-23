@@ -7,16 +7,43 @@ precedence order global → template → customer.
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from mmm_os.models import Rule, RuleSet
+from mmm_os.mapping.signature import column_signature
+from mmm_os.models import Rule, RuleSet, Sheet
 from mmm_os.services.config_versioning import save_rule_set
 from mmm_os.transform.types import RuleSpec
 
 _LAYERS = ("global", "template", "customer")
+
+
+def rule_set_name_for_signature(signature: str) -> str:
+    """Return the rule-set natural-key name for a column signature.
+
+    Rule sets are reused across files with identical headers, so they are keyed by
+    column signature (like mappings) rather than by ``sheet_id``. Signatures are
+    usually short; a SHA-256 fallback keeps the name within the column's 255 chars
+    for very wide sheets.
+    """
+    if len(signature) <= 240:
+        return f"sig:{signature}"
+    return f"sig:{hashlib.sha256(signature.encode()).hexdigest()[:16]}"
+
+
+def rule_set_name_for_sheet(sheet: Sheet) -> str:
+    """Return the signature-derived rule-set name for a sheet's columns."""
+    return rule_set_name_for_signature(column_signature(sheet.columns))
+
+
+def get_rule_set_for_sheet(
+    session: Session, tenant_id: uuid.UUID, sheet: Sheet
+) -> RuleSet | None:
+    """Fetch the latest saved rule set matching a sheet's column signature."""
+    return get_rule_set(session, tenant_id, rule_set_name_for_sheet(sheet))
 
 
 def save_rule_set_with_rules(
@@ -78,6 +105,13 @@ def _latest_rule_set(
         .where(RuleSet.tenant_id == tenant_id, RuleSet.name == name, RuleSet.layer == layer)
         .order_by(RuleSet.version.desc())
     )
+
+
+def get_rule_set(
+    session: Session, tenant_id: uuid.UUID, name: str, layer: str = "customer"
+) -> RuleSet | None:
+    """Fetch the latest version of a named rule set, or ``None`` if none exists."""
+    return _latest_rule_set(session, tenant_id, name, layer)
 
 
 def resolve_rule_specs(session: Session, tenant_id: uuid.UUID, name: str) -> list[RuleSpec]:

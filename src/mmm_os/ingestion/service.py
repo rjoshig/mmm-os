@@ -8,11 +8,13 @@ from __future__ import annotations
 
 import re
 import uuid
-from typing import IO
+from typing import IO, Any
 
 from sqlalchemy.orm import Session
 
-from mmm_os.models import File, Job
+from mmm_os.db.scoping import tenant_scoped_select
+from mmm_os.ingestion.parsing import iter_sheet_rows
+from mmm_os.models import File, Job, Sheet
 from mmm_os.models.enums import JobStatus
 from mmm_os.storage.base import ObjectStorage
 
@@ -85,3 +87,46 @@ def ingest_file(
     session.add(job)
     session.flush()
     return file, job
+
+
+def load_sheet_rows(
+    session: Session,
+    storage: ObjectStorage,
+    *,
+    tenant_id: uuid.UUID,
+    sheet_id: uuid.UUID,
+    limit: int,
+) -> tuple[Sheet, list[dict[str, Any]]]:
+    """Return a sheet plus its first ``limit`` real data rows, keyed by source column name.
+
+    Streams from the immutable stored file (below the header row). Shared by the
+    rows read endpoint and by anything that needs a sheet's raw rows before mapping.
+
+    Args:
+        session: The database session.
+        storage: The object-storage backend.
+        tenant_id: The owning tenant.
+        sheet_id: The sheet to read.
+        limit: Maximum number of data rows to return.
+
+    Returns:
+        The ``Sheet`` and its raw rows (keyed by detected column name).
+    """
+    sheet = session.scalar(tenant_scoped_select(Sheet, tenant_id).where(Sheet.id == sheet_id))
+    if sheet is None:
+        raise ValueError("sheet not found")
+    file = session.scalar(tenant_scoped_select(File, tenant_id).where(File.id == sheet.file_id))
+    if file is None:
+        raise ValueError("file not found")
+
+    names = [str(c["name"]) for c in sheet.columns]
+    header_index = sheet.header_row_index
+    rows: list[dict[str, Any]] = []
+    with storage.open(storage_key_for(file)) as stream:
+        for i, raw in enumerate(iter_sheet_rows(stream, file.filename, sheet.sheet_index)):
+            if header_index is not None and i <= header_index:
+                continue
+            rows.append({name: (raw[j] if j < len(raw) else None) for j, name in enumerate(names)})
+            if len(rows) >= limit:
+                break
+    return sheet, rows

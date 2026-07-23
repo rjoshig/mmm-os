@@ -243,3 +243,63 @@ export interface ValidateResponse {
   blocked: boolean;
   flags: FlagRead[];
 }
+
+export interface GenerateOutputResponse {
+  job_id: Uuid;
+  file_id: Uuid;
+  sheet_id: Uuid;
+  rows_written: number;
+  mapping_config_version: number | null;
+  rule_set_version: number | null;
+}
+
+export interface OutputRowRead {
+  id: Uuid;
+  source_file_id: Uuid | null;
+  source_sheet: string | null;
+  source_row: number | null;
+  mapping_config_version: number | null;
+  rule_set_version: number | null;
+  ingested_at: string | null;
+  data: Record<string, unknown>;
+}
+
+export interface OutputListResponse {
+  file_id: Uuid;
+  filename: string;
+  rows: OutputRowRead[];
+}
+
+export interface SheetPipelineRead {
+  sheet_id: Uuid;
+  sheet_name: string | null;
+  needs_mapping: boolean;
+  mapping_config_version: number | null;
+  missing_required: string[];
+  flag_count: number;
+  blocked: boolean;
+  output_rows_written: number | null;
+  rule_set_version: number | null;
+}
+
+export interface PipelineRunResponse {
+  file_id: Uuid;
+  job_id: Uuid;
+  rows_written: number;
+  sheets: SheetPipelineRead[];
+}
+
+export interface SheetPipelineStatus {
+  sheet_id: Uuid;
+  sheet_name: string | null;
+  has_mapping: boolean;
+  has_rule_set: boolean;
+}
+
+export interface FilePipelineStatus {
+  file_id: Uuid;
+  validated: boolean;
+  blocking_open: number;
+  has_output: boolean;
+  sheets: SheetPipelineStatus[];
+}

@@ -34,6 +34,7 @@ export default function TransformBuilderPage() {
   const [saving, setSaving] = useState(false);
 
   const columns = useMemo(() => (sheet?.sheet.columns ?? []).map((c) => c.name), [sheet]);
+  const [ruleSetVersion, setRuleSetVersion] = useState<number | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -46,6 +47,29 @@ export default function TransformBuilderPage() {
         setRows(sample.rows);
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "Failed to load sheet.");
+      }
+      try {
+        const existing = await api.getSheetRuleSet(sheetId);
+        setRuleSetVersion(existing.version);
+        setRules(
+          existing.rules
+            .slice()
+            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+            .map((spec) => {
+              ruleSeq += 1;
+              return {
+                id: `r${ruleSeq}`,
+                operation: spec.operation,
+                target_field: spec.target_field ?? "",
+                params: spec.params ?? {},
+              };
+            })
+        );
+      } catch (err) {
+        // No saved rule set yet for this sheet — start from an empty builder.
+        if (!(err instanceof ApiError && err.status === 404)) {
+          setError(err instanceof ApiError ? err.message : "Failed to load saved rules.");
+        }
       }
     })();
   }, [sheetId]);
@@ -76,8 +100,12 @@ export default function TransformBuilderPage() {
     setError(null);
     setNotice(null);
     try {
-      const res = await api.saveRuleSet(`rules v${Date.now()}`, rules.map(toSpec));
-      setNotice(`Saved rule set (v${res.version}, ${res.rules.length} rule(s)).`);
+      const res = await api.saveSheetRuleSet(sheetId, rules.map(toSpec));
+      setRuleSetVersion(res.version);
+      setNotice(
+        `Saved rule set (v${res.version}, ${res.rules.length} rule(s)). ` +
+          "Reused automatically by any file with these same columns."
+      );
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Save failed.");
     } finally {
@@ -99,7 +127,11 @@ export default function TransformBuilderPage() {
       <PageHeader
         eyebrow="Transformation builder"
         title={sheet?.sheet.sheet_name ?? "Transform"}
-        description="Add rules by picking a column and an operation. Preview updates live; no JSON required."
+        description={
+          ruleSetVersion
+            ? `Loaded saved rule set v${ruleSetVersion}. Add rules by picking a column and an operation. Preview updates live; no JSON required.`
+            : "Add rules by picking a column and an operation. Preview updates live; no JSON required."
+        }
         actions={
           <>
             <Button variant="outline" onClick={() => setRules((r) => [...r, newRule()])}>

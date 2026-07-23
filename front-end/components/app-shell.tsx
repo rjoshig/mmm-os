@@ -5,6 +5,11 @@ import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { getToken } from "@/lib/session";
 
+// Mirrors the backend's AUTH_ENABLED flag (root .env). Keep the two in sync:
+// when the backend requires auth, gate the UI too; when it doesn't, skip the
+// redirect so the dashboard is reachable without logging in.
+const AUTH_ENABLED = process.env.NEXT_PUBLIC_AUTH_ENABLED === "true";
+
 /**
  * App chrome + auth guard. Unauthenticated users are sent to /login; the login
  * route renders without the sidebar. The token check is client-side only (the
@@ -18,7 +23,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    if (!isLogin && !getToken()) {
+    if (AUTH_ENABLED && !isLogin && !getToken()) {
       router.replace("/login");
       return;
     }

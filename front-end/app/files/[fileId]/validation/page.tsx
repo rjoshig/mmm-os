@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Play, ShieldAlert, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Download, Play, ShieldAlert, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -10,7 +10,12 @@ import { EmptyState, ErrorBanner, Loading } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, TD, TH, THead, TR } from "@/components/ui/table";
 import { api, ApiError } from "@/lib/api/client";
-import type { FileDetail, FlagRead } from "@/lib/api/types";
+import type {
+  FileDetail,
+  FlagRead,
+  GenerateOutputResponse,
+  OutputRowRead,
+} from "@/lib/api/types";
 
 const REVIEW_ACTIONS: { status: string; label: string }[] = [
   { status: "acknowledged", label: "Acknowledge" },
@@ -24,8 +29,12 @@ export default function ValidationReviewPage() {
   const [flags, setFlags] = useState<FlagRead[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [outputSummary, setOutputSummary] = useState<GenerateOutputResponse | null>(null);
+  const [outputRows, setOutputRows] = useState<OutputRowRead[] | null>(null);
 
   const jobId = file?.latest_job?.id ?? null;
+  const firstSheetId = file?.sheets[0]?.id ?? null;
 
   const load = useCallback(async () => {
     try {
@@ -52,10 +61,11 @@ export default function ValidationReviewPage() {
     setRunning(true);
     setError(null);
     try {
-      // Validate the first sheet's real data rows (exact, via the rows endpoint).
+      // Validates the first sheet's data after applying its saved mapping + rule
+      // set server-side — not raw, un-mapped columns.
       const first = file.sheets[0];
-      const rows = first ? (await api.getSheetRows(first.id, 50)).rows : [];
-      const res = await api.validateJob(jobId, rows);
+      if (!first) return;
+      const res = await api.validateSheet(jobId, first.id);
       setFlags(res.flags);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Validation run failed.");
@@ -73,8 +83,27 @@ export default function ValidationReviewPage() {
     }
   }
 
+  async function onGenerate(force = false) {
+    if (!jobId || !firstSheetId) return;
+    setGenerating(true);
+    setError(null);
+    try {
+      const summary = await api.generateOutput(jobId, firstSheetId, force);
+      setOutputSummary(summary);
+      const out = await api.getOutput(jobId, 50);
+      setOutputRows(out.rows);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Output generation failed.");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   const blocked = (flags ?? []).some(
-    (f) => f.severity.toLowerCase() === "block" && f.review_status === "open"
+    (f) =>
+      f.severity.toLowerCase() === "blocking" &&
+      f.review_status !== "resolved" &&
+      f.review_status !== "overridden"
   );
 
   return (
@@ -92,10 +121,20 @@ export default function ValidationReviewPage() {
         description="Review quality flags with severity, location, and explanation; acknowledge, resolve, or override."
         actions={
           jobId ? (
-            <Button variant="outline" onClick={onRun} disabled={running}>
-              <Play className="h-4 w-4" />
-              {running ? "Running…" : "Run validation"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={onRun} disabled={running}>
+                <Play className="h-4 w-4" />
+                {running ? "Running…" : "Run validation"}
+              </Button>
+              <Button
+                onClick={() => onGenerate(false)}
+                disabled={generating || !firstSheetId || blocked}
+                title={blocked ? "Resolve/override blocking flags first, or force" : undefined}
+              >
+                <Download className="h-4 w-4" />
+                {generating ? "Generating…" : "Generate output"}
+              </Button>
+            </div>
           ) : undefined
         }
       />
@@ -103,7 +142,22 @@ export default function ValidationReviewPage() {
       {blocked ? (
         <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           <ShieldAlert className="h-4 w-4" />
-          Output is blocked by unresolved BLOCK-severity flags.
+          <span>Output is blocked by unresolved blocking-severity flags.</span>
+          <button
+            type="button"
+            className="ml-auto text-xs underline underline-offset-2"
+            onClick={() => onGenerate(true)}
+            disabled={generating || !firstSheetId}
+          >
+            {generating ? "Forcing…" : "Generate anyway (force)"}
+          </button>
+        </div>
+      ) : null}
+      {outputSummary ? (
+        <div className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
+          Generated {outputSummary.rows_written} clean output rows · mapping v
+          {outputSummary.mapping_config_version ?? "—"} · rules v
+          {outputSummary.rule_set_version ?? "—"}.
         </div>
       ) : null}
       {error ? <ErrorBanner message={error} /> : null}
@@ -164,7 +218,51 @@ export default function ValidationReviewPage() {
           </tbody>
         </Table>
       )}
+
+      {outputRows ? (
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold">Clean output ({outputRows.length} shown)</h2>
+          {outputRows.length === 0 ? (
+            <EmptyState
+              title="No output rows"
+              description="Generate output to finalize this file's clean, canonical data."
+            />
+          ) : (
+            <OutputPreview rows={outputRows} />
+          )}
+        </div>
+      ) : null}
     </div>
+  );
+}
+
+function OutputPreview({ rows }: { rows: OutputRowRead[] }) {
+  const cols = Array.from(new Set(rows.flatMap((r) => Object.keys(r.data))));
+  return (
+    <Table>
+      <THead>
+        <TR>
+          {cols.map((c) => (
+            <TH key={c}>{c}</TH>
+          ))}
+        </TR>
+      </THead>
+      <tbody>
+        {rows.slice(0, 20).map((r) => (
+          <TR key={r.id}>
+            {cols.map((c) => (
+              <TD key={c} className="tabular-nums">
+                {r.data[c] == null ? (
+                  <span className="text-muted-foreground">—</span>
+                ) : (
+                  String(r.data[c])
+                )}
+              </TD>
+            ))}
+          </TR>
+        ))}
+      </tbody>
+    </Table>
   );
 }
 
