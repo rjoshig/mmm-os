@@ -46,7 +46,8 @@ def test_job_detail_has_filename_and_stage_events(client: TestClient) -> None:
     _upload_and_process(client, tenant_id)
     jobs = client.get(f"/api/v1/tenants/{tenant_id}/jobs").json()
     assert jobs, "expected at least one job"
-    job_id = jobs[0]["id"]
+    assert jobs[0]["filename"] == "data.csv"  # list items are enriched (Cycle 6)
+    job_id = jobs[0]["job"]["id"]
 
     detail = client.get(f"/api/v1/tenants/{tenant_id}/jobs/{job_id}")
     assert detail.status_code == 200, detail.text

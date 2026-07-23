@@ -54,6 +54,7 @@ def ingest_file(
     content_type: str | None,
     stream: IO[bytes],
     max_bytes: int | None = None,
+    created_by: uuid.UUID | None = None,
 ) -> tuple[File, Job]:
     """Store a raw upload immutably and create its file + job records.
 
@@ -65,6 +66,7 @@ def ingest_file(
         content_type: The uploaded content type, if known.
         stream: A readable binary stream of the upload's bytes.
         max_bytes: Optional size ceiling (raises ``FileTooLargeError`` if exceeded).
+        created_by: The user id triggering this ingest (Cycle 6), if known.
 
     Returns:
         The created ``(File, Job)`` pair, flushed.
@@ -82,7 +84,12 @@ def ingest_file(
         storage_uri=stored.uri,
         checksum_sha256=stored.checksum_sha256,
     )
-    job = Job(tenant_id=tenant_id, file_id=file_id, status=JobStatus.PENDING.value)
+    job = Job(
+        tenant_id=tenant_id,
+        file_id=file_id,
+        status=JobStatus.PENDING.value,
+        created_by=created_by,
+    )
     session.add(file)
     session.add(job)
     session.flush()

@@ -37,6 +37,15 @@ class JobRead(BaseModel):
     started_at: datetime | None = None
     finished_at: datetime | None = None
     error: str | None = None
+    created_by: uuid.UUID | None = None
+
+
+class JobListItem(BaseModel):
+    """A job enriched with filename + actor email for the Runs table (Cycle 6)."""
+
+    job: JobRead
+    filename: str | None
+    triggered_by_email: str | None
 
 
 class JobEventRead(BaseModel):

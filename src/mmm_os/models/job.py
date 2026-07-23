@@ -26,6 +26,10 @@ class Job(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     error: Mapped[str | None] = mapped_column(Text)
+    # Who triggered this run (Cycle 6); nullable for system/scheduled jobs.
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("user.id", ondelete="SET NULL")
+    )
 
 
 class JobEvent(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):

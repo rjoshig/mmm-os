@@ -1,21 +1,34 @@
 "use client";
 
-import { ChevronDown, ChevronRight, ListChecks } from "lucide-react";
+import { ListChecks } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Badge, statusVariant } from "@/components/ui/badge";
-import { EmptyState, ErrorBanner } from "@/components/ui/feedback";
+import { DataTable, type DataColumn } from "@/components/ui/data-table";
+import { ErrorBanner } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
 import { TableSkeleton } from "@/components/ui/skeleton";
 import { api, ApiError } from "@/lib/api/client";
-import type { JobDetail, JobRead, SyncRunListItem } from "@/lib/api/types";
+import type { JobDetail, JobListItem, SyncRunListItem } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 
 type Tab = "jobs" | "syncs";
 
+/** Human duration between two ISO timestamps, or "—" when unavailable. */
+function duration(start?: string | null, end?: string | null): string {
+  if (!start || !end) return "—";
+  const ms = new Date(end).getTime() - new Date(start).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return "—";
+  if (ms < 1000) return `${ms} ms`;
+  const s = ms / 1000;
+  if (s < 60) return `${s.toFixed(1)}s`;
+  const m = Math.floor(s / 60);
+  return `${m}m ${Math.round(s % 60)}s`;
+}
+
 export default function RunsPage() {
   const [tab, setTab] = useState<Tab>("jobs");
-  const [jobs, setJobs] = useState<JobRead[] | null>(null);
+  const [jobs, setJobs] = useState<JobListItem[] | null>(null);
   const [syncs, setSyncs] = useState<SyncRunListItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,12 +49,119 @@ export default function RunsPage() {
     void load();
   }, [load]);
 
+  const jobColumns: DataColumn<JobListItem>[] = [
+    {
+      key: "status",
+      header: "Status",
+      cell: (r) => <Badge variant={statusVariant(r.job.status)}>{r.job.status}</Badge>,
+      sortKey: (r) => r.job.status,
+    },
+    {
+      key: "source",
+      header: "Source",
+      cell: (r) =>
+        r.job.file_id ? (
+          <Link
+            href={`/files/${r.job.file_id}`}
+            className="font-medium text-foreground hover:text-primary hover:underline"
+          >
+            {r.filename ?? "file"}
+          </Link>
+        ) : (
+          <span className="text-muted-foreground">{r.filename ?? "—"}</span>
+        ),
+      sortKey: (r) => r.filename ?? "",
+    },
+    {
+      key: "by",
+      header: "Triggered by",
+      cell: (r) => (
+        <span className="text-muted-foreground">{r.triggered_by_email ?? "system"}</span>
+      ),
+      sortKey: (r) => r.triggered_by_email ?? "system",
+    },
+    {
+      key: "started",
+      header: "Started",
+      cell: (r) => (
+        <span className="text-muted-foreground">
+          {formatDateTime(r.job.started_at ?? r.job.created_at)}
+        </span>
+      ),
+      sortKey: (r) => r.job.started_at ?? r.job.created_at,
+    },
+    {
+      key: "duration",
+      header: "Duration",
+      align: "right",
+      cell: (r) => duration(r.job.started_at, r.job.finished_at),
+      sortKey: (r) =>
+        r.job.started_at && r.job.finished_at
+          ? new Date(r.job.finished_at).getTime() - new Date(r.job.started_at).getTime()
+          : -1,
+    },
+  ];
+
+  const syncColumns: DataColumn<SyncRunListItem>[] = [
+    {
+      key: "status",
+      header: "Status",
+      cell: (r) => <Badge variant={statusVariant(r.run.status)}>{r.run.status}</Badge>,
+      sortKey: (r) => r.run.status,
+    },
+    {
+      key: "connector",
+      header: "Connector",
+      cell: (r) => (
+        <span className="flex items-center gap-2">
+          <span className="font-medium">{r.connector_name}</span>
+          <Badge variant="secondary">{r.connector_key}</Badge>
+        </span>
+      ),
+      sortKey: (r) => r.connector_name,
+    },
+    {
+      key: "window",
+      header: "Window",
+      cell: (r) => (
+        <span className="font-mono text-xs text-muted-foreground">
+          {r.run.window_start} → {r.run.window_end}
+        </span>
+      ),
+    },
+    {
+      key: "rows",
+      header: "Rows",
+      align: "right",
+      cell: (r) => r.run.row_count ?? 0,
+      sortKey: (r) => r.run.row_count ?? 0,
+    },
+    {
+      key: "by",
+      header: "Triggered by",
+      cell: (r) => (
+        <span className="text-muted-foreground">{r.triggered_by_email ?? "scheduler"}</span>
+      ),
+      sortKey: (r) => r.triggered_by_email ?? "scheduler",
+    },
+    {
+      key: "finished",
+      header: "Finished",
+      cell: (r) => (
+        <span className="text-muted-foreground">
+          {formatDateTime(r.run.finished_at ?? r.run.started_at ?? "")}
+        </span>
+      ),
+      sortKey: (r) => r.run.finished_at ?? r.run.started_at ?? "",
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Automation"
         title="Runs"
-        description="Every pipeline job and connector sync, with status, timing, and stage logs (CC-7)."
+        description="Every pipeline job and connector sync — status, timing, who ran it, and per-stage logs (CC-7)."
       />
 
       <div className="inline-flex rounded-md border border-border p-0.5 text-sm">
@@ -67,121 +187,72 @@ export default function RunsPage() {
 
       {tab === "jobs" ? (
         jobs === null ? (
-          <TableSkeleton rows={5} cols={4} />
-        ) : jobs.length === 0 ? (
-          <EmptyState
-            icon={<ListChecks className="h-6 w-6" />}
-            title="No jobs yet"
-            description="Process a file or run the pipeline to see jobs here."
-          />
+          <TableSkeleton rows={6} cols={5} />
         ) : (
-          <div className="space-y-2">
-            {jobs.map((job) => (
-              <JobRow key={job.id} job={job} />
-            ))}
-          </div>
+          <DataTable
+            rows={jobs}
+            columns={jobColumns}
+            rowKey={(r) => r.job.id}
+            search={(r) => `${r.filename ?? ""} ${r.job.status} ${r.triggered_by_email ?? ""}`}
+            searchPlaceholder="Search jobs…"
+            emptyTitle="No jobs yet"
+            emptyDescription="Process a file or run the pipeline to see jobs here."
+            initialSort={{ key: "started", dir: "desc" }}
+            expandable={(r) => <JobStages jobId={r.job.id} />}
+          />
         )
       ) : null}
 
       {tab === "syncs" ? (
         syncs === null ? (
-          <TableSkeleton rows={5} cols={4} />
-        ) : syncs.length === 0 ? (
-          <EmptyState
-            icon={<ListChecks className="h-6 w-6" />}
-            title="No connector syncs yet"
-            description="Trigger a sync from Sources to see connector runs here."
-          />
+          <TableSkeleton rows={6} cols={5} />
         ) : (
-          <div className="space-y-1.5">
-            {syncs.map(({ run, connector_key, connector_name }) => (
-              <div
-                key={run.id}
-                className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-2.5 text-sm"
-              >
-                <Badge variant={statusVariant(run.status)}>{run.status}</Badge>
-                <span className="font-medium">{connector_name}</span>
-                <Badge variant="secondary">{connector_key}</Badge>
-                <span className="font-mono text-xs text-muted-foreground">
-                  {run.window_start} → {run.window_end}
-                </span>
-                <span className="tabular-nums text-muted-foreground">{run.row_count ?? 0} rows</span>
-                {run.error ? <span className="text-xs text-destructive">{run.error}</span> : null}
-                <span className="ml-auto text-xs text-muted-foreground">
-                  {formatDateTime(run.finished_at ?? run.started_at ?? "")}
-                </span>
-              </div>
-            ))}
-          </div>
+          <DataTable
+            rows={syncs}
+            columns={syncColumns}
+            rowKey={(r) => r.run.id}
+            search={(r) => `${r.connector_name} ${r.connector_key} ${r.run.status}`}
+            searchPlaceholder="Search syncs…"
+            emptyTitle="No connector syncs yet"
+            emptyDescription="Trigger a sync from Sources to see connector runs here."
+            initialSort={{ key: "finished", dir: "desc" }}
+          />
         )
       ) : null}
     </div>
   );
 }
 
-function JobRow({ job }: { job: JobRead }) {
-  const [open, setOpen] = useState(false);
+function JobStages({ jobId }: { jobId: string }) {
   const [detail, setDetail] = useState<JobDetail | null>(null);
 
   useEffect(() => {
-    if (open && detail === null) {
-      api.getJob(job.id).then(setDetail).catch(() => setDetail(null));
-    }
-  }, [open, detail, job.id]);
+    api
+      .getJob(jobId)
+      .then(setDetail)
+      .catch(() => setDetail(null));
+  }, [jobId]);
+
+  if (detail === null) return <p className="text-xs text-muted-foreground">Loading stages…</p>;
+  if (detail.job.error)
+    return <p className="text-sm text-destructive">Error: {detail.job.error}</p>;
+  if (detail.events.length === 0)
+    return <p className="text-xs text-muted-foreground">No stage events recorded.</p>;
 
   return (
-    <div className="rounded-lg border border-border bg-card">
-      <div className="flex flex-wrap items-center gap-3 p-3">
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          className="text-muted-foreground hover:text-foreground"
-          aria-label={open ? "Collapse" : "Expand"}
-        >
-          {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-        </button>
-        <Badge variant={statusVariant(job.status)}>{job.status}</Badge>
-        <span className="text-sm">{detail?.filename ?? "job"}</span>
-        {job.error ? <span className="text-xs text-destructive">{job.error}</span> : null}
-        <div className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
-          {job.file_id ? (
-            <Link href={`/files/${job.file_id}`} className="hover:text-primary hover:underline">
-              open file
-            </Link>
+    <div className="space-y-1.5">
+      {detail.events.map((ev, i) => (
+        <div key={i} className="flex flex-wrap items-center gap-3 text-sm">
+          <Badge variant={statusVariant(ev.status)}>{ev.status}</Badge>
+          <span className="font-medium">{ev.stage}</span>
+          {ev.message ? <span className="text-muted-foreground">{ev.message}</span> : null}
+          {ev.duration_ms != null ? (
+            <span className="ml-auto tabular-nums text-xs text-muted-foreground">
+              {ev.duration_ms} ms
+            </span>
           ) : null}
-          <span>{formatDateTime(job.finished_at ?? job.created_at)}</span>
         </div>
-      </div>
-
-      {open ? (
-        <div className="border-t border-border p-3">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Stages
-          </h3>
-          {detail === null ? (
-            <p className="text-xs text-muted-foreground">Loading…</p>
-          ) : detail.events.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No stage events recorded.</p>
-          ) : (
-            <div className="space-y-1.5">
-              {detail.events.map((ev, i) => (
-                <div key={i} className="flex flex-wrap items-center gap-3 text-sm">
-                  <Badge variant={statusVariant(ev.status)}>{ev.status}</Badge>
-                  <span className="font-medium">{ev.stage}</span>
-                  {ev.message ? (
-                    <span className="text-muted-foreground">{ev.message}</span>
-                  ) : null}
-                  {ev.duration_ms != null ? (
-                    <span className="ml-auto tabular-nums text-xs text-muted-foreground">
-                      {ev.duration_ms} ms
-                    </span>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : null}
+      ))}
     </div>
   );
 }

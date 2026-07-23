@@ -13,13 +13,14 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from mmm_os.auth.service import Principal
 from mmm_os.authz import Permission, require_permission
 from mmm_os.connectors.autoschedule import run_due_syncs
 from mmm_os.connectors.registry import CONNECTOR_KEYS, PARTNER_KEYS, build_partner_connector
 from mmm_os.connectors.scheduling import incremental_window, run_sync
 from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.db.session import get_session
-from mmm_os.models import ConnectorConfig, SyncRun
+from mmm_os.models import ConnectorConfig, SyncRun, User
 from mmm_os.models.mixins import utcnow
 from mmm_os.schemas.connectors import (
     ConnectorConfigCreate,
@@ -113,6 +114,7 @@ def trigger_sync(
     tenant_id: uuid.UUID,
     config_id: uuid.UUID,
     session: Session = Depends(get_session),
+    principal: Principal | None = _ADMIN,
 ) -> SyncRunRead:
     """Run an incremental sync now (dev: fake client) and record a SyncRun."""
     config = _get_config(session, tenant_id, config_id)
@@ -124,7 +126,13 @@ def trigger_sync(
     connector = build_partner_connector(
         config.connector_key, account_ctx=config.settings.get("account_ctx", {})
     )
-    result = run_sync(session, connector, config, incremental_window(config, date.today()))
+    result = run_sync(
+        session,
+        connector,
+        config,
+        incremental_window(config, date.today()),
+        created_by=principal.user_id if principal else None,
+    )
     session.commit()
     return SyncRunRead.model_validate(result.sync_run)
 
@@ -144,6 +152,9 @@ def list_all_sync_runs(
         c.id: c
         for c in session.scalars(tenant_scoped_select(ConnectorConfig, tenant_id)).all()
     }
+    emails = {
+        u.id: u.email for u in session.scalars(tenant_scoped_select(User, tenant_id)).all()
+    }
     runs = session.scalars(
         tenant_scoped_select(SyncRun, tenant_id).order_by(SyncRun.created_at.desc()).limit(limit)
     ).all()
@@ -155,6 +166,7 @@ def list_all_sync_runs(
                 run=SyncRunRead.model_validate(run),
                 connector_key=config.connector_key if config else "unknown",
                 connector_name=config.name if config else "(deleted)",
+                triggered_by_email=emails.get(run.created_by) if run.created_by else None,
             )
         )
     return items

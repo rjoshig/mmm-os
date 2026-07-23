@@ -18,7 +18,7 @@ import type {
   ConnectorConfig,
   Notification,
   JobDetail,
-  JobRead,
+  JobListItem,
   SyncRun,
   SyncRunListItem,
   CanonicalFieldsResponse,
@@ -343,7 +343,7 @@ export const api = {
     request<SyncRunListItem[]>(tenantPath(`/sync-runs?limit=${limit}`)),
 
   // --- Runs / jobs history (Cycle 3) ---
-  listJobs: () => request<JobRead[]>(tenantPath("/jobs")),
+  listJobs: () => request<JobListItem[]>(tenantPath("/jobs")),
   getJob: (jobId: string) => request<JobDetail>(tenantPath(`/jobs/${jobId}`)),
 
   // --- Governance / admin (admin-only; backend enforces Permission.ADMIN) ---

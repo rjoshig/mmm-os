@@ -72,6 +72,7 @@ def ingest_file_from_path(
     path: str,
     roots: list[str],
     max_bytes: int | None = None,
+    created_by: uuid.UUID | None = None,
 ) -> tuple[File, Job]:
     """Ingest a file by server path (copy into immutable storage; CC-2).
 
@@ -94,4 +95,5 @@ def ingest_file_from_path(
             content_type=content_type,
             stream=stream,
             max_bytes=max_bytes,
+            created_by=created_by,
         )

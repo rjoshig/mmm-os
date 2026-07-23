@@ -68,6 +68,10 @@ class SyncRun(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):
     window_start: Mapped[date] = mapped_column(Date, nullable=False)
     window_end: Mapped[date] = mapped_column(Date, nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default=JobStatus.PENDING.value)
+    # Who triggered this sync (Cycle 6); nullable for scheduled/system runs.
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("user.id", ondelete="SET NULL")
+    )
     row_count: Mapped[int | None] = mapped_column(Integer)
     error: Mapped[str | None] = mapped_column(Text)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

@@ -50,6 +50,8 @@ def run_sync(
     connector: PartnerConnector,
     config: ConnectorConfig,
     window: tuple[date, date],
+    *,
+    created_by: uuid.UUID | None = None,
 ) -> SyncResult:
     """Run a connector pull for ``window`` under an idempotent ``SyncRun`` (CC-6)."""
     start, end = window
@@ -68,6 +70,7 @@ def run_sync(
         window_end=end,
         status=JobStatus.RUNNING.value,
         started_at=utcnow(),
+        created_by=created_by,
     )
     session.add(run)
     session.flush()

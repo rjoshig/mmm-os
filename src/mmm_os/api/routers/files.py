@@ -7,7 +7,8 @@ import uuid
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
-from mmm_os.api.deps import get_storage
+from mmm_os.api.deps import get_storage, require_auth
+from mmm_os.auth.service import Principal
 from mmm_os.core.config import Settings, get_settings
 from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.db.session import get_session
@@ -48,6 +49,7 @@ def upload_file(
     session: Session = Depends(get_session),
     storage: ObjectStorage = Depends(get_storage),
     settings: Settings = Depends(get_settings),
+    principal: Principal | None = Depends(require_auth),
 ) -> IngestResponse:
     """Ingest an uploaded file: store it immutably and create file + job records.
 
@@ -57,6 +59,7 @@ def upload_file(
         session: Database session (injected).
         storage: Object-storage backend (injected).
         settings: Application settings (injected).
+        principal: The authenticated actor (recorded as the job's created_by).
 
     Returns:
         The created file and job.
@@ -73,6 +76,7 @@ def upload_file(
             content_type=upload.content_type,
             stream=upload.file,
             max_bytes=settings.max_upload_bytes,
+            created_by=principal.user_id if principal else None,
         )
     except FileTooLargeError as exc:
         # 413 Content Too Large (constant name varies across Starlette versions).
@@ -93,6 +97,7 @@ def ingest_by_path(
     session: Session = Depends(get_session),
     storage: ObjectStorage = Depends(get_storage),
     settings: Settings = Depends(get_settings),
+    principal: Principal | None = Depends(require_auth),
 ) -> IngestResponse:
     """Ingest a large file by server path (landing zone) instead of an upload (P1.4-1).
 
@@ -112,6 +117,7 @@ def ingest_by_path(
             path=body.path,
             roots=settings.landing_roots,
             max_bytes=settings.max_upload_bytes,
+            created_by=principal.user_id if principal else None,
         )
     except (LandingRootsDisabledError, PathNotAllowedError) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc

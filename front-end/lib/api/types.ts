@@ -23,6 +23,13 @@ export interface JobRead {
   started_at?: string | null;
   finished_at?: string | null;
   error?: string | null;
+  created_by?: Uuid | null;
+}
+
+export interface JobListItem {
+  job: JobRead;
+  filename: string | null;
+  triggered_by_email: string | null;
 }
 
 export interface JobEventRead {
@@ -304,6 +311,7 @@ export interface SyncRunListItem {
   run: SyncRun;
   connector_key: string;
   connector_name: string;
+  triggered_by_email: string | null;
 }
 
 // --- Output export / MMM contract (Cycle 3) ---

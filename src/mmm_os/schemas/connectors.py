@@ -54,6 +54,7 @@ class SyncRunListItem(BaseModel):
     run: SyncRunRead
     connector_key: str
     connector_name: str
+    triggered_by_email: str | None = None
 
 
 class ScheduleUpdate(BaseModel):

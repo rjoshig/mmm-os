@@ -20,7 +20,7 @@ from mmm_os.ingestion.service import load_sheet_rows
 from mmm_os.mapping.service import resolve_mapping
 from mmm_os.mapping.signature import column_signature
 from mmm_os.models import File as FileModel
-from mmm_os.models import Job, JobEvent, OutputRow, Profile, Sheet, ValidationFlag
+from mmm_os.models import Job, JobEvent, OutputRow, Profile, Sheet, User, ValidationFlag
 from mmm_os.models.enums import ReviewStatus, Severity, SheetStatus
 from mmm_os.schemas.canonical import CanonicalFieldRead, CanonicalFieldsResponse
 from mmm_os.schemas.file import (
@@ -29,6 +29,7 @@ from mmm_os.schemas.file import (
     FileRead,
     JobDetail,
     JobEventRead,
+    JobListItem,
     JobRead,
     ProfileRead,
     SheetDetail,
@@ -177,16 +178,30 @@ def get_sheet_rows(
     return SheetRowsResponse(columns=names, rows=rows)
 
 
-@router.get("/tenants/{tenant_id}/jobs", response_model=list[JobRead])
+@router.get("/tenants/{tenant_id}/jobs", response_model=list[JobListItem])
 def list_jobs(
     tenant_id: uuid.UUID,
     session: Session = Depends(get_session),
-) -> list[JobRead]:
-    """List a tenant's jobs, most recent first."""
+) -> list[JobListItem]:
+    """List a tenant's jobs (most recent first), enriched with filename + actor email."""
     jobs = session.scalars(
         select(Job).where(Job.tenant_id == tenant_id).order_by(Job.created_at.desc())
     ).all()
-    return [JobRead.model_validate(j) for j in jobs]
+    files = {
+        f.id: f.filename
+        for f in session.scalars(tenant_scoped_select(FileModel, tenant_id)).all()
+    }
+    emails = {
+        u.id: u.email for u in session.scalars(tenant_scoped_select(User, tenant_id)).all()
+    }
+    return [
+        JobListItem(
+            job=JobRead.model_validate(j),
+            filename=files.get(j.file_id) if j.file_id else None,
+            triggered_by_email=emails.get(j.created_by) if j.created_by else None,
+        )
+        for j in jobs
+    ]
 
 
 @router.get("/tenants/{tenant_id}/jobs/{job_id}", response_model=JobDetail)
