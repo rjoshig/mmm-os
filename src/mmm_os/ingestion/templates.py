@@ -1,9 +1,33 @@
-"""Bridge a stored FeedTemplate to low-level parse options (Slice 7.4)."""
+"""Bridge a stored FeedTemplate to low-level parse options + feed matching (7.4/7.7)."""
 
 from __future__ import annotations
 
+import fnmatch
+import uuid
+
+from sqlalchemy.orm import Session
+
+from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.ingestion.parsing import FixedWidthField, ParseOptions
 from mmm_os.models import FeedTemplate
+
+
+def resolve_template_for_file(
+    session: Session, tenant_id: uuid.UUID, filename: str
+) -> FeedTemplate | None:
+    """Return the first feed template whose filename glob matches ``filename`` (7.7).
+
+    Templates without a glob never match here (they are applied by column signature
+    at mapping time). Match order is by creation time so the earliest-defined
+    template wins deterministically.
+    """
+    templates = session.scalars(
+        tenant_scoped_select(FeedTemplate, tenant_id).order_by(FeedTemplate.created_at)
+    ).all()
+    for template in templates:
+        if template.filename_glob and fnmatch.fnmatch(filename, template.filename_glob):
+            return template
+    return None
 
 
 def parse_options_for(template: FeedTemplate) -> ParseOptions:

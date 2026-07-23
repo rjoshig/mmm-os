@@ -7,8 +7,9 @@ import uuid
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
-from mmm_os.api.deps import get_storage, require_auth
+from mmm_os.api.deps import get_canonical, get_storage, require_auth
 from mmm_os.auth.service import Principal
+from mmm_os.canonical import CanonicalConfig
 from mmm_os.core.config import Settings, get_settings
 from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.db.session import get_session
@@ -21,6 +22,8 @@ from mmm_os.ingestion.landing import (
 )
 from mmm_os.ingestion.process import process_file
 from mmm_os.ingestion.service import ingest_file
+from mmm_os.ingestion.templates import resolve_template_for_file
+from mmm_os.mapping.service import auto_map_sheet
 from mmm_os.models import File as FileModel
 from mmm_os.schemas.file import (
     BatchResponse,
@@ -29,6 +32,7 @@ from mmm_os.schemas.file import (
     IngestResponse,
     JobRead,
     ProcessResponse,
+    SheetAutoMap,
     SheetRead,
 )
 from mmm_os.storage import ObjectStorage
@@ -142,6 +146,7 @@ def process_file_route(
     session: Session = Depends(get_session),
     storage: ObjectStorage = Depends(get_storage),
     settings: Settings = Depends(get_settings),
+    canonical: CanonicalConfig = Depends(get_canonical),
 ) -> ProcessResponse:
     """Run structure detection over a stored file and persist its sheets.
 
@@ -151,6 +156,7 @@ def process_file_route(
         session: Database session (injected).
         storage: Object-storage backend (injected).
         settings: Application settings (injected).
+        canonical: The canonical schema (injected) — used for auto-map coverage.
 
     Returns:
         The job (succeeded/failed) and the detected sheets.
@@ -170,10 +176,29 @@ def process_file_route(
         distinct_limit=settings.profile_distinct_limit,
         sample_limit=settings.profile_sample_limit,
     )
+
+    # Auto-map surfacing (Slice 7.7): report which feed template matched by filename,
+    # and whether each sheet already has a saved mapping that applies by signature.
+    template = resolve_template_for_file(session, tenant_id, file.filename)
+    auto_map: list[SheetAutoMap] = []
+    for sheet in sheets:
+        outcome = auto_map_sheet(session, tenant_id, sheet, canonical.schema)
+        auto_map.append(
+            SheetAutoMap(
+                sheet_id=sheet.id,
+                signature=outcome.signature,
+                auto_mapped=outcome.matched,
+                is_complete=outcome.result.is_complete if outcome.result else False,
+                missing_required=outcome.result.missing_required if outcome.result else [],
+            )
+        )
+
     session.commit()
     return ProcessResponse(
         job=JobRead.model_validate(job),
         sheets=[SheetRead.model_validate(s) for s in sheets],
+        matched_template=template.name if template else None,
+        auto_map=auto_map,
     )
 
 

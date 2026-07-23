@@ -11,7 +11,7 @@ this is a thin adapter that expresses "a file is just one kind of source".
 
 from __future__ import annotations
 
-from mmm_os.ingestion.parsing import read_preview
+from mmm_os.ingestion.parsing import ParseOptions, read_preview
 from mmm_os.ingestion.structure import detect_header, infer_columns
 from mmm_os.sources.base import FetchRequest, SourceConnector
 from mmm_os.sources.landed import SOURCE_TYPE_UPLOAD, LandedDataset, LandedTable
@@ -49,11 +49,15 @@ class FileSource(SourceConnector):
         storage_key = str(request.ref["storage_key"])
         filename = str(request.ref["filename"])
         preview_rows = DEFAULT_PREVIEW_ROWS
+        parse_options: ParseOptions | None = None
         if request.options is not None:
             preview_rows = int(request.options.get("preview_rows", preview_rows))
+            candidate = request.options.get("parse_options")
+            if isinstance(candidate, ParseOptions):
+                parse_options = candidate
 
         with self.storage.open(storage_key) as stream:
-            preview = read_preview(stream, filename, preview_rows)
+            preview = read_preview(stream, filename, preview_rows, parse_options)
 
         tables: list[LandedTable] = []
         for raw in preview:

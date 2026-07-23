@@ -95,11 +95,25 @@ class SheetRead(BaseModel):
     columns: list[dict[str, Any]]
 
 
+class SheetAutoMap(BaseModel):
+    """Auto-map status for one processed sheet (Slice 7.7)."""
+
+    sheet_id: uuid.UUID
+    signature: str
+    auto_mapped: bool
+    is_complete: bool
+    missing_required: list[str]
+
+
 class ProcessResponse(BaseModel):
     """Response returned after processing (structure detection) a file."""
 
     job: JobRead
     sheets: list[SheetRead]
+    # The feed template whose filename glob drove parsing, if any (Slice 7.7).
+    matched_template: str | None = None
+    # Per-sheet auto-map status: whether a saved mapping already applies by signature.
+    auto_map: list[SheetAutoMap] = []
 
 
 class FileListItem(BaseModel):

@@ -112,9 +112,19 @@ export interface IngestResponse {
   job: JobRead;
 }
 
+export interface SheetAutoMap {
+  sheet_id: Uuid;
+  signature: string;
+  auto_mapped: boolean;
+  is_complete: boolean;
+  missing_required: string[];
+}
+
 export interface ProcessResponse {
   job: JobRead;
   sheets: SheetRead[];
+  matched_template: string | null;
+  auto_map: SheetAutoMap[];
 }
 
 // --- Auth ---

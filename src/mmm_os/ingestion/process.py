@@ -16,9 +16,10 @@ import time
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from mmm_os.ingestion.parsing import iter_sheet_rows
+from mmm_os.ingestion.parsing import ParseOptions, iter_sheet_rows
 from mmm_os.ingestion.profiling import profile_rows
 from mmm_os.ingestion.service import storage_key_for
+from mmm_os.ingestion.templates import parse_options_for, resolve_template_for_file
 from mmm_os.models import File, Job, Profile, Sheet
 from mmm_os.models.enums import JobStatus, SheetStatus
 from mmm_os.models.mixins import utcnow
@@ -71,6 +72,13 @@ def process_file(
     started = time.monotonic()
     sheets: list[Sheet] = []
     try:
+        # A feed template whose filename glob matches drives parsing (fixed-width /
+        # odd-delimited feeds) so recurring files land correctly (Slice 7.7).
+        template = resolve_template_for_file(session, file.tenant_id, file.filename)
+        parse_options = parse_options_for(template) if template is not None else None
+        options: dict[str, object] = {"preview_rows": preview_rows}
+        if parse_options is not None:
+            options["parse_options"] = parse_options
         dataset = FileSource(storage).fetch(
             FetchRequest(
                 ref={
@@ -78,7 +86,7 @@ def process_file(
                     "storage_key": storage_key_for(file),
                     "filename": file.filename,
                 },
-                options={"preview_rows": preview_rows},
+                options=options,
             )
         )
 
@@ -105,6 +113,7 @@ def process_file(
                 sheet,
                 distinct_limit=distinct_limit,
                 sample_limit=sample_limit,
+                parse_options=parse_options,
             )
 
         _finish_job(session, job, JobStatus.SUCCEEDED, started, f"{len(sheets)} sheet(s)")
@@ -123,10 +132,11 @@ def _profile_sheet(
     *,
     distinct_limit: int,
     sample_limit: int,
+    parse_options: ParseOptions | None = None,
 ) -> Profile:
     """Stream a sheet's rows, compute per-column stats, and persist a profile."""
     with storage.open(storage_key_for(file)) as stream:
-        rows = iter_sheet_rows(stream, file.filename, sheet.sheet_index)
+        rows = iter_sheet_rows(stream, file.filename, sheet.sheet_index, parse_options)
         row_count, column_stats = profile_rows(
             rows,
             sheet.columns,

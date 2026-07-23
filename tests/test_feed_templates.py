@@ -96,3 +96,43 @@ def test_fixed_width_template_requires_fields(client: TestClient) -> None:
         json={"name": "bad", "fmt": "fixed_width", "fixed_fields": []},
     )
     assert resp.status_code == 400
+
+
+def test_process_uses_matching_template_and_reports_automap(client: TestClient) -> None:
+    """A glob-matched template parses a fixed-width feed on ingest, and process()
+    reports the template match + per-sheet auto-map status (Slice 7.7)."""
+    tid = uuid.uuid4()
+    # A fixed-width template that recognises "sales_*.txt".
+    client.post(
+        f"/api/v1/tenants/{tid}/feed-templates",
+        json={
+            "name": "Store sales",
+            "fmt": "fixed_width",
+            "has_header": False,
+            "filename_glob": "sales_*.txt",
+            "fixed_fields": [
+                {"name": "store", "start": 0, "width": 4},
+                {"name": "spend", "start": 4, "width": 6},
+            ],
+            "expected_columns": ["store", "spend"],
+        },
+    )
+
+    # Upload a fixed-width .txt (unparseable without the template) and process it.
+    upload = client.post(
+        f"/api/v1/tenants/{tid}/files",
+        files={"upload": ("sales_0101.txt", b"1001012345\n1002006789\n", "text/plain")},
+    )
+    assert upload.status_code == 201, upload.text
+    file_id = upload.json()["file"]["id"]
+
+    processed = client.post(f"/api/v1/tenants/{tid}/files/{file_id}/process")
+    assert processed.status_code == 200, processed.text
+    body = processed.json()
+    assert body["job"]["status"] == "succeeded"
+    assert body["matched_template"] == "Store sales"
+    # The fixed-width layout parsed into the template's columns.
+    assert body["sheets"][0]["columns"][0]["name"] == "store"
+    # Auto-map status is present (no saved mapping yet -> not auto-mapped).
+    assert body["auto_map"][0]["auto_mapped"] is False
+    assert body["auto_map"][0]["signature"]

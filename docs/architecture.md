@@ -177,6 +177,12 @@ for traceability (CC-3). Nothing downstream depends on which connector produced 
     spec) — and `ingestion/parsing.py` parses any extension accordingly
     (`ParseOptions`). Templates carry `expected_columns` so a matching feed
     auto-maps by column signature (`mapping/signature.py`).
+  - **Auto-map on ingest (Slice 7.7).** Processing resolves a feed template by
+    filename glob and parses the file with it (so fixed-width / odd feeds land at
+    all), then reports per sheet whether a saved mapping already applies by
+    signature (`auto_map_sheet`) plus which template matched — surfaced in the
+    add-source flow as "auto-mapped via <template>". A recognised recurring feed
+    therefore parses and maps itself with no manual step.
 - **API sources** (partner connectors — Meta, Google Ads, DV360, TikTok) call the
   partner reporting API and normalise the response **directly** into landed
   records — no header detection needed, since partner report schemas are known
