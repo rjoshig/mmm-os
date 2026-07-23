@@ -24,6 +24,11 @@ export const OPERATIONS: { value: string; label: string; hint: string }[] = [
   },
   { value: "dedupe", label: "Deduplicate rows", hint: "Drop duplicate rows (by key or whole row)" },
   { value: "reshape", label: "Reshape wide → long", hint: "Unpivot columns into rows" },
+  {
+    value: "aggregate",
+    label: "Aggregate to weekly/monthly",
+    hint: "Roll daily rows up to the MMM modelling grain",
+  },
   { value: "custom", label: "Custom expression", hint: "Compute a field from an expression" },
 ];
 
@@ -208,6 +213,47 @@ export function RuleConfig({
                 onChange={(e) => setParams({ value_name: e.target.value })}
               />
             </div>
+          </div>
+        ) : null}
+
+        {rule.operation === "aggregate" ? (
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted-foreground">Grain</span>
+              <select
+                className={inputCls}
+                value={String(rule.params.freq ?? "weekly")}
+                onChange={(e) => setParams({ freq: e.target.value })}
+              >
+                <option value="weekly">weekly</option>
+                <option value="monthly">monthly</option>
+              </select>
+              {String(rule.params.freq ?? "weekly") === "weekly" ? (
+                <>
+                  <span className="text-muted-foreground">week starts</span>
+                  <select
+                    className={inputCls}
+                    value={String(rule.params.week_start ?? "monday")}
+                    onChange={(e) => setParams({ week_start: e.target.value })}
+                  >
+                    <option value="monday">Monday</option>
+                    <option value="sunday">Sunday</option>
+                  </select>
+                </>
+              ) : null}
+              <label className="inline-flex items-center gap-1.5">
+                <input
+                  type="checkbox"
+                  checked={rule.params.fill_gaps !== false}
+                  onChange={(e) => setParams({ fill_gaps: e.target.checked })}
+                />
+                fill gaps (continuous series)
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Uses the canonical schema: measures are summed, numeric factors averaged, and
+              dimensions (channel, geo…) kept as grouping keys. The target column is ignored.
+            </p>
           </div>
         ) : null}
 

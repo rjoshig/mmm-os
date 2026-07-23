@@ -38,6 +38,25 @@ def test_preview_returns_before_and_after(client: TestClient) -> None:
     assert data["after"][0]["spend"] == 100.0
 
 
+def test_preview_aggregate_rolls_daily_to_weekly(client: TestClient) -> None:
+    """The preview endpoint threads the canonical schema so aggregate auto-classifies."""
+    tenant_id = uuid.uuid4()
+    body = {
+        "rows": [
+            {"date": "2026-01-05", "channel": "Facebook", "spend": "100", "price_index": "1.0"},
+            {"date": "2026-01-06", "channel": "Facebook", "spend": "50", "price_index": "2.0"},
+        ],
+        "rules": [{"target_field": "", "operation": "aggregate", "params": {"freq": "weekly"}}],
+    }
+    response = client.post(f"/api/v1/tenants/{tenant_id}/transform/preview", json=body)
+    assert response.status_code == 200, response.text
+    after = response.json()["after"]
+    assert len(after) == 1
+    assert after[0]["date"] == "2026-01-05"
+    assert after[0]["spend"] == 150.0  # measure summed
+    assert after[0]["price_index"] == 1.5  # numeric factor averaged
+
+
 def test_preview_is_idempotent(client: TestClient) -> None:
     """Re-running the same preview yields identical output (CC-6)."""
     tenant_id = uuid.uuid4()

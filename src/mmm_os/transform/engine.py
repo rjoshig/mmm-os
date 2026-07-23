@@ -11,7 +11,8 @@ import copy
 
 # Import the operation modules for their registration side effects.
 from mmm_os.transform import (
-    operations_core,  # noqa: F401  (registers handlers)
+    operations_aggregate,  # noqa: F401  (registers handlers)
+    operations_core,  # noqa: F401
     operations_custom,  # noqa: F401
     operations_value,  # noqa: F401
 )

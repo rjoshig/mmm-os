@@ -18,7 +18,8 @@ mapped data, with live before/after preview.
 ## Functional Requirements
 
 - **P3-1 Rule schema:** each rule stored as data: `{ id, target_field, operation, params, condition, order }`. *(See [`../data-model.md`](../data-model.md), Appendix D.)*
-- **P3-2 Operation library (v1):** MUST include `map_value`, `rename_column`, `cast_type`, `parse_date`, `convert_currency`, `dedupe`, `reshape` (wide→long), `fill_missing`, `trim/normalize_text`. MUST be **extensible** (new operation = new handler, no rewrite).
+- **P3-2 Operation library (v1):** MUST include `map_value`, `rename_column`, `cast_type`, `parse_date`, `convert_currency`, `dedupe`, `reshape` (wide→long), `fill_missing`, `trim/normalize_text`, `custom`. MUST be **extensible** (new operation = new handler, no rewrite).
+- **P3-2b Time-grain `aggregate` (Cycle 2):** roll a table up to a coarser date grain (weekly/monthly) — measures summed, numeric factors averaged, dimensions preserved as grouping keys, date series gap-filled to be continuous. Schema-aware (auto-classifies via the canonical schema in `RuleContext`) with explicit `group_by`/`sum`/`mean` overrides. Resolves the canonical-schema A.4 granularity decision (weekly = MMM-standard grain).
 - **P3-3 Escape hatch:** provide a `custom` rule type for the ~10% of cases the library doesn't cover. *(Scope of this is OQ-3.1.)*
 - **P3-4 Ordered application:** rules apply in defined order; deterministic output.
 - **P3-5 Layered rules:** global defaults → template rules → customer overrides, merged at runtime.

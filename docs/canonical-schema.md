@@ -87,11 +87,16 @@ and measures and are mappable targets in the mapping UI (`kind: "factor"`).
   policy).
 - **Factors (Cycle 2):** MMM external regressors are a first-class field group
   (A.2b), mappable and validated; a factor source needs no media measure.
+- **Date granularity (Cycle 2):** `date` is stored at its native grain; the
+  supported **modelling grains are daily → weekly → monthly**, with **weekly the
+  MMM-standard target**. Reconciliation is explicit, not implicit: the declarative
+  **`aggregate`** transform op rolls a finer grain up to a coarser one — measures
+  summed, numeric factors averaged, dimensions preserved as grouping keys, and the
+  series made **continuous** (gap-filled) so it is adstock-ready. Mixed-grain sources
+  are reconciled by aggregating each to the tenant's chosen target grain; the
+  platform does **not** silently up-sample coarser data to a finer grain.
 
 **Still open:**
-- Date granularity supported (daily/weekly/monthly) and how mixed granularities
-  reconcile. *(Being resolved in Cycle 2 alongside the `aggregate` operation —
-  weekly is the MMM-standard grain.)*
 - Whether measures are columns (wide) or a `metric`/`value` pair (long-long). Draft assumes measure-columns.
 
 ---

@@ -147,7 +147,9 @@ def validate_sheet(
 
     rule_specs = resolve_rule_specs(session, tenant_id, rule_set_name_for_sheet(sheet))
     transformed_rows = apply_rules(
-        mapped_rows, rule_specs, RuleContext(taxonomies=canonical.taxonomies)
+        mapped_rows,
+        rule_specs,
+        RuleContext(taxonomies=canonical.taxonomies, schema=canonical.schema),
     )
 
     flags, blocked = run_validation(

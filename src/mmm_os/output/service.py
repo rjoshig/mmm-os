@@ -78,7 +78,9 @@ def prepare_sheet_rows(
     rule_name = rule_set_name_for_sheet(sheet)
     rule_specs = resolve_rule_specs(session, tenant_id, rule_name)
     transformed_rows = apply_rules(
-        mapped_rows, rule_specs, RuleContext(taxonomies=canonical.taxonomies)
+        mapped_rows,
+        rule_specs,
+        RuleContext(taxonomies=canonical.taxonomies, schema=canonical.schema),
     )
 
     return PreparedRows(

@@ -76,7 +76,7 @@ def preview_rules(
     Raises:
         HTTPException: 400 if a rule is malformed or uses an unknown operation.
     """
-    ctx = RuleContext(taxonomies=canonical.taxonomies)
+    ctx = RuleContext(taxonomies=canonical.taxonomies, schema=canonical.schema)
     try:
         result = run_preview(body.rows, [_to_spec(r) for r in body.rules], ctx, limit=body.limit)
     except TransformError as exc:

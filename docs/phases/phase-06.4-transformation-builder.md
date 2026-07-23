@@ -29,10 +29,10 @@ JSON.
   by any file with identical headers ("configure once, reuse forever" — mirrors
   mapping configs). Persisted via `GET`/`POST /sheets/{sheet_id}/rule-set`, which
   derive the signature-scoped name server-side.
-- **P6.4-5** Expose the **full operation set** (all 10 registered operations):
+- **P6.4-5** Expose the **full operation set** (all registered operations):
   `normalize_text`, `map_value`, `fill_missing`, `rename_column`, `cast_type`,
-  `parse_date`, `convert_currency`, `dedupe`, `reshape`, `custom` — each with a
-  typed config form (no JSON).
+  `parse_date`, `convert_currency`, `dedupe`, `reshape`, `custom`, and `aggregate`
+  (Cycle 2 — weekly/monthly grain) — each with a typed config form (no JSON).
 
 ## Deliverables
 

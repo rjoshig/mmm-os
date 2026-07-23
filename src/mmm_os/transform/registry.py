@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from mmm_os.canonical.models import Taxonomies
+from mmm_os.canonical.models import CanonicalSchema, Taxonomies
 from mmm_os.transform.types import RuleSpec, Table
 
 
@@ -28,9 +28,13 @@ class RuleContext:
 
     Attributes:
         taxonomies: Loaded taxonomies for value harmonisation (``map_value``).
+        schema: The canonical schema, used by schema-aware operations (e.g.
+            ``aggregate`` auto-classifies measures→sum, numeric factors→mean,
+            dimensions→group-by). ``None`` when unavailable.
     """
 
     taxonomies: Taxonomies | None = None
+    schema: CanonicalSchema | None = None
 
 
 Handler = Callable[[Table, RuleSpec, RuleContext], Table]
