@@ -20,7 +20,12 @@ export const OPERATIONS: { value: string; label: string; hint: string }[] = [
   {
     value: "convert_currency",
     label: "Convert currency",
-    hint: "Multiply a numeric column by an FX rate",
+    hint: "FX rate, or normalize to the reporting currency",
+  },
+  {
+    value: "normalize_timezone",
+    label: "Normalize timezone",
+    hint: "Convert a timestamp to the reporting timezone",
   },
   { value: "dedupe", label: "Deduplicate rows", hint: "Drop duplicate rows (by key or whole row)" },
   { value: "reshape", label: "Reshape wide → long", hint: "Unpivot columns into rows" },
@@ -148,22 +153,82 @@ export function RuleConfig({
         ) : null}
 
         {rule.operation === "convert_currency" ? (
-          <div className="space-y-1">
+          <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">Fixed rate (multiplier)</span>
               <input
-                className={`${inputCls} w-32`}
-                type="number"
-                step="any"
-                placeholder="e.g. 1.08"
-                value={rule.params.rate == null ? "" : String(rule.params.rate)}
+                type="checkbox"
+                checked={Boolean(rule.params.to_reporting)}
                 onChange={(e) =>
-                  setParams({ rate: e.target.value === "" ? undefined : Number(e.target.value) })
+                  setParams({
+                    to_reporting: e.target.checked || undefined,
+                    rate: e.target.checked ? undefined : rule.params.rate,
+                  })
                 }
               />
+              Normalize to the reporting currency (uses Settings → FX rates)
             </label>
+            {rule.params.to_reporting ? (
+              <label className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="text-muted-foreground">Source-currency column</span>
+                <select
+                  className={inputCls}
+                  value={String(rule.params.currency_field ?? "")}
+                  onChange={(e) => setParams({ currency_field: e.target.value || undefined })}
+                >
+                  <option value="">— column —</option>
+                  {columns.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <label className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground">Fixed rate (multiplier)</span>
+                <input
+                  className={`${inputCls} w-32`}
+                  type="number"
+                  step="any"
+                  placeholder="e.g. 1.08"
+                  value={rule.params.rate == null ? "" : String(rule.params.rate)}
+                  onChange={(e) =>
+                    setParams({ rate: e.target.value === "" ? undefined : Number(e.target.value) })
+                  }
+                />
+              </label>
+            )}
             <p className="text-xs text-muted-foreground">
-              Multiplies the selected numeric column by this rate.
+              {rule.params.to_reporting
+                ? "Each row's value is converted from its source currency into the tenant reporting currency."
+                : "Multiplies the selected numeric column by this fixed rate."}
+            </p>
+          </div>
+        ) : null}
+
+        {rule.operation === "normalize_timezone" ? (
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted-foreground">from</span>
+              <input
+                className={`${inputCls} w-44`}
+                placeholder="UTC"
+                value={String(rule.params.from_tz ?? "UTC")}
+                onChange={(e) => setParams({ from_tz: e.target.value })}
+              />
+              <span className="text-muted-foreground">→ reporting timezone</span>
+              <label className="inline-flex items-center gap-1.5">
+                <input
+                  type="checkbox"
+                  checked={Boolean(rule.params.to_date)}
+                  onChange={(e) => setParams({ to_date: e.target.checked || undefined })}
+                />
+                also set date
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Converts the selected timestamp column to the reporting timezone (Settings). With
+              &ldquo;also set date&rdquo;, the daily bucket is taken in the reporting frame.
             </p>
           </div>
         ) : null}

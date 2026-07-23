@@ -84,6 +84,7 @@ types only. The core `user` entity (Appendix C) is **extended**, not replaced.
 | Entity | Purpose | Key notes |
 |---|---|---|
 | `user` *(extends Appendix C)* | Tenant-scoped account. | Add auth fields: password hash, MFA enrolment, status. Every request resolves to `(user, tenant_id)` (CC-1, CC-11). |
+| `tenant_settings` *(Cycle 2)* | Per-tenant reporting frame. | One row per tenant: `reporting_currency`, `reporting_timezone`, `fx_rates` (JSON). Config-as-data (CC-4); read into the transform `RuleContext` so `convert_currency` (to-reporting) + `normalize_timezone` normalize output consistently. |
 | `session` | Active login session / token record. | Portable store (SQLite→Postgres by config); supports logout/expiry. Phase 00.5. |
 | `identity_provider_config` | Per-tenant SSO config. | OIDC/SAML settings (issuer, client, cert, attribute mapping); **secrets via `secret_ref`**, not inline. Phase 00.5. |
 | `role` / `user_role` | RBAC roles + assignments. | **Coordinate with Phase 8** (governance owns the role/permission model); the 00.5 auth hook enforces them. Tenant-scoped. |

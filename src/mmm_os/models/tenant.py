@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from sqlalchemy import String, UniqueConstraint
+from typing import Any
+
+from sqlalchemy import JSON, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from mmm_os.db.base import Base
@@ -20,6 +22,24 @@ class Tenant(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+
+
+class TenantSettings(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):
+    """Per-tenant reporting context for MMM normalization (Cycle 2).
+
+    One row per tenant (unique ``tenant_id``). Config-as-data (CC-4): the reporting
+    currency + timezone and the FX rate table drive currency/timezone normalization
+    so every tenant's output lands in one consistent reporting frame.
+    """
+
+    __tablename__ = "tenant_settings"
+    __table_args__ = (UniqueConstraint("tenant_id", name="uq_tenant_settings_tenant"),)
+
+    reporting_currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
+    reporting_timezone: Mapped[str] = mapped_column(String(64), nullable=False, default="UTC")
+    # {source_currency (ISO): rate to multiply a value in that currency into the
+    # reporting currency}. The reporting currency itself is implicitly 1.0.
+    fx_rates: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
 
 
 class User(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):

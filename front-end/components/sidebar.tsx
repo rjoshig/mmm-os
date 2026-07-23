@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, Layers, LogOut, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Layers, LogOut, Settings, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -8,7 +8,10 @@ import { api } from "@/lib/api/client";
 import { clearSession, getStoredPrincipal } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
-const NAV = [{ href: "/", label: "Dashboard", icon: LayoutDashboard }];
+const NAV = [
+  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/settings", label: "Settings", icon: Settings },
+];
 
 // Admin-only nav; the backend still enforces Permission.ADMIN on every call.
 const ADMIN_NAV = [{ href: "/admin", label: "Admin", icon: ShieldCheck }];

@@ -248,6 +248,13 @@ export interface BulkReviewResponse {
   updated: FlagRead[];
 }
 
+// --- Tenant reporting settings (Cycle 2) ---
+export interface TenantSettings {
+  reporting_currency: string;
+  reporting_timezone: string;
+  fx_rates: Record<string, number>;
+}
+
 export interface GenerateOutputResponse {
   job_id: Uuid;
   file_id: Uuid;

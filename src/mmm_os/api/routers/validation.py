@@ -27,6 +27,7 @@ from mmm_os.schemas.validation import (
     ValidateRequest,
     ValidateResponse,
 )
+from mmm_os.services.tenant_settings import reporting_context
 from mmm_os.storage import ObjectStorage
 from mmm_os.transform.engine import apply_rules
 from mmm_os.transform.registry import RuleContext
@@ -149,7 +150,11 @@ def validate_sheet(
     transformed_rows = apply_rules(
         mapped_rows,
         rule_specs,
-        RuleContext(taxonomies=canonical.taxonomies, schema=canonical.schema),
+        RuleContext(
+            taxonomies=canonical.taxonomies,
+            schema=canonical.schema,
+            reporting=reporting_context(session, tenant_id),
+        ),
     )
 
     flags, blocked = run_validation(

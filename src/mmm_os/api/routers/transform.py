@@ -23,6 +23,7 @@ from mmm_os.schemas.transform import (
     SaveRuleSetRequest,
     SaveSheetRuleSetRequest,
 )
+from mmm_os.services.tenant_settings import reporting_context
 from mmm_os.transform.preview import preview as run_preview
 from mmm_os.transform.registry import RuleContext, TransformError
 from mmm_os.transform.service import (
@@ -61,13 +62,15 @@ def _to_spec(rule: RuleSpecIn) -> RuleSpec:
 def preview_rules(
     tenant_id: uuid.UUID,
     body: PreviewRequest,
+    session: Session = Depends(get_session),
     canonical: CanonicalConfig = Depends(get_canonical),
 ) -> PreviewResponse:
     """Return before/after for a rule set on sample rows, persisting nothing (P3-7).
 
     Args:
-        tenant_id: The owning tenant (for taxonomy context).
+        tenant_id: The owning tenant (for taxonomy + reporting context).
         body: The sample rows + rules to preview.
+        session: Database session (injected; for the reporting frame).
         canonical: Canonical schema/taxonomies (injected).
 
     Returns:
@@ -76,7 +79,11 @@ def preview_rules(
     Raises:
         HTTPException: 400 if a rule is malformed or uses an unknown operation.
     """
-    ctx = RuleContext(taxonomies=canonical.taxonomies, schema=canonical.schema)
+    ctx = RuleContext(
+        taxonomies=canonical.taxonomies,
+        schema=canonical.schema,
+        reporting=reporting_context(session, tenant_id),
+    )
     try:
         result = run_preview(body.rows, [_to_spec(r) for r in body.rules], ctx, limit=body.limit)
     except TransformError as exc:

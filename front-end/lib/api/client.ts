@@ -30,6 +30,7 @@ import type {
   SheetRowsResponse,
   SuggestionRead,
   SuggestMappingResponse,
+  TenantSettings,
   UserRead,
   ValidateResponse,
 } from "@/lib/api/types";
@@ -210,6 +211,14 @@ export const api = {
     request<BulkReviewResponse>(tenantPath(`/jobs/${jobId}/validation-flags/bulk-review`), {
       method: "POST",
       body: JSON.stringify({ flag_ids: flagIds, status }),
+    }),
+
+  // --- Tenant reporting settings (Cycle 2) ---
+  getSettings: () => request<TenantSettings>(tenantPath("/settings")),
+  updateSettings: (patch: Partial<TenantSettings>) =>
+    request<TenantSettings>(tenantPath("/settings"), {
+      method: "PUT",
+      body: JSON.stringify(patch),
     }),
 
   // --- Governance / admin (admin-only; backend enforces Permission.ADMIN) ---

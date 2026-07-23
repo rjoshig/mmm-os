@@ -18,7 +18,7 @@ from mmm_os.models.file import File, Profile, Sheet
 from mmm_os.models.governance import AuditLog
 from mmm_os.models.job import Job, JobEvent, Suggestion, ValidationFlag
 from mmm_os.models.output import OutputRow
-from mmm_os.models.tenant import Tenant, User
+from mmm_os.models.tenant import Tenant, TenantSettings, User
 
 __all__ = [
     "AuditLog",
@@ -43,6 +43,7 @@ __all__ = [
     "Taxonomy",
     "TaxonomyAlias",
     "Tenant",
+    "TenantSettings",
     "User",
     "ValidationFlag",
 ]

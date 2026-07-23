@@ -31,8 +31,10 @@ JSON.
   derive the signature-scoped name server-side.
 - **P6.4-5** Expose the **full operation set** (all registered operations):
   `normalize_text`, `map_value`, `fill_missing`, `rename_column`, `cast_type`,
-  `parse_date`, `convert_currency`, `dedupe`, `reshape`, `custom`, and `aggregate`
-  (Cycle 2 — weekly/monthly grain) — each with a typed config form (no JSON).
+  `parse_date`, `convert_currency` (incl. to-reporting mode), `dedupe`, `reshape`,
+  `custom`, `aggregate` (Cycle 2 — weekly/monthly grain), and `normalize_timezone`
+  (Cycle 2 — reporting timezone) — each with a typed config form (no JSON). The
+  reporting frame (currency/timezone/FX) is configured on the **Settings** screen.
 
 ## Deliverables
 

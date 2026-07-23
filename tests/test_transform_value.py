@@ -7,7 +7,7 @@ import pytest
 from mmm_os.canonical import load_taxonomies
 from mmm_os.transform.engine import apply_rules
 from mmm_os.transform.operations_custom import SandboxError, evaluate
-from mmm_os.transform.registry import RuleContext
+from mmm_os.transform.registry import ReportingContext, RuleContext
 from mmm_os.transform.types import RuleSpec
 
 
@@ -20,6 +20,43 @@ def test_map_value_collapses_taxonomy_spellings() -> None:
     ]
     out = apply_rules(table, rules, ctx)
     assert {r["channel"] for r in out} == {"Facebook"}
+
+
+def test_convert_currency_to_reporting_normalizes_each_row() -> None:
+    """to_reporting mode multiplies each row into the tenant reporting currency."""
+    reporting = ReportingContext(currency="USD", fx_rates={"EUR": 1.1, "GBP": 1.3})
+    ctx = RuleContext(reporting=reporting)
+    table = [
+        {"spend": "100", "currency": "EUR"},
+        {"spend": "100", "currency": "GBP"},
+        {"spend": "100", "currency": "USD"},  # already reporting → unchanged
+    ]
+    rules = [
+        RuleSpec(
+            target_field="spend",
+            operation="convert_currency",
+            params={"to_reporting": True, "currency_field": "currency"},
+        )
+    ]
+    out = apply_rules(table, rules, ctx)
+    assert [round(r["spend"], 2) for r in out] == [110.0, 130.0, 100.0]
+
+
+def test_normalize_timezone_converts_and_derives_date() -> None:
+    """normalize_timezone converts a timestamp to the reporting TZ and can set date."""
+    ctx = RuleContext(reporting=ReportingContext(timezone="America/New_York"))
+    # 2026-01-01T03:00:00Z is 2025-12-31 22:00 in New York (previous calendar day).
+    table = [{"event_ts": "2026-01-01T03:00:00+00:00", "date": "2026-01-01"}]
+    rules = [
+        RuleSpec(
+            target_field="event_ts",
+            operation="normalize_timezone",
+            params={"from_tz": "UTC", "to_date": True},
+        )
+    ]
+    out = apply_rules(table, rules, ctx)
+    assert out[0]["date"] == "2025-12-31"  # reporting-TZ calendar day
+    assert out[0]["event_ts"].startswith("2025-12-31T22:00")
 
 
 def test_parse_date_and_convert_currency_and_dedupe_in_order() -> None:

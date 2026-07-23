@@ -21,6 +21,7 @@ from mmm_os.mapping.service import resolve_mapping
 from mmm_os.mapping.signature import column_signature
 from mmm_os.models import File, MappingConfig, OutputRow, Sheet, ValidationFlag
 from mmm_os.models.enums import ReviewStatus, RuleLayer, Severity
+from mmm_os.services.tenant_settings import reporting_context
 from mmm_os.storage.base import ObjectStorage
 from mmm_os.transform.engine import apply_rules
 from mmm_os.transform.registry import RuleContext
@@ -80,7 +81,11 @@ def prepare_sheet_rows(
     transformed_rows = apply_rules(
         mapped_rows,
         rule_specs,
-        RuleContext(taxonomies=canonical.taxonomies, schema=canonical.schema),
+        RuleContext(
+            taxonomies=canonical.taxonomies,
+            schema=canonical.schema,
+            reporting=reporting_context(session, tenant_id),
+        ),
     )
 
     return PreparedRows(

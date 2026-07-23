@@ -87,6 +87,11 @@ and measures and are mappable targets in the mapping UI (`kind: "factor"`).
   policy).
 - **Factors (Cycle 2):** MMM external regressors are a first-class field group
   (A.2b), mappable and validated; a factor source needs no media measure.
+- **Reporting frame (Cycle 2):** each tenant declares a **reporting currency** and
+  **reporting timezone** (+ an FX-rate table) in `tenant_settings`. `convert_currency`
+  (to-reporting mode) normalizes monetary measures into the reporting currency, and
+  `normalize_timezone` snaps timestamps to the reporting timezone before date
+  bucketing — so a tenant's output lands in one consistent frame.
 - **Date granularity (Cycle 2):** `date` is stored at its native grain; the
   supported **modelling grains are daily → weekly → monthly**, with **weekly the
   MMM-standard target**. Reconciliation is explicit, not implicit: the declarative
