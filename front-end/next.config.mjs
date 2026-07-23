@@ -7,6 +7,8 @@ const API_TARGET = process.env.MMM_OS_API_URL || "http://127.0.0.1:8000";
 
 const nextConfig = {
   reactStrictMode: true,
+  // Emit a self-contained server bundle for a slim production container (Phase 11).
+  output: "standalone",
   async rewrites() {
     return [
       {

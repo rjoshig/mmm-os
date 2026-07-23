@@ -1,10 +1,32 @@
 # Phase 11 — Deployment & Infrastructure
 
-**Tail phase** · **Depends on:** Phases 0–8 · **Status:** Spec-only — **design
-only, not scheduled to build.**
+**Tail phase** · **Depends on:** Phases 0–8 · **Status:** Built (containers + CI/CD
++ runbook) — hosting/IaC target still open.
 
-> **Design-only.** Documents the deployment/infra approach; **not** scheduled for
-> implementation. Keep the two-DB strategy and portability rules intact.
+> **Now built:** the container strategy, CI/CD image builds, a prod-like compose
+> stack, and an operations runbook are implemented (see below). The concrete
+> cloud/IaC target (OQ-11-1/11-2) remains open and is chosen at deploy time. Keep
+> the two-DB strategy and portability rules intact.
+
+## Implemented artifacts
+
+- **Containers (P11-5):** `Dockerfile` (API/worker, uv + Postgres driver, non-root,
+  migrate-then-serve `deploy/entrypoint.sh`) and `front-end/Dockerfile` (Next.js
+  standalone). `.dockerignore` keeps images lean + secret-free.
+- **CI/CD (P11-2):** `.github/workflows/ci.yml` gains a **container-images** job
+  (builds both Dockerfiles with buildx + GH cache) alongside the SQLite backend,
+  Postgres portability, and front-end jobs.
+- **Prod-like stack:** `docker-compose.yml` wires Postgres + API + front-end for
+  parity testing (`docker compose up --build`).
+- **Secret injection (P11-6):** all config via env; secrets via the `SecretStore`;
+  documented in the runbook — never baked into images or logs.
+- **Runbook:** [`deploy/RUNBOOK.md`](../../deploy/RUNBOOK.md) — environments +
+  promotion, required env, secret injection, **enterprise silo provisioning**
+  (ties to Slice 7.2/7.6), autoscaling/workers (ADR-007), health + rollout.
+
+Still open (design-time choices, not code): the specific cloud/orchestrator
+(OQ-11-1), IaC tooling (OQ-11-2), and managed CI/CD platform + release automation
+(OQ-11-3).
 
 ## Objective
 

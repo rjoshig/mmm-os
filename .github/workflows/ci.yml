@@ -74,6 +74,35 @@ jobs:
       - name: Pytest (Postgres portability)
         run: uv run pytest tests/test_postgres_portability.py -v
 
+  images:
+    name: Container images (docker build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          load: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build front-end image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./front-end
+          file: ./front-end/Dockerfile
+          push: false
+          load: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   frontend:
     name: Front-end (lint · typecheck · build)
     runs-on: ubuntu-latest

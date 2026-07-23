@@ -1,0 +1,57 @@
+# Prod-like local stack (Phase 11): Postgres + backend API + front-end.
+# Secrets/config are passed via env (12-factor); nothing sensitive is baked into
+# images. Bring it up with:  docker compose up --build
+#
+# This is a single-node convenience stack for parity testing — real deployments use
+# managed Postgres + an orchestrator (see deploy/RUNBOOK.md).
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: mmm
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mmm-dev}
+      POSTGRES_DB: mmm_os
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mmm -d mmm_os"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      BACKEND_DATABASE_URL: postgresql+psycopg://mmm:${POSTGRES_PASSWORD:-mmm-dev}@db:5432/mmm_os
+      # In real deployments these come from the platform secret store, not compose.
+      SECRET_MASTER_KEY: ${SECRET_MASTER_KEY:-change-me-in-prod}
+      AUTH_ENABLED: ${AUTH_ENABLED:-true}
+      SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-false}
+      MULTI_DB_ROUTING_ENABLED: ${MULTI_DB_ROUTING_ENABLED:-false}
+      MMM_OS_WORKERS: "2"
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: ./front-end
+      dockerfile: Dockerfile
+    depends_on:
+      - api
+    environment:
+      # The Next rewrite proxies /api/* to the backend service.
+      MMM_OS_API_URL: http://api:8000
+      DATABASE_URL: file:./dev.db
+    ports:
+      - "3000:3000"
+
+volumes:
+  db-data:

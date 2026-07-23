@@ -1,0 +1,1 @@
+# Static assets served by Next.js. Kept so the production Docker build has a public/ dir to copy.
