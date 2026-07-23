@@ -28,6 +28,10 @@ class Tenant(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     tier: Mapped[str] = mapped_column(String(16), nullable=False, default="standard")
     region: Mapped[str] = mapped_column(String(32), nullable=False, default="us")
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
+    # Isolation model (Slice 7.2). "pool" = shared backend DB (row-level tenant_id
+    # scoping, CC-1); "silo" = a dedicated database whose URL lives in the
+    # SecretStore (CC-12), routed per-request by db/routing.py.
+    isolation_mode: Mapped[str] = mapped_column(String(16), nullable=False, default="pool")
 
 
 class TenantSettings(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):

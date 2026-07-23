@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, Plus } from "lucide-react";
+import { Building2, DatabaseZap, Plus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [isolationFor, setIsolationFor] = useState<Customer | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -67,6 +68,16 @@ export default function CustomersPage() {
       sortKey: (c) => c.status,
     },
     {
+      key: "isolation",
+      header: "Isolation",
+      cell: (c) => (
+        <Badge variant={c.isolation_mode === "silo" ? "default" : "secondary"}>
+          {c.isolation_mode === "silo" ? "Dedicated DB" : "Shared pool"}
+        </Badge>
+      ),
+      sortKey: (c) => c.isolation_mode,
+    },
+    {
       key: "created",
       header: "Created",
       cell: (c) => <span className="text-muted-foreground">{formatDateTime(c.created_at)}</span>,
@@ -77,9 +88,16 @@ export default function CustomersPage() {
       header: "",
       align: "right",
       cell: (c) => (
-        <Button variant="outline" size="sm" onClick={() => openWorkspace(c.id)}>
-          Open workspace
-        </Button>
+        <div className="flex justify-end gap-2">
+          {c.tier === "enterprise" ? (
+            <Button variant="ghost" size="sm" onClick={() => setIsolationFor(c)}>
+              <DatabaseZap className="h-4 w-4" /> Isolation
+            </Button>
+          ) : null}
+          <Button variant="outline" size="sm" onClick={() => openWorkspace(c.id)}>
+            Open workspace
+          </Button>
+        </div>
       ),
     },
   ];
@@ -92,6 +110,19 @@ export default function CustomersPage() {
         onCreated={(c) => {
           setDialogOpen(false);
           toast.success(`Customer "${c.name}" onboarded.`);
+          void load();
+        }}
+      />
+      <IsolationDialog
+        customer={isolationFor}
+        onClose={() => setIsolationFor(null)}
+        onSaved={(c) => {
+          setIsolationFor(null);
+          toast.success(
+            c.isolation_mode === "silo"
+              ? `"${c.name}" moved to a dedicated database.`
+              : `"${c.name}" moved to the shared pool.`
+          );
           void load();
         }}
       />
@@ -132,6 +163,90 @@ export default function CustomersPage() {
         />
       )}
     </div>
+  );
+}
+
+function IsolationDialog({
+  customer,
+  onClose,
+  onSaved,
+}: {
+  customer: Customer | null;
+  onClose: () => void;
+  onSaved: (c: Customer) => void;
+}) {
+  const [dbUrl, setDbUrl] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const isSilo = customer?.isolation_mode === "silo";
+
+  async function apply(mode: "pool" | "silo") {
+    if (!customer) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await api.setCustomerIsolation(customer.id, {
+        mode,
+        database_url: mode === "silo" ? dbUrl.trim() : undefined,
+      });
+      setDbUrl("");
+      onSaved(updated);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not update isolation.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog
+      open={customer !== null}
+      onClose={onClose}
+      title={`Isolation — ${customer?.name ?? ""}`}
+      description="Standard customers share the pool database (row-level tenant scoping). Enterprise customers can run on a dedicated database; its URL is stored encrypted (never in plaintext)."
+    >
+      <div className="space-y-4">
+        <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+          Current: <span className="font-medium">{isSilo ? "Dedicated DB (silo)" : "Shared pool"}</span>
+        </div>
+        {!isSilo ? (
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium">Dedicated database URL</span>
+            <input
+              className={inputCls}
+              placeholder="postgresql+psycopg://…  or  sqlite:///walmart.db"
+              value={dbUrl}
+              onChange={(e) => setDbUrl(e.target.value)}
+            />
+            <span className="text-xs text-muted-foreground">
+              Schema is provisioned automatically. Routing activates when
+              MULTI_DB_ROUTING_ENABLED is on.
+            </span>
+          </label>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            This customer runs on a dedicated database. You can return it to the shared
+            pool below.
+          </p>
+        )}
+        {error ? <ErrorBanner message={error} /> : null}
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          {isSilo ? (
+            <Button variant="outline" onClick={() => apply("pool")} disabled={saving}>
+              {saving ? "Moving…" : "Move to shared pool"}
+            </Button>
+          ) : (
+            <Button onClick={() => apply("silo")} disabled={saving || !dbUrl.trim()}>
+              {saving ? "Provisioning…" : "Move to dedicated DB"}
+            </Button>
+          )}
+        </div>
+      </div>
+    </Dialog>
   );
 }
 

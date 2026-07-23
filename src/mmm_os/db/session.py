@@ -4,53 +4,65 @@ The engine is built from ``BACKEND_DATABASE_URL`` (read via settings) so the
 database is swappable SQLite -> Postgres by config only. SQLite needs
 ``check_same_thread=False`` for use across threads; other dialects get no such
 argument.
+
+Per-customer isolation (Slice 7.2): ``get_session`` yields a ``RoutingSession``
+that binds to the active customer's engine when the request is routed to a silo
+database (see ``db/routing.py``), and to the shared pool engine otherwise.
+Control-plane access (auth, customer registry) uses ``get_control_session``, which
+always binds the pool.
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterator
 
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from mmm_os.core.config import get_settings
-
-
-def _engine_kwargs(url: str) -> dict[str, object]:
-    """Return dialect-appropriate keyword args for ``create_engine``.
-
-    Args:
-        url: The SQLAlchemy database URL.
-
-    Returns:
-        Keyword arguments to pass to ``create_engine``.
-    """
-    if url.startswith("sqlite"):
-        return {"connect_args": {"check_same_thread": False}}
-    return {}
+from mmm_os.db.routing import RoutingSession, pool_engine
 
 
 def create_db_engine() -> Engine:
-    """Create the SQLAlchemy engine from application settings.
-
-    Returns:
-        A configured SQLAlchemy ``Engine``.
-    """
-    url = get_settings().backend_database_url
-    return create_engine(url, future=True, **_engine_kwargs(url))
+    """Return the shared pool engine (cached, built from application settings)."""
+    return pool_engine()
 
 
+# The pool engine + a plain session factory bound to it (control plane).
 engine: Engine = create_db_engine()
-SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+PoolSessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+
+# The request session factory: routes to the active customer's engine per request.
+SessionLocal = sessionmaker(
+    class_=RoutingSession, autoflush=False, expire_on_commit=False
+)
 
 
 def get_session() -> Iterator[Session]:
-    """Yield a database session (FastAPI dependency).
+    """Yield a routed database session (FastAPI dependency).
+
+    Binds to the active customer's silo engine when the request is routed there,
+    else to the shared pool engine.
 
     Yields:
         A SQLAlchemy ``Session`` that is closed when the request completes.
     """
     session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
+
+
+def get_control_session() -> Iterator[Session]:
+    """Yield a session bound to the pool (control-plane) database.
+
+    Used by auth and the customer registry, which must always read the shared pool
+    regardless of which customer a request is routed to.
+
+    Yields:
+        A pool-bound SQLAlchemy ``Session``, closed when the request completes.
+    """
+    session = PoolSessionLocal()
     try:
         yield session
     finally:

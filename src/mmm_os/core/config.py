@@ -43,6 +43,12 @@ class Settings(BaseSettings):
     # separately in front-end/.env via DATABASE_URL — they never share storage.
     backend_database_url: str = "sqlite:///./mmm_os.db"
 
+    # Per-customer database routing (Slice 7.2). When true, requests scoped to a
+    # /tenants/{id}/ path whose customer is on the "silo" isolation model are routed
+    # to that customer's dedicated database (URL held in the SecretStore, CC-12).
+    # Off by default: standard-tier customers share the pool DB (CC-1 scoping).
+    multi_db_routing_enabled: bool = False
+
     # Object storage for immutable raw files (ADR-006). Backend is selected by
     # env: "local" (dev) writes under storage_local_path; "s3" is the prod target.
     storage_backend: str = "local"

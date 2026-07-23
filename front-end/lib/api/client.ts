@@ -117,6 +117,11 @@ export const api = {
   listCustomers: () => request<Customer[]>("/api/v1/customers"),
   createCustomer: (input: { name: string; slug?: string; tier?: string; region?: string }) =>
     request<Customer>("/api/v1/customers", { method: "POST", body: JSON.stringify(input) }),
+  setCustomerIsolation: (id: string, input: { mode: "pool" | "silo"; database_url?: string }) =>
+    request<Customer>(`/api/v1/customers/${id}/isolation`, {
+      method: "PUT",
+      body: JSON.stringify(input),
+    }),
 
   // --- Auth (not tenant-scoped) ---
   login: (email: string, password: string) =>

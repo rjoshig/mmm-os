@@ -17,7 +17,7 @@ from mmm_os.ai.metering import MeteringLLMClient
 from mmm_os.auth.service import Principal, resolve_session
 from mmm_os.canonical import CanonicalConfig, load_and_validate
 from mmm_os.core.config import get_settings
-from mmm_os.db.session import get_session
+from mmm_os.db.session import get_control_session, get_session
 from mmm_os.secrets import SecretStore, get_secret_store
 from mmm_os.storage import ObjectStorage, build_storage
 
@@ -39,7 +39,7 @@ def _principal_from_header(
 
 def require_auth(
     authorization: str | None = Header(default=None),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_control_session),
     store: SecretStore = Depends(get_secret_store_dep),
 ) -> Principal | None:
     """Enforce authenticated access on feature endpoints (CC-11).

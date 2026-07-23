@@ -8,8 +8,11 @@ AI) are added thinly in their respective phases — routers hold no business log
 from __future__ import annotations
 
 import logging
+import re
+import uuid
+from collections.abc import Awaitable, Callable
 
-from fastapi import Depends, FastAPI, Request, status
+from fastapi import Depends, FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -39,6 +42,20 @@ from mmm_os.core.config import Settings, get_settings
 from mmm_os.core.logging import configure_logging
 
 logger = logging.getLogger("mmm_os.api")
+
+# Matches the tenant UUID in a tenant-scoped path, e.g. /api/v1/tenants/<uuid>/...
+_TENANT_PATH = re.compile(r"/tenants/([0-9a-fA-F-]{36})(?:/|$)")
+
+
+def _tenant_id_from_path(path: str) -> uuid.UUID | None:
+    """Extract the tenant UUID from a tenant-scoped request path, if present."""
+    match = _TENANT_PATH.search(path)
+    if match is None:
+        return None
+    try:
+        return uuid.UUID(match.group(1))
+    except ValueError:
+        return None
 
 
 def _cors_headers_for(request: Request, settings: Settings) -> dict[str, str]:
@@ -92,6 +109,37 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    @app.middleware("http")
+    async def _route_customer_db(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        """Route a tenant-scoped request to its customer's database (Slice 7.2).
+
+        No-op unless multi-DB routing is enabled and the path is tenant-scoped for a
+        silo customer; otherwise the request uses the shared pool engine. The routed
+        engine is bound via a ContextVar that ``RoutingSession`` reads.
+        """
+        if not settings.multi_db_routing_enabled:
+            return await call_next(request)
+        tenant_id = _tenant_id_from_path(request.url.path)
+        if tenant_id is None:
+            return await call_next(request)
+
+        from mmm_os.db.routing import resolve_engine_for_tenant, use_engine
+        from mmm_os.db.session import PoolSessionLocal
+        from mmm_os.secrets import get_secret_store
+
+        target = None
+        try:
+            with PoolSessionLocal() as control:
+                target = resolve_engine_for_tenant(
+                    tenant_id, control_session=control, store=get_secret_store()
+                )
+        except Exception:  # noqa: BLE001 - routing failure falls back to the pool
+            logger.exception("db routing failed for tenant %s", tenant_id)
+        with use_engine(target):
+            return await call_next(request)
 
     # Auth routes are the entry point and are NOT behind require_auth.
     app.include_router(auth.router)

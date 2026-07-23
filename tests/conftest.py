@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from mmm_os.api.deps import get_secret_store_dep, get_storage
 from mmm_os.api.main import app
 from mmm_os.db.base import Base
-from mmm_os.db.session import get_session
+from mmm_os.db.session import get_control_session, get_session
 from mmm_os.secrets import SecretStore
 from mmm_os.secrets.local import LocalEncryptedSecretStore
 from mmm_os.storage.local import LocalObjectStorage
@@ -71,6 +71,8 @@ def client(
             session.close()
 
     app.dependency_overrides[get_session] = override_session
+    # Control-plane (auth, customer registry) shares the test DB in tests.
+    app.dependency_overrides[get_control_session] = override_session
     app.dependency_overrides[get_storage] = lambda: storage
     app.dependency_overrides[get_secret_store_dep] = lambda: secret_store
     with TestClient(app) as test_client:

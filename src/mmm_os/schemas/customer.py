@@ -19,6 +19,7 @@ class CustomerRead(BaseModel):
     tier: str
     region: str
     status: str
+    isolation_mode: str
     created_at: datetime
 
 
@@ -29,3 +30,15 @@ class CustomerCreate(BaseModel):
     slug: str | None = Field(default=None, max_length=255)
     tier: str = Field(default="standard", pattern="^(standard|enterprise)$")
     region: str = Field(default="us", max_length=32)
+
+
+class CustomerIsolationUpdate(BaseModel):
+    """Request to change a customer's isolation model (Slice 7.2).
+
+    ``mode="silo"`` moves the customer to a dedicated database (``database_url``
+    required; stored in the SecretStore, never plaintext at rest). ``mode="pool"``
+    returns the customer to the shared database.
+    """
+
+    mode: str = Field(pattern="^(pool|silo)$")
+    database_url: str | None = Field(default=None, max_length=1024)

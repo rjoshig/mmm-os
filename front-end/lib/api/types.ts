@@ -353,6 +353,7 @@ export interface Customer {
   tier: string;
   region: string;
   status: string;
+  isolation_mode: string;
   created_at: string;
 }
 

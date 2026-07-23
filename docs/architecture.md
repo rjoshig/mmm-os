@@ -98,6 +98,31 @@ from Phase 0 because it is **hard to reverse**. Schema/DB-per-tenant was
 considered and rejected for v1 as too heavy to operate at many-tenant scale
 (migrations × N, connection routing). See ADR-003.
 
+### 3.1 Bridge/tiered isolation — pool default + silo opt-in (Slice 7.2)
+
+Row-level scoping (the **pool** model) is the default and carries the long tail of
+customers on one shared database. High-value **enterprise-tier** customers can opt
+into a **silo**: a dedicated database whose URL is held in the `SecretStore` (CC-12,
+never plaintext at rest, never logged). This is the standard *bridge / tiered* SaaS
+pattern for serving thousands of tenants while giving enterprises physical isolation.
+
+Mechanics (`src/mmm_os/db/routing.py`):
+
+- A per-URL **engine registry** caches one engine per database.
+- A request scoped to `/tenants/{id}/…` for a silo customer is routed by middleware
+  to that customer's engine via a `ContextVar`; a `RoutingSession.get_bind()` honors
+  it. Everything else (and every standard-tier customer) binds the pool engine.
+- **Control plane stays on the pool.** Auth/session resolution and the customer
+  registry use `get_control_session` (always pool); only tenant-scoped *business*
+  queries route. A silo DB is seeded with the customer's tenant + user rows at
+  provision time so routed actor look-ups resolve.
+- Routing is gated by `MULTI_DB_ROUTING_ENABLED` (off by default), so the standard
+  single-database deployment is unaffected. Reuses the existing env-var DB-URL
+  portability — a silo URL can point at SQLite or Postgres.
+
+Known follow-ups: post-provision user changes need re-sync into the silo; the
+background scheduler routes per-tick (not yet per-silo-customer).
+
 ---
 
 ## 4. Config-as-Data & Versioning
@@ -282,6 +307,10 @@ Format: **ADR-NNN — Title — Status (Accepted / Proposed / Superseded) — Da
   rejected for v1 (heavier ops at many-tenant scale).
 - **Consequences:** Every model and query carries `tenant_id` from the start;
   Phase 7 adds tenant-scoping tests to verify no cross-tenant access paths.
+- **Extension (ADR-003a, Slice 7.2):** the row-level pool remains the default;
+  enterprise customers may opt into a **silo** (dedicated DB, bridge/tiered model)
+  via `db/routing.py` — see §3.1. This does not reverse ADR-003; it layers physical
+  isolation on top of it for high-value tenants and is gated off by default.
 
 ### ADR-004 — Opinionated rule engine with a sandboxed-expression escape hatch — Accepted — 2026-07
 - **Context:** The transformation engine must be flexible (config, not hardcode)
