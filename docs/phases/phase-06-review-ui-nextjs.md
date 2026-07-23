@@ -1,6 +1,6 @@
 # Phase 6 — Review UI (Next.js)
 
-**Depends on:** Phases 2–5 (+ **00.5 auth**, per the build order) · **Status:** In progress
+**Depends on:** Phases 2–5 (+ **00.5 auth**, per the build order) · **Status:** Done (all sub-phases implemented; pending PR merge)
 
 The UI shell is scaffolded during repo initialization; feature screens land here.
 All UI MUST match the design language in [`../../front-end/CLAUDE.md`](../../front-end/CLAUDE.md).
