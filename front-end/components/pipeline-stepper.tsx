@@ -2,6 +2,7 @@
 
 import { Check, FileSearch, ShieldCheck, Table2, Wand2 } from "lucide-react";
 import Link from "next/link";
+import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { FilePipelineStatus, SheetPipelineStatus } from "@/lib/api/types";
 
@@ -35,6 +36,13 @@ function stageState(
 }
 
 const STAGE_ICON = [FileSearch, Table2, Wand2, ShieldCheck, Check];
+const STAGE_HINT = [
+  "File ingested and profiled",
+  "Map source columns to the canonical schema",
+  "Apply transform rules (clean, standardize, aggregate)",
+  "Run validation to check data quality",
+  "Generate clean, model-ready output",
+];
 
 export function PipelineStepper({
   sheet,
@@ -51,20 +59,27 @@ export function PipelineStepper({
         const Icon = STAGE_ICON[i];
         const done = i <= reached;
         const isNext = i === reached + 1 && nextHref !== undefined;
+        const hint = done
+          ? `${label} — done`
+          : isNext
+            ? `Next: ${STAGE_HINT[i]}`
+            : STAGE_HINT[i];
         const content = (
-          <span
-            className={cn(
-              "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium",
-              done
-                ? "bg-success/15 text-success"
-                : isNext
-                  ? "bg-primary/10 text-primary ring-1 ring-primary/30"
-                  : "bg-muted text-muted-foreground"
-            )}
-          >
-            <Icon className="h-3 w-3" />
-            {label}
-          </span>
+          <Tooltip content={hint}>
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium",
+                done
+                  ? "bg-success/15 text-success"
+                  : isNext
+                    ? "bg-primary/10 text-primary ring-1 ring-primary/30"
+                    : "bg-muted text-muted-foreground"
+              )}
+            >
+              <Icon className="h-3 w-3" />
+              {label}
+            </span>
+          </Tooltip>
         );
         return (
           <span key={label} className="flex items-center gap-1">

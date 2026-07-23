@@ -2,6 +2,7 @@
 
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip } from "@/components/ui/tooltip";
 
 export interface UiRule {
   id: string;
@@ -85,9 +86,11 @@ export function RuleConfig({
           ))}
         </select>
 
-        <Button variant="ghost" size="sm" className="ml-auto" onClick={onRemove}>
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
+        <Tooltip content="Remove this rule" className="ml-auto">
+          <Button variant="ghost" size="sm" onClick={onRemove} aria-label="Remove rule">
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </Tooltip>
       </div>
 
       <div className="mt-3">
