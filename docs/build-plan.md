@@ -32,10 +32,13 @@
 | **7** | Multi-Tenancy, Async & Scale | Queue, workers, isolation hardening, observability | all above |
 | **8** | Governance & Security | Roles, audit, encryption, compliance | 7 |
 | **9** | Connectors & Extraction | Partner data connectors (SFTP + Meta/Google/DV360/TikTok); PDF/email extraction *(deferred sub-track)* | 0–8 |
+| **13** | Collaboration & Multi-User Workflow | Config library + authorship + draft→publish lifecycle, runs history UI, review queue/assignment, comments/notifications | 2, 3, 6, 8 |
 
 Additional phases (added post-v0.1 for enterprise readiness) are listed
 authoritatively in [`phases/README.md`](./phases/README.md): inserted **Build**
-phases 00.5, 00.6, 05.1, 07.1, 07.2, 08.1 and **Spec-only** tail phases 10, 11, 12.
+phases 00.5, 00.6, 05.1, 07.1, 07.2, 08.1; **Build** phase 13 (collaboration /
+multi-user, part of the enterprise-overhaul track); and **Spec-only** tail phases
+10, 11, 12.
 
 **Guiding principle:** the MVP is **Phases 0–4** (file in → clean data out,
 config-driven). Phase 5 (AI) and Phase 6 (UI) make it usable; the enterprise-
@@ -93,6 +96,7 @@ relevant `CC-n` where applicable.
 | 7 | [`phases/phase-07-multitenancy-async-scale.md`](./phases/phase-07-multitenancy-async-scale.md) | Not started |
 | 8 | [`phases/phase-08-governance-security.md`](./phases/phase-08-governance-security.md) | Not started |
 | 9 | [`phases/phase-09-future-connectors-extraction.md`](./phases/phase-09-future-connectors-extraction.md) | Build (sequenced last; PDF/email sub-track deferred) |
+| 13 | [`phases/phase-13-collaboration-multiuser-workflow.md`](./phases/phase-13-collaboration-multiuser-workflow.md) | Build (enterprise-overhaul track; see phases/README.md for authoritative status) |
 
 ---
 

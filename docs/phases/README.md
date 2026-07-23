@@ -47,7 +47,15 @@ until scoped.
 | 17 | 10 | [phase-10](./phase-10-data-governance-retention.md) | Data governance & retention, backup/DR, erasure, residency, PII posture. | 0–8 | Spec-only |
 | 18 | 11 | [phase-11](./phase-11-deployment-infrastructure.md) | Deployment & infra: environments, CI/CD, IaC, autoscaling, secret injection. | 0–8 | Spec-only |
 | 19 | 12 | [phase-12](./phase-12-load-scale-testing.md) | Load/scale test plan for 200–500 tenants + batch concurrency. | 0–8, 11 | Spec-only |
+| 20 | 13 | [phase-13](./phase-13-collaboration-multiuser-workflow.md) | Collaboration & multi-user workflow: config library + authorship + draft→publish lifecycle, runs history UI, review queue/assignment, comments/notifications. | 2, 3, 6, 8 | Build |
 | — | Postgres migration | [architecture §2](../architecture.md) | Swap backend/UI DB SQLite→Postgres by config only (portability already designed). | — | Deferred |
+
+> **Note on Phase 13.** Phase 13 is part of the **enterprise-overhaul** track and is
+> sequenced *after* the model-readiness + automation cycles (Cycles 2–4) even though
+> its dependencies (2/3/6/8) are already Done — it hardens the multi-user experience
+> on top of them. Its **runs-history UI (13.3)** coordinates with Cycle 3 (which
+> produces scheduled runs); build the visibility surface once, extend it when the
+> scheduler lands. Broken into sub-phases 13.1–13.5 (see the spec).
 
 > **Note on Phase 9 status.** Phase 9 was originally *Deferred*; it is now planned
 > as **Build** (fully designed across 09.1–09.8) but sequenced after the core +

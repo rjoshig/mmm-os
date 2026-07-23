@@ -99,6 +99,28 @@ types only. The core `user` entity (Appendix C) is **extended**, not replaced.
 
 ---
 
+## Appendix C.3 — Collaboration & multi-user workflow entities (Phase 13)
+
+Scoped for [Phase 13](./phases/phase-13-collaboration-multiuser-workflow.md)
+(collaboration & multi-user workflow). Tenant-scoped, portable types only. Concrete
+columns are fixed in each sub-phase spec at build time; this is the entity map.
+
+| Entity | Purpose | Key notes |
+|---|---|---|
+| `mapping_config` / `rule_set` *(extend Appendix C)* | Existing versioned configs. | Add `created_by` / `updated_by` (nullable user refs) and a `status` (`draft`/`published`/`archived`); resolution reads the latest **published** version (CC-4). Phase 13.1/13.2. |
+| `assignment` | A unit of work assigned to a user. | `target_type` (`file`/`sheet`/`flag_cluster`) + `target_id` → `assignee` user; drives "Assigned to me" / "Needs review" queues. Tenant-scoped. Phase 13.4. |
+| `comment` | In-context note / thread on an object. | `target_type` + `target_id` (flag/mapping/file), author, body, optional `@mention` refs; feeds the per-file activity feed. Phase 13.5. |
+| `notification` | In-app notification for a user. | Kind (mention/assignment/publish-request), target ref, read/unread; pluggable delivery sink (email/webhook later, honoring CC-10/CC-12). Phase 13.5. |
+
+**Relationships (high level):**
+- `tenant` 1—* `assignment`, `comment`, `notification`.
+- `user` 1—* `assignment` (assignee), `comment` (author), `notification` (recipient);
+  `user` authors `mapping_config` / `rule_set` versions via `created_by`/`updated_by`.
+- Every collaborative action is also written to `audit_log` (Appendix C.2) with actor
+  + target (CC-5).
+
+---
+
 ## Appendix D — Rule Schema (draft)
 
 Each transformation is stored as **data**, not code (CC-4). A rule:
