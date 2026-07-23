@@ -43,6 +43,13 @@ other classes are purged standalone. Purge runs on demand
 - **P10-1 Retention:** ✅ **Built** — `governance/retention.py` (`RetentionPolicy`,
   `run_retention`, shared `delete_file_data` cascade) + admin endpoints
   (`/retention/policy`, `/retention/run`). See the matrix above.
+- **P10-3 Deletion / erasure:** ✅ **Built** — `governance/erasure.py`. Reconciles
+  OQ-10-3: **erase_file** removes one file + its derived data + immutable-raw bytes
+  (the CC-2 exception); **erase_tenant** wipes every data-bearing tenant-scoped table
+  + all raw bytes, **keeping** user identities, the `audit_log`, and the tenant
+  shell — and records the erasure event, so *what was erased* stays provable while the
+  *data* is gone. Endpoints: `POST /erase/files/{id}`, `POST /erase` (requires
+  `{"confirm":"ERASE"}`), both admin + audited.
 - **P10-2 Backup & DR:** SHOULD define RPO/RTO targets and a backup/restore +
   disaster-recovery approach for both databases + object storage.
 - **P10-3 Deletion / erasure:** SHOULD define tenant data deletion and

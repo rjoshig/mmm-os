@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from mmm_os.api.deps import get_storage
@@ -18,12 +18,15 @@ from mmm_os.core.config import Settings, get_settings
 from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.db.session import get_session
 from mmm_os.governance import record_audit
+from mmm_os.governance.erasure import erase_file, erase_tenant
 from mmm_os.governance.retention import RetentionPolicy, run_retention
 from mmm_os.models import AuditLog, User
 from mmm_os.models.mixins import utcnow
 from mmm_os.schemas.governance import (
     AccessReviewRow,
     AuditEntryRead,
+    EraseResponse,
+    EraseTenantRequest,
     RetentionPolicyRead,
     RetentionRunResponse,
     UserRead,
@@ -139,3 +142,69 @@ def retention_run(
     )
     session.commit()
     return RetentionRunResponse(purged=purged)
+
+
+@router.post(
+    "/tenants/{tenant_id}/erase/files/{file_id}",
+    response_model=EraseResponse,
+    dependencies=[_ADMIN],
+)
+def erase_file_route(
+    tenant_id: uuid.UUID,
+    file_id: uuid.UUID,
+    session: Session = Depends(get_session),
+    storage: ObjectStorage = Depends(get_storage),
+    principal: Principal | None = _ADMIN,
+) -> EraseResponse:
+    """Erase one file + all data derived from it (right-to-erasure; audited)."""
+    ok = erase_file(session, storage, tenant_id, file_id)
+    if not ok:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="file not found")
+    record_audit(
+        session,
+        tenant_id=tenant_id,
+        action="erase.file",
+        principal=principal,
+        target_type="file",
+        target_id=str(file_id),
+    )
+    session.commit()
+    return EraseResponse(erased={"file": 1})
+
+
+@router.post(
+    "/tenants/{tenant_id}/erase",
+    response_model=EraseResponse,
+    dependencies=[_ADMIN],
+)
+def erase_tenant_route(
+    tenant_id: uuid.UUID,
+    body: EraseTenantRequest,
+    session: Session = Depends(get_session),
+    storage: ObjectStorage = Depends(get_storage),
+    principal: Principal | None = _ADMIN,
+) -> EraseResponse:
+    """Erase ALL of a tenant's data (right-to-be-forgotten; destructive, audited).
+
+    Requires ``confirm == "ERASE"``. Keeps user identities + the audit log + the
+    tenant shell; records the erasure itself (the audit trail survives, the data does
+    not). Raises 400 without the confirmation token.
+    """
+    if body.confirm != "ERASE":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='confirmation required: send {"confirm": "ERASE"}',
+        )
+    erased = erase_tenant(session, storage, tenant_id)
+    # Written AFTER the wipe so it survives (audit_log is retained on erasure).
+    record_audit(
+        session,
+        tenant_id=tenant_id,
+        action="erase.tenant",
+        principal=principal,
+        target_type="tenant",
+        target_id=str(tenant_id),
+        detail=erased,
+    )
+    session.commit()
+    return EraseResponse(erased=erased)

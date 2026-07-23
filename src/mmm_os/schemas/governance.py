@@ -58,3 +58,15 @@ class RetentionRunResponse(BaseModel):
     """Result of a retention run: rows/objects purged per data class."""
 
     purged: dict[str, int]
+
+
+class EraseTenantRequest(BaseModel):
+    """Confirmation for a destructive full-tenant erasure (Phase 10, P10-3)."""
+
+    confirm: str  # must equal "ERASE"
+
+
+class EraseResponse(BaseModel):
+    """Result of an erasure: per-table row counts removed."""
+
+    erased: dict[str, int]
