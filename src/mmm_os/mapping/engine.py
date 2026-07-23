@@ -45,16 +45,25 @@ class MappingResult:
 
 
 def _mappable_fields(schema: CanonicalSchema) -> set[str]:
-    """Return the canonical fields a source column may map to (dimensions + measures)."""
-    return {f.name for f in (*schema.dimensions, *schema.measures)}
+    """Return the canonical fields a source column may map to.
+
+    Dimensions + measures + factors (MMM external regressors); a factor source
+    maps its columns to factor fields (Cycle 2).
+    """
+    return {f.name for f in (*schema.dimensions, *schema.measures, *schema.factors)}
 
 
 def _missing_required(targets: set[str], schema: CanonicalSchema) -> list[str]:
-    """Return required canonical fields not present in ``targets`` (OQ-2.2)."""
+    """Return required canonical fields not present in ``targets`` (OQ-2.2).
+
+    A row is meaningful with at least ``min_required`` measures OR at least one
+    factor (factor sources carry no media measures).
+    """
     missing = [f.name for f in schema.dimensions if f.required and f.name not in targets]
     measure_names = {f.name for f in schema.measures}
-    if len(targets & measure_names) < schema.measure_policy.min_required:
-        missing.append(f"at_least_{schema.measure_policy.min_required}_measure")
+    has_factor = bool(targets & schema.factor_names())
+    if len(targets & measure_names) < schema.measure_policy.min_required and not has_factor:
+        missing.append(f"at_least_{schema.measure_policy.min_required}_measure_or_factor")
     return missing
 
 

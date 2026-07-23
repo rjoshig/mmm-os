@@ -31,9 +31,16 @@ def _to_number(value: object) -> float | None:
 
 
 def check_missing_required(table: Table, schema: CanonicalSchema) -> list[Finding]:
-    """Flag rows missing a required dimension or fewer than the required measures."""
+    """Flag rows missing a required dimension, or with neither enough measures nor a factor.
+
+    A row is meaningful with at least ``min_required`` measures OR at least one
+    factor value (factor sources — price/holiday/weather series — carry no media
+    measures), per the Cycle-2 measure-or-factor policy.
+    """
     required = [f.name for f in schema.dimensions if f.required]
     measures = {f.name for f in schema.measures}
+    factors = schema.factor_names()
+    min_required = schema.measure_policy.min_required
     findings: list[Finding] = []
     for i, row in enumerate(table):
         for field_name in required:
@@ -45,12 +52,13 @@ def check_missing_required(table: Table, schema: CanonicalSchema) -> list[Findin
                         {"row": i, "field": field_name},
                     )
                 )
-        present = [m for m in measures if not _is_empty(row.get(m))]
-        if len(present) < schema.measure_policy.min_required:
+        present_measures = [m for m in measures if not _is_empty(row.get(m))]
+        has_factor = any(not _is_empty(row.get(f)) for f in factors)
+        if len(present_measures) < min_required and not has_factor:
             findings.append(
                 Finding(
                     "missing_required",
-                    f"row has fewer than {schema.measure_policy.min_required} measure(s)",
+                    f"row has fewer than {min_required} measure(s) and no factor value",
                     {"row": i},
                 )
             )

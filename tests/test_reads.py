@@ -63,6 +63,9 @@ def test_canonical_fields(client: TestClient) -> None:
     kinds = {f["name"]: f["kind"] for f in body["fields"]}
     assert kinds["date"] == "dimension"
     assert kinds["spend"] == "measure"
+    # MMM factor fields are mappable targets too (Cycle 2).
+    assert kinds["price_index"] == "factor"
+    assert {"price_index", "is_holiday", "seasonality_index"} <= names
     assert body["min_measures_required"] >= 1
 
 

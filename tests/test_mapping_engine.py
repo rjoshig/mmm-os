@@ -68,3 +68,16 @@ def test_missing_required_blocks_completion() -> None:
     no_measure = apply_mapping(_cols("Date", "Chan"), {"Date": "date", "Chan": "channel"}, schema)
     assert any("measure" in m for m in no_measure.missing_required)
     assert not no_measure.is_complete
+
+
+def test_factor_source_completes_without_a_measure() -> None:
+    """A factor source (date + channel + a factor, no measure) maps completely (Cycle 2)."""
+    schema = load_canonical_schema()
+    result = apply_mapping(
+        _cols("Week", "Chan", "Price"),
+        {"Week": "date", "Chan": "channel", "Price": "price_index"},
+        schema,
+    )
+    assert result.is_complete
+    assert not result.missing_required
+    assert "price_index" in {m.canonical_field for m in result.mapped}

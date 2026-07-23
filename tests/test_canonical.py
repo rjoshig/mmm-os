@@ -29,6 +29,18 @@ def test_required_fields_match_oq_2_2() -> None:
     assert schema.measure_policy.min_required == 1
 
 
+def test_factors_group_loads_with_mmm_regressors() -> None:
+    """The schema exposes MMM factor fields (Cycle 2) as a distinct group."""
+    schema = load_canonical_schema()
+    factor_names = schema.factor_names()
+    assert {"price_index", "is_holiday", "seasonality_index", "competitor_spend"} <= factor_names
+    # Factors are a separate group — not counted as dimensions or measures.
+    measure_names = {f.name for f in schema.measures}
+    dimension_names = {f.name for f in schema.dimensions}
+    assert not (factor_names & measure_names)
+    assert not (factor_names & dimension_names)
+
+
 def test_every_enum_field_references_a_known_taxonomy() -> None:
     """Cross-validation: enum fields only reference taxonomies that exist."""
     config = load_and_validate()

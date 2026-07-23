@@ -24,6 +24,30 @@ def test_missing_required_is_blocking() -> None:
     assert is_blocked(flags)
 
 
+def test_factor_only_row_satisfies_meaningful_requirement() -> None:
+    """A factor row (date + channel + a factor, no media measure) is not flagged.
+
+    Factor sources (price/holiday/weather series) carry no spend/impressions, so a
+    factor value satisfies the "meaningful row" rule instead of a measure (Cycle 2).
+    """
+    schema = load_canonical_schema()
+    flags = validate(
+        [{"date": "2026-01-01", "channel": "Facebook", "price_index": "1.05"}], schema
+    )
+    by_check = _flags_by_check(flags)
+    assert "missing_required" not in by_check
+    assert not is_blocked(flags)
+
+
+def test_row_with_neither_measure_nor_factor_is_blocking() -> None:
+    """A row with a required dimension but no measure and no factor is still flagged."""
+    schema = load_canonical_schema()
+    flags = validate([{"date": "2026-01-01", "channel": "Facebook"}], schema)
+    by_check = _flags_by_check(flags)
+    assert "missing_required" in by_check
+    assert is_blocked(flags)
+
+
 def test_negative_measure_is_blocking() -> None:
     """A negative measure is flagged blocking."""
     schema = load_canonical_schema()

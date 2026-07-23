@@ -111,7 +111,7 @@ export interface CanonicalFieldRead {
   name: string;
   type: string;
   required: boolean;
-  kind: "dimension" | "measure";
+  kind: "dimension" | "measure" | "factor";
   taxonomy: string | null;
 }
 

@@ -39,9 +39,31 @@ The field list below is a starting point — refine in Phase 0.
 | `revenue` | number | No | |
 | `reach` | number | No | |
 
-\* At least one measure MUST be present for a row to be meaningful. **OQ-2.2
-resolved (see A.4):** the required set for v1 is `date` + `channel` + **≥1
-measure**; all other fields are optional.
+\* At least one measure **or one factor** (see A.2b) MUST be present for a row to be
+meaningful. **OQ-2.2 resolved (see A.4):** the required set for v1 is `date` +
+`channel` + **≥1 measure or factor**; all other fields are optional.
+
+### A.2b Factor fields (MMM external regressors) — Cycle 2
+
+Non-media drivers a marketing-mix model controls for. A **factor source** (e.g. a
+weekly price index, holiday calendar, or weather series) carries `date` + one or
+more of these instead of media measures, so a factor satisfies the "meaningful row"
+requirement in place of a measure. Factors are a **distinct group** from dimensions
+and measures and are mappable targets in the mapping UI (`kind: "factor"`).
+
+| Field | Type | Category | Notes |
+|---|---|---|---|
+| `seasonality_index` | number | Seasonality | Index; baseline ~1.0 or 100. |
+| `is_holiday` | boolean | Holidays | Period contains a holiday. |
+| `holiday_name` | string | Holidays | Holiday label (raw kept + standardized). |
+| `price_index` | number | Price | Price factor relative to a baseline. |
+| `on_promotion` | boolean | Promotions | Promotion active in the period. |
+| `promotion_depth` | number | Promotions | Discount depth (fraction / %). |
+| `distribution` | number | Distribution | Weighted distribution or % ACV. |
+| `avg_temperature` | number | Weather | Average temperature for the period. |
+| `precipitation` | number | Weather | Precipitation for the period. |
+| `macro_index` | number | Macro | Consumer confidence / CPI proxy. |
+| `competitor_spend` | number | Competitor | Estimated competitor activity. |
 
 ### A.3 Metadata fields (system-populated)
 
@@ -59,12 +81,17 @@ measure**; all other fields are optional.
 ### A.4 Schema decisions
 
 **Resolved:**
-- **Required fields (OQ-2.2):** `date` + `channel` (dimensions) and **≥1 measure**
-  per row. All other dimension and measure fields are optional. A row missing a
-  required field blocks output (see Phase 2 P2-5 / Phase 4 severity policy).
+- **Required fields (OQ-2.2):** `date` + `channel` (dimensions) and **≥1 measure or
+  factor** per row. All other dimension, measure, and factor fields are optional. A
+  row missing a required field blocks output (see Phase 2 P2-5 / Phase 4 severity
+  policy).
+- **Factors (Cycle 2):** MMM external regressors are a first-class field group
+  (A.2b), mappable and validated; a factor source needs no media measure.
 
 **Still open:**
-- Date granularity supported (daily/weekly/monthly) and how mixed granularities reconcile.
+- Date granularity supported (daily/weekly/monthly) and how mixed granularities
+  reconcile. *(Being resolved in Cycle 2 alongside the `aggregate` operation —
+  weekly is the MMM-standard grain.)*
 - Whether measures are columns (wide) or a `metric`/`value` pair (long-long). Draft assumes measure-columns.
 
 ---

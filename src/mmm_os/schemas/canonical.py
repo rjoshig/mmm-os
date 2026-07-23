@@ -11,7 +11,7 @@ class CanonicalFieldRead(BaseModel):
     name: str
     type: str
     required: bool
-    kind: str  # "dimension" | "measure"
+    kind: str  # "dimension" | "measure" | "factor"
     taxonomy: str | None = None
 
 

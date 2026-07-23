@@ -70,13 +70,17 @@ class CanonicalSchema(BaseModel):
     version: int
     dimensions: list[CanonicalField]
     measures: list[CanonicalField]
+    factors: list[CanonicalField] = Field(default_factory=list)
     metadata: list[CanonicalField] = Field(default_factory=list)
     measure_policy: MeasurePolicy
 
     @model_validator(mode="after")
     def _unique_field_names(self) -> CanonicalSchema:
-        """Ensure field names are unique across dimensions + measures + metadata."""
-        names = [f.name for f in (*self.dimensions, *self.measures, *self.metadata)]
+        """Ensure field names are unique across dimensions + measures + factors + metadata."""
+        names = [
+            f.name
+            for f in (*self.dimensions, *self.measures, *self.factors, *self.metadata)
+        ]
         duplicates = sorted({n for n in names if names.count(n) > 1})
         if duplicates:
             raise ValueError(f"duplicate canonical field name(s): {', '.join(duplicates)}")
@@ -86,11 +90,15 @@ class CanonicalSchema(BaseModel):
         """Return the names of required dimension fields."""
         return [f.name for f in self.dimensions if f.required]
 
+    def factor_names(self) -> set[str]:
+        """Return the set of factor field names (MMM external regressors)."""
+        return {f.name for f in self.factors}
+
     def enum_fields(self) -> list[CanonicalField]:
-        """Return all enum-typed fields across dimensions, measures, and metadata."""
+        """Return all enum-typed fields across dimensions, measures, factors, and metadata."""
         return [
             f
-            for f in (*self.dimensions, *self.measures, *self.metadata)
+            for f in (*self.dimensions, *self.measures, *self.factors, *self.metadata)
             if f.type is FieldType.ENUM
         ]
 

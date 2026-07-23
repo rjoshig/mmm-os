@@ -60,6 +60,11 @@ def canonical_fields(
             name=f.name, type=f.type.value, required=f.required, kind="measure", taxonomy=f.taxonomy
         )
         for f in schema.measures
+    ] + [
+        CanonicalFieldRead(
+            name=f.name, type=f.type.value, required=f.required, kind="factor", taxonomy=f.taxonomy
+        )
+        for f in schema.factors
     ]
     return CanonicalFieldsResponse(
         version=schema.version,

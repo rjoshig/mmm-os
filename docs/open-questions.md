@@ -19,7 +19,7 @@ recorded here and, where architectural, in [`architecture.md`](./architecture.md
 | OQ-1.1 | Max file size / row count for v1. | 1 | ✅ **~200 MB / ~5M rows per sheet** as the documented v1 ceiling; streamed/chunked; configurable; over-limit files fail the job with a clear reason. |
 | OQ-1.2 | Multiple header-like rows behaviour (pick vs ask). | 1 | ✅ **Pick + flag**: auto-select the highest-scoring header deterministically; below a confidence threshold, flag `needs-review` (AI assists in Phase 5). |
 | OQ-2.1 | Column-signature definition (exact/fuzzy/positional). | 2 | ✅ **Normalized header-name set** (lowercased, trimmed, whitespace/punctuation-collapsed), order-tolerant; match = exact set equality. Fuzzy/positional matching deferred to the AI layer (Phase 5). |
-| OQ-2.2 | Required vs optional canonical fields / measures. | 2 | ✅ **Required: `date` + `channel` + ≥1 measure**; all other fields optional. See canonical-schema A.4. |
+| OQ-2.2 | Required vs optional canonical fields / measures. | 2 | ✅ **Required: `date` + `channel` + ≥1 measure or factor** (Cycle 2 adds factor sources); all other fields optional. See canonical-schema A.4. |
 | OQ-3.1 | Escape-hatch `custom` rule scope. | 3 | ✅ **Sandboxed expression language** (restricted DSL over row/field context; no arbitrary code, imports, or I/O; allowlisted ops; resource-bounded). See ADR-004. |
 | OQ-3.2 | Reshape (wide→long) config model. | 3 | ✅ **Draft config model** `{ id_vars, value_vars \| value_var_pattern, var_name → dimension, value_name → measure }`; deterministic. |
 | OQ-4.1 | Default severity / blocking policy. | 4 | ✅ **BLOCK** = missing/unmapped required field, negative measure, type mismatch on a required field; **WARN** = date gaps, duplicates, outliers, out-of-range non-required. Configurable per tenant. |
@@ -132,7 +132,7 @@ Recorded in [`architecture.md`](./architecture.md) (ADR log) and the relevant do
 - **AI provider = Claude via the Anthropic API**, env-injected creds, profile-only inputs (ADR-008, OQ-5.1/INIT.4).
 - **Design system = extracted tokens + hand-built shadcn-style primitives** (ADR-009, OQ-6.1).
 - **Source-agnostic ingestion abstraction** — every source (upload/SFTP/API) emits one `LandedDataset` via `SourceConnector`; `FileSource` real now, connectors deferred to Phase 9 (ADR-010, CC-9/CC-10).
-- Required canonical fields: `date` + `channel` + ≥1 measure (OQ-2.2).
+- Required canonical fields: `date` + `channel` + ≥1 measure **or factor** (OQ-2.2; factors added in Cycle 2).
 - Python targets **3.10+**; backend SQLAlchemy 2.0 + Alembic; UI Prisma.
 - Front-end design language replicated from the reference UI (`../front-end/CLAUDE.md`).
 

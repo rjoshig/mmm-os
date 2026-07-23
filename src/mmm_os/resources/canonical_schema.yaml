@@ -68,7 +68,61 @@ measures:
     type: number
     required: false
 
-# OQ-2.2 resolved: at least one measure is required for a row to be meaningful.
+# A.5 Factor fields (MMM external regressors) — Cycle 2.
+# Non-media drivers a marketing-mix model controls for (seasonality, holidays,
+# price, promotions, distribution, macro, weather, competitor activity). A factor
+# source (e.g. a weekly price index or holiday calendar) carries `date` + one or
+# more of these instead of media measures, so a factor counts toward the
+# "meaningful row" requirement (see measure_policy).
+factors:
+  - name: seasonality_index
+    type: number
+    required: false
+    notes: Seasonality regressor (index; baseline ~1.0 or 100).
+  - name: is_holiday
+    type: boolean
+    required: false
+    notes: Whether the period contains a holiday.
+  - name: holiday_name
+    type: string
+    required: false
+    notes: Holiday label (raw kept + standardized).
+  - name: price_index
+    type: number
+    required: false
+    notes: Price / pricing factor (index relative to a baseline).
+  - name: on_promotion
+    type: boolean
+    required: false
+    notes: Whether a promotion is active in the period.
+  - name: promotion_depth
+    type: number
+    required: false
+    notes: Discount depth (e.g. fraction or percentage off).
+  - name: distribution
+    type: number
+    required: false
+    notes: Distribution / availability (e.g. weighted distribution or % ACV).
+  - name: avg_temperature
+    type: number
+    required: false
+    notes: Weather — average temperature for the period.
+  - name: precipitation
+    type: number
+    required: false
+    notes: Weather — precipitation for the period.
+  - name: macro_index
+    type: number
+    required: false
+    notes: Macro indicator (e.g. consumer confidence / CPI proxy).
+  - name: competitor_spend
+    type: number
+    required: false
+    notes: Competitor activity proxy (e.g. estimated competitor spend).
+
+# OQ-2.2 resolved: a row is meaningful with at least one measure OR at least one
+# factor (factor sources carry no media measures). `min_required` is the measure
+# count required when a row has no factor.
 measure_policy:
   min_required: 1
 
