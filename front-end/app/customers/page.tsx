@@ -10,6 +10,7 @@ import { EmptyState, ErrorBanner } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
 import { TableSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
+import { CustomerOnboardingWizard } from "@/components/onboarding/customer-onboarding-wizard";
 import { api, ApiError } from "@/lib/api/client";
 import type { Customer } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
@@ -104,12 +105,11 @@ export default function CustomersPage() {
 
   return (
     <div className="space-y-6">
-      <NewCustomerDialog
+      <CustomerOnboardingWizard
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        onCreated={(c) => {
+        onDone={() => {
           setDialogOpen(false);
-          toast.success(`Customer "${c.name}" onboarded.`);
           void load();
         }}
       />
@@ -244,83 +244,6 @@ function IsolationDialog({
               {saving ? "Provisioning…" : "Move to dedicated DB"}
             </Button>
           )}
-        </div>
-      </div>
-    </Dialog>
-  );
-}
-
-function NewCustomerDialog({
-  open,
-  onClose,
-  onCreated,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onCreated: (c: Customer) => void;
-}) {
-  const [name, setName] = useState("");
-  const [tier, setTier] = useState("standard");
-  const [region, setRegion] = useState("us");
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  async function create() {
-    setSaving(true);
-    setError(null);
-    try {
-      const c = await api.createCustomer({ name: name.trim(), tier, region });
-      setName("");
-      onCreated(c);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not create the customer.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      title="Onboard a customer"
-      description="Creates an isolated workspace. Enterprise tier can later be routed to a dedicated database."
-    >
-      <div className="space-y-4">
-        <label className="block space-y-1.5">
-          <span className="text-sm font-medium">Customer name</span>
-          <input
-            className={inputCls}
-            placeholder="Walmart"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </label>
-        <div className="grid grid-cols-2 gap-3">
-          <label className="block space-y-1.5">
-            <span className="text-sm font-medium">Tier</span>
-            <select className={inputCls} value={tier} onChange={(e) => setTier(e.target.value)}>
-              <option value="standard">Standard (shared pool)</option>
-              <option value="enterprise">Enterprise (dedicated DB option)</option>
-            </select>
-          </label>
-          <label className="block space-y-1.5">
-            <span className="text-sm font-medium">Region</span>
-            <select className={inputCls} value={region} onChange={(e) => setRegion(e.target.value)}>
-              <option value="us">US</option>
-              <option value="eu">EU</option>
-              <option value="apac">APAC</option>
-            </select>
-          </label>
-        </div>
-        {error ? <ErrorBanner message={error} /> : null}
-        <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={create} disabled={saving || !name.trim()}>
-            {saving ? "Onboarding…" : "Onboard customer"}
-          </Button>
         </div>
       </div>
     </Dialog>
