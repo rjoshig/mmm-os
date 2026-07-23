@@ -41,3 +41,23 @@ class OutputListResponse(BaseModel):
     file_id: uuid.UUID
     filename: str
     rows: list[OutputRowRead]
+
+
+class ContractField(BaseModel):
+    """One column in the MMM export contract."""
+
+    name: str
+    type: str
+    kind: str  # dimension | measure | factor
+
+
+class OutputContract(BaseModel):
+    """The "Export to MMM" contract: the schema + shape a modeler will receive."""
+
+    file_id: uuid.UUID
+    filename: str
+    row_count: int
+    columns: list[ContractField]
+    mapping_config_version: int | None
+    rule_set_version: int | None
+    sample: list[dict[str, Any]]

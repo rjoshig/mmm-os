@@ -182,12 +182,13 @@ def generate_output(
 
 
 def list_output_rows(
-    session: Session, tenant_id: uuid.UUID, job_id: uuid.UUID, limit: int = 100
+    session: Session, tenant_id: uuid.UUID, job_id: uuid.UUID, limit: int | None = 100
 ) -> tuple[File | None, list[OutputRow]]:
     """Return the source file and the clean output rows for a job.
 
     Output rows are keyed by source file (not job) so they survive job re-runs;
-    we resolve the file via the job, then return its latest output rows.
+    we resolve the file via the job, then return its latest output rows. ``limit``
+    of ``None`` returns every row (used by CSV export).
     """
     from mmm_os.models import Job  # local import to avoid a module-level cycle
 
@@ -197,10 +198,12 @@ def list_output_rows(
     file = session.scalar(select(File).where(File.tenant_id == tenant_id, File.id == job.file_id))
     if file is None:
         return None, []
-    rows = session.scalars(
+    query = (
         select(OutputRow)
         .where(OutputRow.tenant_id == tenant_id, OutputRow.source_file_id == file.id)
         .order_by(OutputRow.source_row)
-        .limit(limit)
-    ).all()
+    )
+    if limit is not None:
+        query = query.limit(limit)
+    rows = session.scalars(query).all()
     return file, list(rows)

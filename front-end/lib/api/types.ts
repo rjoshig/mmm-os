@@ -306,6 +306,23 @@ export interface SyncRunListItem {
   connector_name: string;
 }
 
+// --- Output export / MMM contract (Cycle 3) ---
+export interface ContractField {
+  name: string;
+  type: string;
+  kind: "dimension" | "measure" | "factor";
+}
+
+export interface OutputContract {
+  file_id: Uuid;
+  filename: string;
+  row_count: number;
+  columns: ContractField[];
+  mapping_config_version: number | null;
+  rule_set_version: number | null;
+  sample: Record<string, unknown>[];
+}
+
 export interface GenerateOutputResponse {
   job_id: Uuid;
   file_id: Uuid;

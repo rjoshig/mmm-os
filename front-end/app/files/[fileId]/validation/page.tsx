@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Download, Play, ShieldAlert, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Download, FileDown, Play, ShieldAlert, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -16,6 +16,7 @@ import type {
   FileDetail,
   FlagRead,
   GenerateOutputResponse,
+  OutputContract,
   OutputRowRead,
 } from "@/lib/api/types";
 
@@ -172,6 +173,7 @@ export default function ValidationReviewPage() {
           {outputSummary.rule_set_version ?? "—"}.
         </div>
       ) : null}
+      {outputSummary && jobId ? <ExportToMmm jobId={jobId} /> : null}
       {error ? <ErrorBanner message={error} /> : null}
 
       {flags === null ? (
@@ -246,5 +248,94 @@ function OutputPreview({ rows }: { rows: OutputRowRead[] }) {
         ))}
       </tbody>
     </Table>
+  );
+}
+
+const KIND_TONE: Record<string, string> = {
+  dimension: "border-border text-muted-foreground",
+  measure: "border-primary/40 text-primary",
+  factor: "border-tertiary/50 text-tertiary-foreground",
+};
+
+function ExportToMmm({ jobId }: { jobId: string }) {
+  const toast = useToast();
+  const [contract, setContract] = useState<OutputContract | null>(null);
+  const [open, setOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  async function toggleContract() {
+    const next = !open;
+    setOpen(next);
+    if (next && contract === null) {
+      try {
+        setContract(await api.getOutputContract(jobId));
+      } catch (err) {
+        toast.error(err instanceof ApiError ? err.message : "Could not load contract.");
+      }
+    }
+  }
+
+  async function downloadCsv() {
+    setDownloading(true);
+    try {
+      const blob = await api.fetchOutputCsv(jobId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${contract?.filename?.replace(/\.[^.]+$/, "") ?? "output"}_mmm.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("CSV downloaded.");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "CSV export failed.");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="min-w-0">
+          <div className="text-sm font-semibold">Export to MMM</div>
+          <div className="text-xs text-muted-foreground">
+            Model-ready clean output — download as CSV or inspect the schema contract.
+          </div>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={toggleContract}>
+            {open ? "Hide contract" : "View contract"}
+          </Button>
+          <Button size="sm" onClick={downloadCsv} disabled={downloading}>
+            <FileDown className="h-4 w-4" />
+            {downloading ? "Preparing…" : "Download CSV"}
+          </Button>
+        </div>
+      </div>
+
+      {open && contract ? (
+        <div className="mt-4 space-y-3 border-t border-border pt-3">
+          <div className="text-xs text-muted-foreground">
+            {contract.row_count} rows · mapping v{contract.mapping_config_version ?? "—"} · rules v
+            {contract.rule_set_version ?? "—"} · {contract.columns.length} columns
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {contract.columns.map((col) => (
+              <span
+                key={col.name}
+                className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${
+                  KIND_TONE[col.kind] ?? "border-border"
+                }`}
+              >
+                <span className="font-medium">{col.name}</span>
+                <span className="opacity-70">
+                  {col.type}·{col.kind}
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }

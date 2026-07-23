@@ -23,6 +23,7 @@ import type {
   GenerateOutputResponse,
   IngestResponse,
   LoginResponse,
+  OutputContract,
   OutputListResponse,
   FilePipelineStatus,
   PipelineRunResponse,
@@ -205,6 +206,17 @@ export const api = {
     ),
   getOutput: (jobId: string, limit = 50) =>
     request<OutputListResponse>(tenantPath(`/jobs/${jobId}/output?limit=${limit}`)),
+  getOutputContract: (jobId: string) =>
+    request<OutputContract>(tenantPath(`/jobs/${jobId}/output/contract`)),
+  // Fetch the CSV export as a Blob (carries the auth header, unlike a plain link).
+  fetchOutputCsv: async (jobId: string): Promise<Blob> => {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}${tenantPath(`/jobs/${jobId}/output.csv`)}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) throw new ApiError(response.status, "Could not export CSV.");
+    return response.blob();
+  },
 
   // --- Full pipeline (map → transform → validate → output, one call) ---
   runPipeline: (fileId: string) =>

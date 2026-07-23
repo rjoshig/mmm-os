@@ -29,6 +29,12 @@ and acknowledge/resolve/override them.
   of flags cleared (resolved/overridden) — that rises as clusters are resolved, with
   an open-issue breakdown by severity. (AI-remediation suggestions per flag are
   Cycle 4.)
+- **P6.5-6** (Cycle 3) **Export to MMM**: once clean output is generated, download it
+  as **model-ready CSV** (`GET /jobs/{id}/output.csv` — canonical columns in schema
+  order + lineage columns) and inspect the **export contract**
+  (`GET /jobs/{id}/output/contract` — the columns with type + kind, row count, applied
+  config versions, and a sample), the handshake before a modeler consumes the data.
+  (Warehouse / S3 / API destinations are follow-ups.)
 
 ## Deliverables
 
