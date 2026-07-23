@@ -1,7 +1,7 @@
 # Phase 9.6 — Scheduling, Incremental & Backfill
 
 **Parent:** [`phase-09`](./phase-09-future-connectors-extraction.md) ·
-**Depends on:** 09.2, Phase 7 (Celery+Redis) · **Status:** Deferred (designed).
+**Depends on:** 09.2, Phase 7 (Celery+Redis) · **Status:** Done — full framework with mock partner clients (live API calls behind a `ReportClient` seam).
 
 ## Objective
 

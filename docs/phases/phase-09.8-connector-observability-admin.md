@@ -1,7 +1,7 @@
 # Phase 9.8 — Connector Observability & Admin
 
 **Parent:** [`phase-09`](./phase-09-future-connectors-extraction.md) ·
-**Depends on:** 09.2, 09.6 · **Status:** Deferred (designed).
+**Depends on:** 09.2, 09.6 · **Status:** Done — full framework with mock partner clients (live API calls behind a `ReportClient` seam).
 
 ## Objective
 

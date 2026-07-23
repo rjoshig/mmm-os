@@ -13,6 +13,7 @@ from mmm_os.models.config import (
     Taxonomy,
     TaxonomyAlias,
 )
+from mmm_os.models.connectors import ConnectorConfig, ConnectorCredential, SyncRun
 from mmm_os.models.file import File, Profile, Sheet
 from mmm_os.models.governance import AuditLog
 from mmm_os.models.job import Job, JobEvent, Suggestion, ValidationFlag
@@ -21,6 +22,8 @@ from mmm_os.models.tenant import Tenant, User
 
 __all__ = [
     "AuditLog",
+    "ConnectorConfig",
+    "ConnectorCredential",
     "File",
     "IdentityProviderConfig",
     "Job",
@@ -36,6 +39,7 @@ __all__ = [
     "Session",
     "Sheet",
     "Suggestion",
+    "SyncRun",
     "Taxonomy",
     "TaxonomyAlias",
     "Tenant",

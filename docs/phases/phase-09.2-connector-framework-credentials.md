@@ -1,7 +1,7 @@
 # Phase 9.2 — Connector Framework & Credentials
 
 **Parent:** [`phase-09`](./phase-09-future-connectors-extraction.md) ·
-**Depends on:** 09.1, Phase 8 (encryption) · **Status:** Deferred (designed).
+**Depends on:** 09.1, Phase 8 (encryption) · **Status:** Done — full framework with mock partner clients (live API calls behind a `ReportClient` seam).
 
 ## Objective
 

@@ -16,6 +16,7 @@ from mmm_os.api.deps import require_auth
 from mmm_os.api.routers import (
     ai,
     auth,
+    connectors,
     files,
     governance,
     mapping,
@@ -73,6 +74,7 @@ def create_app() -> FastAPI:
     # Governance/admin routes gate on Permission.ADMIN per-route (require_auth is
     # applied within them via require_permission).
     app.include_router(governance.router, dependencies=protected)
+    app.include_router(connectors.router, dependencies=protected)
 
     @app.exception_handler(LLMBudgetExceededError)
     def _budget_exceeded(_request: Request, exc: LLMBudgetExceededError) -> JSONResponse:

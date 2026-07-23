@@ -1,15 +1,17 @@
 # Phase 9 — Partner Data Connectors & Extraction
 
 **Depends on:** the full core (Phases 0–8) + enterprise-readiness phases, and the
-source seam already realised in Phase 1 · **Status:** Build — **sequenced last**
-(after the core + enterprise-readiness phases); fully designed across 09.1–09.8.
+source seam already realised in Phase 1 · **Status:** Done (connectors) — full
+framework with mock partner clients, built across 09.1–09.8; **PDF/email
+extraction sub-track remains Deferred**.
 
-> **Planned Build, sequenced last.** The connector work is now a scheduled build
-> (not indefinitely deferred), but comes **after** the core + enterprise-readiness
-> phases — see [`README.md`](./README.md) (authoritative order). It is designed in
-> detail now so it attaches to the existing source-agnostic seam without a
-> refactor. **Exception:** the **PDF/email extraction** sub-track (below) remains
-> **Deferred** — do not build it until explicitly scoped.
+> **Built: full framework, mock partner clients.** The connector framework, SFTP
+> source, partner adapters (Meta/Google Ads/DV360/TikTok), template-driven
+> normalisation, credential storage, scheduling, and observability/admin are all
+> implemented and tested against **fake/fixture partner clients** — live partner
+> API calls sit behind a `ReportClient` seam enabled by injecting a real client
+> plus stored credentials. **Exception:** the **PDF/email extraction** sub-track
+> (below) remains **Deferred** — do not build it until explicitly scoped.
 
 Cross-cutting: source-agnostic pipeline (CC-9), credential security (CC-10),
 idempotent jobs (CC-6), traceability (CC-3), observability (CC-7).

@@ -46,11 +46,13 @@ Core tables (all tenant-scoped where applicable):
 ## Appendix C.1 — Source & Connector entities (documented for Phase 9)
 
 The source-agnostic ingestion abstraction (CC-9, ADR-010) generalises "a file"
-into "a source". These entities are **documented now but not yet ORM-modelled** —
-they are built in [Phase 9](./phases/phase-09-future-connectors-extraction.md).
-The **realised code seam exists today** (`src/mmm_os/sources/`): the common landed
-representation is a `LandedDataset`, and for **file sources** it is already
-persisted via the existing `file` / `sheet` / `profile` records.
+into "a source". The `connector_config`, `connector_credential`, and `sync_run`
+entities are **now real ORM** (`src/mmm_os/models/connectors.py`, Phase 9); the
+`source`/`connector` catalog rows below remain conceptual (the `connector_key`
+string on `connector_config` plays the catalog role). The **realised code seam**
+(`src/mmm_os/sources/`) produces the common `LandedDataset`, and for **file
+sources** it is already persisted via the existing `file` / `sheet` / `profile`
+records; API pulls realise it as normalised rows via the partner templates.
 
 | Entity | Purpose | Key notes |
 |---|---|---|

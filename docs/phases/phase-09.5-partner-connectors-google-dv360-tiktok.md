@@ -1,7 +1,7 @@
 # Phase 9.5 — Partner Connectors: Google Ads, DV360, TikTok
 
 **Parent:** [`phase-09`](./phase-09-future-connectors-extraction.md) ·
-**Depends on:** 09.4 · **Status:** Deferred (designed).
+**Depends on:** 09.4 · **Status:** Done — full framework with mock partner clients (live API calls behind a `ReportClient` seam).
 
 ## Objective
 
