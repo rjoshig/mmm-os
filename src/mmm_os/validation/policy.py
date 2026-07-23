@@ -20,6 +20,7 @@ DEFAULT_POLICY: dict[str, str] = {
     "type_mismatch": Severity.WARNING.value,
     "duplicate_row": Severity.WARNING.value,
     "date_gap": Severity.WARNING.value,
+    "zero_spend": Severity.INFO.value,
     "out_of_range": Severity.WARNING.value,
     "anomaly": Severity.WARNING.value,
 }

@@ -17,6 +17,7 @@ review before output is trusted.
 ## Functional Requirements
 
 - **P4-1 Validation checks (v1):** missing required fields, date gaps, duplicate rows, negative/implausible values (e.g. negative spend), type mismatches, out-of-range values.
+- **P4-1b MMM continuity checks (Cycle 2):** **grain-aware date continuity** — the date-gap check infers the series' modal step (daily/weekly/monthly) and flags only true breaks, so a weekly/monthly series isn't flagged on every non-daily step; and **zero-spend-day** — a dated row with explicit zero spend, or blank spend while other activity is present, is flagged **info** (a data-quality heads-up for MMM; never double-flags a wholly measure-less row, which stays `missing_required`).
 - **P4-2 Anomaly detection:** statistical outlier detection on measures (e.g. sudden spend spikes) per dimension slice.
 - **P4-3 Flagging:** issues recorded against the job as structured `validation_flag` records (severity, location, description).
 - **P4-4 Gate:** severity thresholds determine whether output is blocked, or passes with warnings, per configurable policy.

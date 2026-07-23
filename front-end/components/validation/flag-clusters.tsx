@@ -23,6 +23,7 @@ const CHECK_LABEL: Record<string, string> = {
   type_mismatch_required: "Wrong data type (required field)",
   duplicate_row: "Duplicate rows",
   date_gap: "Gaps in the date series",
+  zero_spend: "Zero or missing spend",
   negative_measure: "Negative measure value",
   anomaly: "Anomalous value",
 };

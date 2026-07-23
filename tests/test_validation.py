@@ -48,6 +48,38 @@ def test_row_with_neither_measure_nor_factor_is_blocking() -> None:
     assert is_blocked(flags)
 
 
+def test_zero_spend_day_is_informational() -> None:
+    """A dated row with zero or blank spend is flagged (info, not blocking)."""
+    schema = load_canonical_schema()
+    rows = [
+        {"date": "2026-01-01", "channel": "Facebook", "spend": "100"},
+        {"date": "2026-01-02", "channel": "Facebook", "spend": "0"},  # explicit zero
+        # blank spend but impressions present (real activity):
+        {"date": "2026-01-03", "channel": "Facebook", "spend": "", "impressions": "500"},
+    ]
+    flags = validate(rows, schema)
+    by_check = _flags_by_check(flags)
+    assert "zero_spend" in by_check
+    assert len(by_check["zero_spend"]) == 2
+    assert "missing_required" not in by_check  # no double-flag with the blank row
+    assert not is_blocked(flags)  # informational only
+
+
+def test_date_gap_is_grain_aware_for_weekly_series() -> None:
+    """A weekly series flags only gaps larger than a week, not every 7-day step."""
+    schema = load_canonical_schema()
+    # Weekly Mondays with one missing week (Jan 19 skipped).
+    rows = [
+        {"date": "2026-01-05", "channel": "Facebook", "spend": "10"},
+        {"date": "2026-01-12", "channel": "Facebook", "spend": "10"},
+        {"date": "2026-01-26", "channel": "Facebook", "spend": "10"},  # gap: skips Jan 19
+    ]
+    flags = validate(rows, schema)
+    gaps = _flags_by_check(flags).get("date_gap", [])
+    assert len(gaps) == 1  # only the true >1-week gap, not the normal weekly steps
+    assert gaps[0].location["from"] == "2026-01-12"
+
+
 def test_negative_measure_is_blocking() -> None:
     """A negative measure is flagged blocking."""
     schema = load_canonical_schema()
