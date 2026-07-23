@@ -7,6 +7,8 @@ AI) are added thinly in their respective phases — routers hold no business log
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import Depends, FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -27,8 +29,32 @@ from mmm_os.api.routers import (
     validation,
 )
 from mmm_os.canonical import load_and_validate
-from mmm_os.core.config import get_settings
+from mmm_os.core.config import Settings, get_settings
 from mmm_os.core.logging import configure_logging
+
+logger = logging.getLogger("mmm_os.api")
+
+
+def _cors_headers_for(request: Request, settings: Settings) -> dict[str, str]:
+    """Return CORS headers to reflect back to an allowed browser origin, if any.
+
+    Starlette generates unhandled-500 responses in ``ServerErrorMiddleware``, which
+    sits *outside* ``CORSMiddleware`` — so those error responses would otherwise
+    carry no CORS headers, and the browser reports them as a network failure
+    ("cannot reach the API") instead of surfacing the real server error. Reflecting
+    the headers here keeps error responses readable by the Review UI.
+    """
+    origin = request.headers.get("origin")
+    if not origin:
+        return {}
+    allowed = settings.cors_origins
+    if origin in allowed or "*" in allowed:
+        return {
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Credentials": "true",
+            "Vary": "Origin",
+        }
+    return {}
 
 
 def create_app() -> FastAPI:
@@ -85,6 +111,21 @@ def create_app() -> FastAPI:
         """Map an over-budget LLM call to 429 Too Many Requests (CC-13)."""
         return JSONResponse(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS, content={"detail": str(exc)}
+        )
+
+    @app.exception_handler(Exception)
+    def _unhandled_error(request: Request, exc: Exception) -> JSONResponse:
+        """Return a JSON 500 that still carries CORS headers (see _cors_headers_for).
+
+        Without this, an unhandled server error reaches the browser without CORS
+        headers and the Review UI misreports it as "cannot reach the API". Logging
+        here also keeps 500s diagnosable in the server log.
+        """
+        logger.exception("unhandled error on %s %s", request.method, request.url.path)
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"detail": "Internal Server Error"},
+            headers=_cors_headers_for(request, settings),
         )
 
     @app.get("/health", tags=["system"])
