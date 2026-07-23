@@ -29,6 +29,10 @@ class MappingConfig(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base
     layer: Mapped[str] = mapped_column(String(32), nullable=False, default=RuleLayer.CUSTOMER.value)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     mapping: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    # Authorship of this version (Phase 13); nullable for system/pre-auth saves.
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("user.id", ondelete="SET NULL")
+    )
 
 
 class Taxonomy(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):
@@ -62,6 +66,10 @@ class RuleSet(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     layer: Mapped[str] = mapped_column(String(32), nullable=False, default=RuleLayer.CUSTOMER.value)
+    # Authorship of this version (Phase 13); nullable for system/pre-auth saves.
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("user.id", ondelete="SET NULL")
+    )
 
 
 class Rule(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):

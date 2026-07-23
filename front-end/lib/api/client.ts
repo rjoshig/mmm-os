@@ -11,6 +11,8 @@ import type {
   AutoMapResponse,
   AvailableConnector,
   BulkReviewResponse,
+  ConfigLibraryItem,
+  ConfigVersionItem,
   ConnectorConfig,
   JobDetail,
   JobRead,
@@ -244,6 +246,14 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ flag_ids: flagIds, status }),
     }),
+
+  // --- Config library / authorship (Phase 13) ---
+  getConfigLibrary: () =>
+    request<{ items: ConfigLibraryItem[] }>(tenantPath("/config-library")),
+  getConfigVersions: (kind: string, key: string) =>
+    request<{ kind: string; key: string; versions: ConfigVersionItem[] }>(
+      tenantPath(`/config-library/versions?kind=${kind}&key=${encodeURIComponent(key)}`)
+    ),
 
   // --- Tenant reporting settings (Cycle 2) ---
   getSettings: () => request<TenantSettings>(tenantPath("/settings")),

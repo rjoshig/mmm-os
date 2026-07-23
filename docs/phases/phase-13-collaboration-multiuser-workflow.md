@@ -75,10 +75,11 @@ Grouped by sub-phase (see **Sub-phases**).
 Built in order; each is a PR-sized slice with its own `phase-13.M-*.md` spec created
 at build time (per the sub-phase convention in [`README.md`](./README.md)).
 
-- **13.1 — Config library & authorship** (P13-1, P13-2). Backend: `created_by` /
-  `updated_by` on `mapping_config` + `rule_set` (nullable, back-compatible); list/
-  search + version-diff endpoints. UI: a **Configs** section (mappings + rule sets),
-  version history, side-by-side diff, authorship badges.
+- **13.1 — Config library & authorship** (P13-1, P13-2). **Done**: `created_by` on
+  `mapping_config` + `rule_set` (nullable, threaded through the save endpoints);
+  `GET /config-library` (families with latest version, version count, author) +
+  `GET /config-library/versions`. UI: a **Configs** screen with version history +
+  authorship. (Side-by-side value diff is a follow-up.)
 - **13.2 — Config draft → review → publish lifecycle** (P13-3). Add a `status`
   (`draft` | `published` | `archived`) to config/rule-set versions; resolution reads
   the latest *published*; a `review`-role publish/request-changes action; audited.

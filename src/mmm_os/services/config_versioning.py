@@ -39,6 +39,7 @@ def save_mapping_config(
     file_signature: str,
     mapping: dict[str, Any],
     layer: str = RuleLayer.CUSTOMER.value,
+    created_by: uuid.UUID | None = None,
 ) -> MappingConfig:
     """Persist a new version of a mapping config, retaining prior versions.
 
@@ -49,6 +50,7 @@ def save_mapping_config(
         file_signature: The column-signature key this config applies to.
         mapping: The column→canonical mapping payload.
         layer: The resolution layer (global/template/customer).
+        created_by: The user id authoring this version (Phase 13), if known.
 
     Returns:
         The newly created ``MappingConfig`` at the next version.
@@ -60,6 +62,7 @@ def save_mapping_config(
         version=_next_mapping_config_version(session, tenant_id, file_signature),
         layer=layer,
         mapping=mapping,
+        created_by=created_by,
     )
     session.add(config)
     session.flush()
@@ -106,6 +109,7 @@ def save_rule_set(
     tenant_id: uuid.UUID,
     name: str,
     layer: str = RuleLayer.CUSTOMER.value,
+    created_by: uuid.UUID | None = None,
 ) -> RuleSet:
     """Persist a new version of a rule set, retaining prior versions.
 
@@ -114,6 +118,7 @@ def save_rule_set(
         tenant_id: The owning tenant.
         name: The rule-set name (natural key within the tenant).
         layer: The resolution layer (global/template/customer).
+        created_by: The user id authoring this version (Phase 13), if known.
 
     Returns:
         The newly created ``RuleSet`` at the next version.
@@ -123,6 +128,7 @@ def save_rule_set(
         name=name,
         version=_next_rule_set_version(session, tenant_id, name),
         layer=layer,
+        created_by=created_by,
     )
     session.add(rule_set)
     session.flush()

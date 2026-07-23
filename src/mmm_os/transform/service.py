@@ -47,7 +47,13 @@ def get_rule_set_for_sheet(
 
 
 def save_rule_set_with_rules(
-    session: Session, *, tenant_id: uuid.UUID, name: str, layer: str, specs: list[RuleSpec]
+    session: Session,
+    *,
+    tenant_id: uuid.UUID,
+    name: str,
+    layer: str,
+    specs: list[RuleSpec],
+    created_by: uuid.UUID | None = None,
 ) -> RuleSet:
     """Persist a new version of a rule set and its ordered rules.
 
@@ -57,11 +63,14 @@ def save_rule_set_with_rules(
         name: The rule-set name (natural key within the tenant).
         layer: The resolution layer.
         specs: The ordered rule specs to persist.
+        created_by: The user id authoring this version (Phase 13), if known.
 
     Returns:
         The created ``RuleSet`` at the next version.
     """
-    rule_set = save_rule_set(session, tenant_id=tenant_id, name=name, layer=layer)
+    rule_set = save_rule_set(
+        session, tenant_id=tenant_id, name=name, layer=layer, created_by=created_by
+    )
     for spec in specs:
         session.add(
             Rule(

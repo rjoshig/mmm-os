@@ -3,6 +3,7 @@
 import {
   Layers,
   LayoutDashboard,
+  Library,
   ListChecks,
   LogOut,
   Plug,
@@ -20,6 +21,7 @@ const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/sources", label: "Sources", icon: Plug },
   { href: "/runs", label: "Runs", icon: ListChecks },
+  { href: "/configs", label: "Configs", icon: Library },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

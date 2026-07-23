@@ -119,6 +119,7 @@ def save_rule_set_route(
         name=body.name,
         layer=body.layer,
         specs=[_to_spec(r) for r in body.rules],
+        created_by=principal.user_id if principal else None,
     )
     record_audit(
         session,
@@ -257,6 +258,7 @@ def save_sheet_rule_set_route(
         name=name,
         layer=body.layer,
         specs=[_to_spec(r) for r in body.rules],
+        created_by=principal.user_id if principal else None,
     )
     record_audit(
         session,

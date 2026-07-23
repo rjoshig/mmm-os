@@ -43,6 +43,7 @@ def save_sheet_mapping(
     name: str,
     mapping: dict[str, str | None],
     layer: str = RuleLayer.CUSTOMER.value,
+    created_by: uuid.UUID | None = None,
 ) -> MappingConfig:
     """Persist a new version of a mapping for a sheet's column signature.
 
@@ -53,6 +54,7 @@ def save_sheet_mapping(
         name: Human-readable config name.
         mapping: ``{source_name: canonical_field | None}``.
         layer: The resolution layer (global/template/customer).
+        created_by: The user id authoring this version (Phase 13), if known.
 
     Returns:
         The newly created ``MappingConfig`` at the next version.
@@ -65,6 +67,7 @@ def save_sheet_mapping(
         file_signature=signature,
         mapping={"columns": mapping},
         layer=layer,
+        created_by=created_by,
     )
 
 

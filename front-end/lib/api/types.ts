@@ -337,6 +337,26 @@ export interface OutputLineage {
   sources: LineageSource[];
 }
 
+// --- Config library / authorship (Phase 13) ---
+export interface ConfigLibraryItem {
+  kind: "mapping" | "rule_set";
+  key: string;
+  name: string;
+  layer: string;
+  latest_version: number;
+  version_count: number;
+  updated_at: string;
+  created_by_email: string | null;
+}
+
+export interface ConfigVersionItem {
+  version: number;
+  layer: string;
+  created_at: string;
+  created_by_email: string | null;
+  summary: string;
+}
+
 export interface GenerateOutputResponse {
   job_id: Uuid;
   file_id: Uuid;

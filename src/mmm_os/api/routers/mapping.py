@@ -83,6 +83,7 @@ def save_mapping(
         name=body.name,
         mapping=body.mapping,
         layer=body.layer,
+        created_by=principal.user_id if principal else None,
     )
     result = apply_mapping(sheet.columns, body.mapping, canonical.schema)
     record_audit(
