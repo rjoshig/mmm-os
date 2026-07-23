@@ -88,6 +88,19 @@ export interface ProcessResponse {
   sheets: SheetRead[];
 }
 
+// --- Auth ---
+export interface PrincipalRead {
+  user_id: Uuid;
+  tenant_id: Uuid;
+  email: string;
+  role: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  principal: PrincipalRead;
+}
+
 // --- Canonical schema ---
 export interface CanonicalFieldRead {
   name: string;

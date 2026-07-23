@@ -1,18 +1,30 @@
 "use client";
 
-import { LayoutDashboard, Layers } from "lucide-react";
+import { LayoutDashboard, Layers, LogOut } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { getActiveTenantId } from "@/lib/tenant";
+import { api } from "@/lib/api/client";
+import { clearSession, getStoredPrincipal } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 const NAV = [{ href: "/", label: "Dashboard", icon: LayoutDashboard }];
 
-/** App shell sidebar: brand, primary nav, tenant indicator + theme toggle. */
+/** App shell sidebar: brand, primary nav, signed-in user + logout, theme toggle. */
 export function Sidebar() {
   const pathname = usePathname();
-  const tenant = getActiveTenantId();
+  const router = useRouter();
+  const principal = getStoredPrincipal();
+
+  async function onLogout() {
+    try {
+      await api.logout();
+    } catch {
+      /* best-effort; clear locally regardless */
+    }
+    clearSession();
+    router.replace("/login");
+  }
 
   return (
     <aside className="flex h-screen w-60 shrink-0 flex-col border-r border-border bg-card">
@@ -47,14 +59,26 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="flex items-center justify-between border-t border-border px-3 py-3">
+      <div className="flex items-center justify-between gap-2 border-t border-border px-3 py-3">
         <div className="min-w-0">
-          <div className="text-[11px] text-muted-foreground">Tenant</div>
-          <div className="truncate font-mono text-[11px]" title={tenant}>
-            {tenant.slice(0, 8)}…
+          <div className="truncate text-xs font-medium" title={principal?.email}>
+            {principal?.email ?? "—"}
+          </div>
+          <div className="text-[11px] capitalize text-muted-foreground">
+            {principal?.role ?? "guest"}
           </div>
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <button
+            type="button"
+            aria-label="Sign out"
+            onClick={onLogout}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </aside>
   );

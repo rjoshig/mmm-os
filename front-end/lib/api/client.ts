@@ -4,7 +4,6 @@
 // - Every path is tenant-scoped via the tenant seam (lib/tenant.ts, CC-1).
 // - Errors surface as ApiError; 503 (LLM disabled) is detectable via `.status`.
 
-import { getActiveTenantId } from "@/lib/tenant";
 import type {
   AcceptResponse,
   AutoMapResponse,
@@ -13,7 +12,9 @@ import type {
   FileListItem,
   FlagRead,
   IngestResponse,
+  LoginResponse,
   PreviewResponse,
+  PrincipalRead,
   ProcessResponse,
   RuleSetRead,
   RuleSpecIn,
@@ -23,6 +24,8 @@ import type {
   SuggestMappingResponse,
   ValidateResponse,
 } from "@/lib/api/types";
+import { clearSession, getToken } from "@/lib/session";
+import { getActiveTenantId } from "@/lib/tenant";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
@@ -41,12 +44,14 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getToken();
   let response: Response;
   try {
     response = await fetch(`${BASE_URL}${path}`, {
       ...init,
       headers: {
         Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(init?.body && !(init.body instanceof FormData)
           ? { "Content-Type": "application/json" }
           : {}),
@@ -58,6 +63,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!response.ok) {
+    // An expired/invalid session on a non-login call: clear it and send the user
+    // back to login (handled by the app shell on the next render).
+    if (response.status === 401 && !path.startsWith("/api/v1/auth/")) {
+      clearSession();
+      if (typeof window !== "undefined") window.location.assign("/login");
+    }
     let detail = response.statusText;
     try {
       const body = await response.json();
@@ -77,6 +88,15 @@ function tenantPath(suffix: string): string {
 }
 
 export const api = {
+  // --- Auth (not tenant-scoped) ---
+  login: (email: string, password: string) =>
+    request<LoginResponse>("/api/v1/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
+  me: () => request<PrincipalRead>("/api/v1/auth/me"),
+  logout: () => request<void>("/api/v1/auth/logout", { method: "POST" }),
+
   // --- Canonical schema (not tenant-scoped) ---
   canonicalFields: () => request<CanonicalFieldsResponse>("/api/v1/canonical/fields"),
 
