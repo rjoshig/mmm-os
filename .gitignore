@@ -44,6 +44,9 @@ llm.config.json
 front-end/prisma/*.db
 front-end/prisma/dev.db*
 
+# Local object storage (dev uploads — immutable raw files, never commit)
+_storage/
+
 # ---------------------------------------------------------------------------
 # Node / Next.js
 # ---------------------------------------------------------------------------
