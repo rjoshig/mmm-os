@@ -15,6 +15,7 @@ from mmm_os.ingestion.process import process_file
 from mmm_os.ingestion.service import ingest_file
 from mmm_os.models import File as FileModel
 from mmm_os.schemas.file import (
+    BatchResponse,
     FileRead,
     IngestResponse,
     JobRead,
@@ -23,6 +24,7 @@ from mmm_os.schemas.file import (
 )
 from mmm_os.storage import ObjectStorage
 from mmm_os.storage.base import FileTooLargeError
+from mmm_os.workers import EagerTaskQueue, process_batch
 
 router = APIRouter(prefix="/api/v1", tags=["files"])
 
@@ -114,4 +116,37 @@ def process_file_route(
     return ProcessResponse(
         job=JobRead.model_validate(job),
         sheets=[SheetRead.model_validate(s) for s in sheets],
+    )
+
+
+@router.post("/tenants/{tenant_id}/batches/process", response_model=BatchResponse)
+def process_all_files(
+    tenant_id: uuid.UUID,
+    session: Session = Depends(get_session),
+    storage: ObjectStorage = Depends(get_storage),
+    settings: Settings = Depends(get_settings),
+) -> BatchResponse:
+    """Fan the tenant's files out onto the task queue and drain it (P7-1/P7-2).
+
+    Runs through the source-agnostic ``TaskQueue`` (``EagerTaskQueue`` in dev,
+    Celery+Redis in prod, ADR-007): per-tenant fair, idempotent (already-succeeded
+    files are skipped, CC-6), with bounded retries + dead-lettering.
+    """
+    files = list(session.scalars(tenant_scoped_select(FileModel, tenant_id)).all())
+    queue = EagerTaskQueue()
+    result = process_batch(
+        queue,
+        session,
+        storage,
+        files,
+        preview_rows=settings.structure_preview_rows,
+        distinct_limit=settings.profile_distinct_limit,
+        sample_limit=settings.profile_sample_limit,
+    )
+    session.commit()
+    return BatchResponse(
+        enqueued=result.processed + len(result.dead_letters),
+        processed=result.processed,
+        retried=result.retried,
+        dead_lettered=len(result.dead_letters),
     )

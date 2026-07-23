@@ -11,7 +11,6 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Table, TD, TH, THead, TR } from "@/components/ui/table";
 import { api, ApiError } from "@/lib/api/client";
 import type { FileDetail, FlagRead } from "@/lib/api/types";
-import { sampleRowsFromProfile } from "@/lib/sample";
 
 const REVIEW_ACTIONS: { status: string; label: string }[] = [
   { status: "acknowledged", label: "Acknowledge" },
@@ -53,10 +52,9 @@ export default function ValidationReviewPage() {
     setRunning(true);
     setError(null);
     try {
-      // Best-effort: validate the first sheet's profiled sample rows (interim —
-      // the backend has no stored-rows endpoint yet; see phase-06 notes).
+      // Validate the first sheet's real data rows (exact, via the rows endpoint).
       const first = file.sheets[0];
-      const rows = first ? sampleRowsFromProfile(await api.getSheet(first.id), 50) : [];
+      const rows = first ? (await api.getSheetRows(first.id, 50)).rows : [];
       const res = await api.validateJob(jobId, rows);
       setFlags(res.flags);
     } catch (err) {

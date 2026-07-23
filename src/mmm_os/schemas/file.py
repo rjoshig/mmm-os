@@ -97,3 +97,19 @@ class SheetDetail(BaseModel):
 
     sheet: SheetRead
     profile: ProfileRead | None
+
+
+class SheetRowsResponse(BaseModel):
+    """A bounded sample of a sheet's real data rows (transform/validation input)."""
+
+    columns: list[str]
+    rows: list[dict[str, Any]]
+
+
+class BatchResponse(BaseModel):
+    """Aggregate result of enqueuing + draining a batch of files (Phase 7)."""
+
+    enqueued: int
+    processed: int
+    retried: int
+    dead_lettered: int

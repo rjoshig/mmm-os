@@ -66,6 +66,18 @@ def test_canonical_fields(client: TestClient) -> None:
     assert body["min_measures_required"] >= 1
 
 
+def test_sheet_rows_returns_real_data(client: TestClient) -> None:
+    """The rows endpoint returns real data rows keyed by column name (below header)."""
+    tenant_id = uuid.uuid4()
+    _, sheet_id = _upload_and_process(client, tenant_id)
+    resp = client.get(f"/api/v1/tenants/{tenant_id}/sheets/{sheet_id}/rows?limit=10")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["columns"] == ["date", "channel", "spend"]
+    assert body["rows"][0] == {"date": "2026-01-01", "channel": "Facebook", "spend": "100"}
+    assert len(body["rows"]) == 2
+
+
 def test_reads_are_tenant_scoped(client: TestClient) -> None:
     """A different tenant sees none of the first tenant's files; unknown ids 404."""
     tenant_id = uuid.uuid4()

@@ -12,10 +12,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from mmm_os.api.deps import get_canonical
+from mmm_os.api.deps import get_canonical, get_storage
 from mmm_os.canonical import CanonicalConfig
 from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.db.session import get_session
+from mmm_os.ingestion.parsing import iter_sheet_rows
+from mmm_os.ingestion.service import storage_key_for
 from mmm_os.models import File as FileModel
 from mmm_os.models import Job, Profile, Sheet
 from mmm_os.models.enums import SheetStatus
@@ -28,7 +30,9 @@ from mmm_os.schemas.file import (
     ProfileRead,
     SheetDetail,
     SheetRead,
+    SheetRowsResponse,
 )
+from mmm_os.storage import ObjectStorage
 
 router = APIRouter(prefix="/api/v1", tags=["reads"])
 
@@ -137,6 +141,42 @@ def get_sheet(
         sheet=SheetRead.model_validate(sheet),
         profile=ProfileRead.model_validate(profile) if profile is not None else None,
     )
+
+
+@router.get("/tenants/{tenant_id}/sheets/{sheet_id}/rows", response_model=SheetRowsResponse)
+def get_sheet_rows(
+    tenant_id: uuid.UUID,
+    sheet_id: uuid.UUID,
+    limit: int = 20,
+    session: Session = Depends(get_session),
+    storage: ObjectStorage = Depends(get_storage),
+) -> SheetRowsResponse:
+    """Return the first ``limit`` real data rows of a sheet (below the header).
+
+    Streams from the immutable stored file (reusing ``iter_sheet_rows``) and keys
+    each row by the sheet's detected column names. Used by the transform-preview
+    and validation screens instead of zipped profile samples.
+    """
+    sheet = session.scalar(tenant_scoped_select(Sheet, tenant_id).where(Sheet.id == sheet_id))
+    if sheet is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="sheet not found")
+    file = session.scalar(
+        tenant_scoped_select(FileModel, tenant_id).where(FileModel.id == sheet.file_id)
+    )
+    if file is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="file not found")
+
+    names = [str(c["name"]) for c in sheet.columns]
+    header_index = sheet.header_row_index
+    rows: list[dict[str, object]] = []
+    with storage.open(storage_key_for(file)) as stream:
+        for i, raw in enumerate(iter_sheet_rows(stream, file.filename, sheet.sheet_index)):
+            if header_index is not None and i <= header_index:
+                continue
+            rows.append({name: (raw[j] if j < len(raw) else None) for j, name in enumerate(names)})
+            if len(rows) >= limit:
+                break
+    return SheetRowsResponse(columns=names, rows=rows)
 
 
 @router.get("/tenants/{tenant_id}/jobs", response_model=list[JobRead])

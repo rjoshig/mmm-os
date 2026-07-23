@@ -20,6 +20,7 @@ import type {
   RuleSpecIn,
   SaveMappingResponse,
   SheetDetail,
+  SheetRowsResponse,
   SuggestionRead,
   SuggestMappingResponse,
   ValidateResponse,
@@ -104,6 +105,8 @@ export const api = {
   listFiles: () => request<FileListItem[]>(tenantPath("/files")),
   getFile: (fileId: string) => request<FileDetail>(tenantPath(`/files/${fileId}`)),
   getSheet: (sheetId: string) => request<SheetDetail>(tenantPath(`/sheets/${sheetId}`)),
+  getSheetRows: (sheetId: string, limit = 20) =>
+    request<SheetRowsResponse>(tenantPath(`/sheets/${sheetId}/rows?limit=${limit}`)),
 
   // --- Ingest / process ---
   uploadFile: (file: File) => {

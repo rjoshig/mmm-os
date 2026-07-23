@@ -11,7 +11,6 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Table, TD, TH, THead, TR } from "@/components/ui/table";
 import { api, ApiError } from "@/lib/api/client";
 import type { PreviewResponse, RuleSpecIn, SheetDetail } from "@/lib/api/types";
-import { sampleRowsFromProfile } from "@/lib/sample";
 
 let ruleSeq = 0;
 function newRule(): UiRule {
@@ -39,9 +38,12 @@ export default function TransformBuilderPage() {
   useEffect(() => {
     (async () => {
       try {
-        const detail = await api.getSheet(sheetId);
+        const [detail, sample] = await Promise.all([
+          api.getSheet(sheetId),
+          api.getSheetRows(sheetId, 20),
+        ]);
         setSheet(detail);
-        setRows(sampleRowsFromProfile(detail));
+        setRows(sample.rows);
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "Failed to load sheet.");
       }

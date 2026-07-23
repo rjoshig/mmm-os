@@ -78,6 +78,11 @@ export interface SheetDetail {
   profile: ProfileRead | null;
 }
 
+export interface SheetRowsResponse {
+  columns: string[];
+  rows: Record<string, unknown>[];
+}
+
 export interface IngestResponse {
   file: FileRead;
   job: JobRead;

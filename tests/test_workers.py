@@ -59,6 +59,24 @@ def test_dead_letter_after_exhausting_retries() -> None:
     assert "nope" in result.dead_letters[0].error
 
 
+def test_batch_process_endpoint(client: TestClient) -> None:
+    """POST /batches/process fans uploaded files out onto the queue and processes them."""
+    tenant_id = uuid.uuid4()
+    for name in ("a.csv", "b.csv"):
+        client.post(
+            f"/api/v1/tenants/{tenant_id}/files",
+            files={"upload": (name, b"date,channel,spend\n2026-01-01,FB,10\n", "text/csv")},
+        )
+    resp = client.post(f"/api/v1/tenants/{tenant_id}/batches/process")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["processed"] == 2 and body["dead_lettered"] == 0
+
+    # Re-running is idempotent: both files already succeeded → nothing processed.
+    again = client.post(f"/api/v1/tenants/{tenant_id}/batches/process").json()
+    assert again["processed"] == 0
+
+
 def test_batch_is_idempotent(
     client: TestClient, engine: Engine, storage: LocalObjectStorage
 ) -> None:
