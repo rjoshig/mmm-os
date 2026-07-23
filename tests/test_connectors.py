@@ -120,6 +120,16 @@ def test_sftp_pull_lands_files(engine: Engine, storage: LocalObjectStorage, tmp_
             assert b"2026-01-01" in fh.read()
 
 
+def test_available_connectors_endpoint(client: TestClient) -> None:
+    """The catalog lists partner + file connectors for the create-source form."""
+    resp = client.get("/api/v1/connectors/available")
+    assert resp.status_code == 200, resp.text
+    by_key = {c["key"]: c["is_partner"] for c in resp.json()["connectors"]}
+    assert {"meta", "google_ads", "dv360", "tiktok", "sftp"} <= set(by_key)
+    assert by_key["meta"] is True
+    assert by_key["sftp"] is False
+
+
 def test_connector_api_config_and_sync(client: TestClient) -> None:
     """Create a connector config, trigger a sync, and list the runs (dev fake client)."""
     tid = uuid.uuid4()

@@ -28,6 +28,11 @@ last-successful-pull, row counts — and the admin hooks to manage connectors.
 
 - Connector status/observability surface (API + Phase-6 UI hooks).
 - Admin actions wired to the connector framework.
+- **Sources UI (Cycle 3, Slice 1):** a `/sources` screen listing connector configs
+  with health + last run, a "New source" dialog (driven by
+  `GET /connectors/available`), "Sync now" for partner connectors, and per-source
+  sync-run history. Surfaces the existing connector API — the automation surface is
+  now visible/usable.
 
 ## Acceptance Criteria
 

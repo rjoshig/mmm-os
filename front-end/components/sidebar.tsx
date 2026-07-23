@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, Layers, LogOut, Settings, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Layers, LogOut, Plug, Settings, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/sources", label: "Sources", icon: Plug },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

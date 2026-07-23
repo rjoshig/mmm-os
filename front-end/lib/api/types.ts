@@ -255,6 +255,34 @@ export interface TenantSettings {
   fx_rates: Record<string, number>;
 }
 
+// --- Sources / connectors (Cycle 3) ---
+export interface AvailableConnector {
+  key: string;
+  is_partner: boolean;
+}
+
+export interface ConnectorConfig {
+  id: Uuid;
+  tenant_id: Uuid;
+  connector_key: string;
+  name: string;
+  account_ids: string[];
+  settings: Record<string, unknown>;
+  enabled: boolean;
+}
+
+export interface SyncRun {
+  id: Uuid;
+  connector_config_id: Uuid;
+  window_start: string;
+  window_end: string;
+  status: string;
+  row_count: number | null;
+  error: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
 export interface GenerateOutputResponse {
   job_id: Uuid;
   file_id: Uuid;

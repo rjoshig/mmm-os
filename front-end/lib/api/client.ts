@@ -9,7 +9,10 @@ import type {
   AccessReviewRow,
   AuditEntryRead,
   AutoMapResponse,
+  AvailableConnector,
   BulkReviewResponse,
+  ConnectorConfig,
+  SyncRun,
   CanonicalFieldsResponse,
   FileDetail,
   FileListItem,
@@ -226,6 +229,25 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(patch),
     }),
+
+  // --- Sources / connectors (Cycle 3; admin-gated on the backend) ---
+  availableConnectors: () =>
+    request<{ connectors: AvailableConnector[] }>("/api/v1/connectors/available"),
+  listConnectorConfigs: () => request<ConnectorConfig[]>(tenantPath("/connector-configs")),
+  createConnectorConfig: (input: {
+    connector_key: string;
+    name: string;
+    account_ids: string[];
+    settings?: Record<string, unknown>;
+  }) =>
+    request<ConnectorConfig>(tenantPath("/connector-configs"), {
+      method: "POST",
+      body: JSON.stringify({ settings: {}, ...input }),
+    }),
+  triggerSync: (configId: string) =>
+    request<SyncRun>(tenantPath(`/connector-configs/${configId}/sync`), { method: "POST" }),
+  listSyncRuns: (configId: string) =>
+    request<SyncRun[]>(tenantPath(`/connector-configs/${configId}/sync-runs`)),
 
   // --- Governance / admin (admin-only; backend enforces Permission.ADMIN) ---
   listUsers: () => request<UserRead[]>(tenantPath("/users")),

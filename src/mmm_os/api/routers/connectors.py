@@ -26,6 +26,19 @@ router = APIRouter(prefix="/api/v1", tags=["connectors"])
 _ADMIN = Depends(require_permission(Permission.ADMIN))
 
 
+@router.get("/connectors/available", dependencies=[_ADMIN])
+def list_available_connectors() -> dict[str, list[dict[str, object]]]:
+    """List the connector keys the platform supports (for the create-source form).
+
+    Partner connectors (``is_partner``) support triggering a sync; ``sftp`` is a file
+    source. Not tenant-scoped — the catalog is the same for every tenant.
+    """
+    connectors = [
+        {"key": key, "is_partner": key in PARTNER_KEYS} for key in sorted(CONNECTOR_KEYS)
+    ]
+    return {"connectors": connectors}
+
+
 def _get_config(session: Session, tenant_id: uuid.UUID, config_id: uuid.UUID) -> ConnectorConfig:
     config = session.scalar(
         tenant_scoped_select(ConnectorConfig, tenant_id).where(ConnectorConfig.id == config_id)
