@@ -1,11 +1,13 @@
 # Phase 10 — Data Governance & Retention
 
-**Tail phase** · **Depends on:** Phases 0–8 · **Status:** Spec-only — **design
-only, not scheduled to build.**
+**Tail phase** · **Depends on:** Phases 0–8 · **Status:** Build (in progress) —
+retention purge engine + admin endpoints shipped (P10-1); right-to-erasure (P10-3)
++ PII/backup-DR design next.
 
-> **Design-only.** This phase documents policy and design; it is **not** scheduled
-> for implementation. Do not build any of it until explicitly scoped. Cross-
-> references — not duplicates — Phase 08.1 (technical compliance controls).
+> Now being built (was spec-only). Implements the enforceable pieces (retention
+> purge + erasure) and keeps the policy/design parts (backup-DR, residency) as
+> documented design. Cross-references — not duplicates — Phase 08.1 (technical
+> compliance controls).
 
 ## Objective
 
@@ -21,10 +23,26 @@ handled — so the technical controls (Phase 08.1) have policies to enforce.
 - **Out:** implementation of any of the above; the technical controls themselves
   (Phase 08.1).
 
+## Retention matrix (P10-1 — implemented)
+
+Retention windows are app-configurable (`RETENTION_*` settings; 0 = keep forever)
+with defensible defaults. A **raw file's** purge cascades all data derived from it;
+other classes are purged standalone. Purge runs on demand
+(`POST /tenants/{id}/retention/run`, admin, audited, idempotent CC-6).
+
+| Data class | Default | Deletion rule |
+|---|---|---|
+| Raw file (+ derived: sheets, profiles, jobs, events, flags, suggestions, output rows, storage bytes) | 365 d | Cascade-delete files older than the window; removes immutable-raw bytes (governance exception to CC-2). |
+| LLM usage (`llm_usage`) | 90 d | Delete rows past the window. |
+| Sync runs (`sync_run`) | 180 d | Delete rows past the window. |
+| Notifications (read) | 90 d | Delete **read** notifications past the window. |
+| Audit log (`audit_log`) | 0 (keep) | Retained by default; configurable window if a shorter policy is required. |
+
 ## Functional Requirements (design targets)
 
-- **P10-1 Retention:** SHOULD define retention per data class (raw files, derived
-  data, output, audit logs, LLM usage) with defensible defaults.
+- **P10-1 Retention:** ✅ **Built** — `governance/retention.py` (`RetentionPolicy`,
+  `run_retention`, shared `delete_file_data` cascade) + admin endpoints
+  (`/retention/policy`, `/retention/run`). See the matrix above.
 - **P10-2 Backup & DR:** SHOULD define RPO/RTO targets and a backup/restore +
   disaster-recovery approach for both databases + object storage.
 - **P10-3 Deletion / erasure:** SHOULD define tenant data deletion and

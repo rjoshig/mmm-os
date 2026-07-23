@@ -79,6 +79,16 @@ class ObjectStorage(abc.ABC):
         """
 
     @abc.abstractmethod
+    def delete(self, key: str) -> bool:
+        """Delete the object at ``key`` if it exists; return whether it was removed.
+
+        This is the **governance-authorized exception** to immutability (CC-2): raw
+        objects are never *overwritten*, but retention (Phase 10, P10-1) and
+        right-to-erasure (P10-3) may delete them. Idempotent — deleting a missing
+        key returns ``False`` without raising.
+        """
+
+    @abc.abstractmethod
     def exists(self, key: str) -> bool:
         """Return whether an object exists at ``key``."""
 

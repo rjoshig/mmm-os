@@ -72,6 +72,14 @@ class LocalObjectStorage(ObjectStorage):
             raise FileNotFoundError(key)
         return path.open("rb")
 
+    def delete(self, key: str) -> bool:
+        """Delete the object at ``key`` (retention/erasure exception to CC-2)."""
+        path = self._path(key)
+        if not path.exists():
+            return False
+        path.unlink()
+        return True
+
     def exists(self, key: str) -> bool:
         """Return whether the object exists."""
         return self._path(key).exists()

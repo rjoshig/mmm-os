@@ -42,3 +42,19 @@ class AccessReviewRow(BaseModel):
     email: str
     role: str
     permissions: list[str]
+
+
+class RetentionPolicyRead(BaseModel):
+    """The configured retention windows (days per data class; 0 = keep forever)."""
+
+    raw_file_days: int
+    llm_usage_days: int
+    sync_run_days: int
+    notification_days: int
+    audit_log_days: int
+
+
+class RetentionRunResponse(BaseModel):
+    """Result of a retention run: rows/objects purged per data class."""
+
+    purged: dict[str, int]

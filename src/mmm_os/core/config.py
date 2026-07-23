@@ -100,6 +100,16 @@ class Settings(BaseSettings):
     scheduler_enabled: bool = False
     scheduler_poll_seconds: int = 60
 
+    # Data retention (Phase 10, P10-1): days to keep each data class before purge.
+    # 0 = keep forever. A raw file's purge cascades its derived data + storage bytes;
+    # the other classes are purged standalone. Retention runs on demand
+    # (POST /governance/retention/run) — defensible defaults, tune per environment.
+    retention_raw_file_days: int = 365
+    retention_llm_usage_days: int = 90
+    retention_sync_run_days: int = 180
+    retention_notification_days: int = 90
+    retention_audit_log_days: int = 0  # keep the audit trail by default
+
     @property
     def cors_origins(self) -> list[str]:
         """Parse ``cors_allow_origins`` into a list of trimmed origins."""

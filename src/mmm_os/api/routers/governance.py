@@ -11,11 +11,24 @@ import uuid
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from mmm_os.api.deps import get_storage
+from mmm_os.auth.service import Principal
 from mmm_os.authz import ROLE_PERMISSIONS, Permission, require_permission
+from mmm_os.core.config import Settings, get_settings
 from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.db.session import get_session
+from mmm_os.governance import record_audit
+from mmm_os.governance.retention import RetentionPolicy, run_retention
 from mmm_os.models import AuditLog, User
-from mmm_os.schemas.governance import AccessReviewRow, AuditEntryRead, UserRead
+from mmm_os.models.mixins import utcnow
+from mmm_os.schemas.governance import (
+    AccessReviewRow,
+    AuditEntryRead,
+    RetentionPolicyRead,
+    RetentionRunResponse,
+    UserRead,
+)
+from mmm_os.storage import ObjectStorage
 
 router = APIRouter(prefix="/api/v1", tags=["governance"])
 
@@ -73,3 +86,56 @@ def access_review(
         )
         for u in users
     ]
+
+
+@router.get(
+    "/tenants/{tenant_id}/retention/policy",
+    response_model=RetentionPolicyRead,
+    dependencies=[_ADMIN],
+)
+def retention_policy(
+    tenant_id: uuid.UUID,
+    settings: Settings = Depends(get_settings),
+) -> RetentionPolicyRead:
+    """Return the configured retention windows per data class (Phase 10, P10-1)."""
+    policy = RetentionPolicy.from_settings(settings)
+    return RetentionPolicyRead(
+        raw_file_days=policy.raw_file_days,
+        llm_usage_days=policy.llm_usage_days,
+        sync_run_days=policy.sync_run_days,
+        notification_days=policy.notification_days,
+        audit_log_days=policy.audit_log_days,
+    )
+
+
+@router.post(
+    "/tenants/{tenant_id}/retention/run",
+    response_model=RetentionRunResponse,
+    dependencies=[_ADMIN],
+)
+def retention_run(
+    tenant_id: uuid.UUID,
+    session: Session = Depends(get_session),
+    storage: ObjectStorage = Depends(get_storage),
+    settings: Settings = Depends(get_settings),
+    principal: Principal | None = _ADMIN,
+) -> RetentionRunResponse:
+    """Purge data past its retention window across all tenants (admin; Phase 10).
+
+    Idempotent (CC-6): only removes what is now expired. A raw file's purge cascades
+    its derived data + immutable-raw bytes (the governance exception to CC-2). Audited.
+    """
+    purged = run_retention(
+        session, storage, now=utcnow(), policy=RetentionPolicy.from_settings(settings)
+    )
+    record_audit(
+        session,
+        tenant_id=tenant_id,
+        action="retention.run",
+        principal=principal,
+        target_type="tenant",
+        target_id=str(tenant_id),
+        detail=purged,
+    )
+    session.commit()
+    return RetentionRunResponse(purged=purged)
