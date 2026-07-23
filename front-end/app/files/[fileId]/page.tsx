@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState, ErrorBanner, Loading } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
+import { CommentsPanel } from "@/components/collaboration/comments-panel";
 import { PipelineStepper } from "@/components/pipeline-stepper";
 import { Table, TD, TH, THead, TR } from "@/components/ui/table";
 import { useToast } from "@/components/ui/toast";
@@ -186,6 +187,8 @@ export default function FileDetailPage() {
             </Table>
             </div>
           )}
+
+          <CommentsPanel targetType="file" targetId={fileId} />
         </>
       )}
     </div>

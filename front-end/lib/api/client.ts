@@ -12,9 +12,11 @@ import type {
   AutoMapResponse,
   AvailableConnector,
   BulkReviewResponse,
+  Comment,
   ConfigLibraryItem,
   ConfigVersionItem,
   ConnectorConfig,
+  Notification,
   JobDetail,
   JobRead,
   SyncRun,
@@ -265,6 +267,30 @@ export const api = {
     ),
   resolveAssignment: (id: string) =>
     request<Assignment>(tenantPath(`/assignments/${id}/resolve`), { method: "POST" }),
+
+  // --- Comments + notifications (Phase 13.5) ---
+  listComments: (targetType: string, targetId: string) =>
+    request<Comment[]>(
+      tenantPath(`/comments?target_type=${targetType}&target_id=${targetId}`)
+    ),
+  createComment: (input: {
+    target_type: string;
+    target_id: string;
+    body: string;
+    mentions?: string[];
+  }) =>
+    request<Comment>(tenantPath("/comments"), {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  listNotifications: (recipient?: string, unreadOnly = false) => {
+    const q = new URLSearchParams();
+    if (recipient) q.set("recipient", recipient);
+    if (unreadOnly) q.set("unread_only", "true");
+    return request<Notification[]>(tenantPath(`/notifications?${q.toString()}`));
+  },
+  markNotificationRead: (id: string) =>
+    request<Notification>(tenantPath(`/notifications/${id}/read`), { method: "POST" }),
 
   // --- Config library / authorship (Phase 13) ---
   getConfigLibrary: () =>

@@ -47,7 +47,7 @@ until scoped.
 | 17 | 10 | [phase-10](./phase-10-data-governance-retention.md) | Data governance & retention, backup/DR, erasure, residency, PII posture. | 0–8 | Spec-only |
 | 18 | 11 | [phase-11](./phase-11-deployment-infrastructure.md) | Deployment & infra: environments, CI/CD, IaC, autoscaling, secret injection. | 0–8 | Spec-only |
 | 19 | 12 | [phase-12](./phase-12-load-scale-testing.md) | Load/scale test plan for 200–500 tenants + batch concurrency. | 0–8, 11 | Spec-only |
-| 20 | 13 | [phase-13](./phase-13-collaboration-multiuser-workflow.md) | Collaboration & multi-user workflow: config library + authorship + draft→publish lifecycle, runs history UI, review queue/assignment, comments/notifications. | 2, 3, 6, 8 | Build |
+| 20 | 13 | [phase-13](./phase-13-collaboration-multiuser-workflow.md) | Collaboration & multi-user workflow: config library + authorship + draft→publish lifecycle, runs history UI, review queue/assignment, comments/notifications. | 2, 3, 6, 8 | Done |
 | — | Postgres migration | [architecture §2](../architecture.md) | Swap backend/UI DB SQLite→Postgres by config only (portability already designed). | — | Deferred |
 
 > **Note on Phase 13.** Phase 13 is part of the **enterprise-overhaul** track and is

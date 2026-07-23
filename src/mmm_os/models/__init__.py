@@ -6,7 +6,7 @@ autogenerate and ``create_all`` see the full schema.
 
 from mmm_os.models.ai_usage import LlmBudget, LlmUsage
 from mmm_os.models.auth import IdentityProviderConfig, SecretRef, Session
-from mmm_os.models.collaboration import Assignment
+from mmm_os.models.collaboration import Assignment, Comment, Notification
 from mmm_os.models.config import (
     MappingConfig,
     Rule,
@@ -24,6 +24,7 @@ from mmm_os.models.tenant import Tenant, TenantSettings, User
 __all__ = [
     "Assignment",
     "AuditLog",
+    "Comment",
     "ConnectorConfig",
     "ConnectorCredential",
     "File",
@@ -33,6 +34,7 @@ __all__ = [
     "LlmBudget",
     "LlmUsage",
     "MappingConfig",
+    "Notification",
     "OutputRow",
     "Profile",
     "Rule",

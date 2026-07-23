@@ -1,7 +1,7 @@
 # Phase 13 — Collaboration & Multi-User Workflow
 
 **Depends on:** 2 (mapping configs), 3 (rule sets), 6 (Review UI), 8 (RBAC + audit)
-· **Status:** In progress — 13.1, 13.2, 13.3, 13.4 Done; 13.5 (comments/notifications) remains.
+· **Status:** Done — all sub-phases (13.1–13.5) implemented.
 
 Enterprise-overhaul theme: make the platform a place where **a team works the data
 together** — one person configures, another continues, a third reviews — with full
@@ -95,10 +95,13 @@ at build time (per the sub-phase convention in [`README.md`](./README.md)).
   Endpoints: `POST /assignments`, `GET /assignments?assignee=` (a user's queue),
   `POST /assignments/{id}/resolve`. UI: a `/queue` review-queue screen + "Assign"
   dialog on the file detail.
-- **13.5 — Collaboration annotations & notifications** (P13-6). `comment` +
-  `notification` records; comment threads on flags/mappings/files; @mentions;
-  per-file activity feed; in-app notification center. A pluggable notification sink
-  (in-app now; email/webhook later, honoring CC-10/CC-12 for any external creds).
+- **13.5 — Collaboration annotations & notifications** (P13-6). **Done**: `comment`
+  + `notification` records (tenant-scoped). `POST/GET /comments` (per-object activity
+  feed) with @mentions → in-app notifications; `GET /notifications` +
+  `POST /notifications/{id}/read`; assignments also notify the assignee. UI: a comments
+  panel on the file detail (with a mention picker) + a notifications center on the
+  Queue screen. Notification delivery is in-app via a `_notify` sink (email/webhook
+  is a follow-up).
 
 ## Deliverables
 

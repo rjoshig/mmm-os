@@ -358,6 +358,27 @@ export interface ConfigVersionItem {
   summary: string;
 }
 
+// --- Comments + notifications (Phase 13.5) ---
+export interface Comment {
+  id: Uuid;
+  target_type: string;
+  target_id: Uuid;
+  author_user_id: Uuid | null;
+  author_email: string | null;
+  body: string;
+  created_at: string;
+}
+
+export interface Notification {
+  id: Uuid;
+  kind: string;
+  target_type: string | null;
+  target_id: Uuid | null;
+  message: string;
+  read: boolean;
+  created_at: string;
+}
+
 // --- Assignments / review queue (Phase 13.4) ---
 export interface Assignment {
   id: Uuid;
