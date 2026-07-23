@@ -50,38 +50,68 @@ other classes are purged standalone. Purge runs on demand
   shell — and records the erasure event, so *what was erased* stays provable while the
   *data* is gone. Endpoints: `POST /erase/files/{id}`, `POST /erase` (requires
   `{"confirm":"ERASE"}`), both admin + audited.
-- **P10-2 Backup & DR:** SHOULD define RPO/RTO targets and a backup/restore +
-  disaster-recovery approach for both databases + object storage.
-- **P10-3 Deletion / erasure:** SHOULD define tenant data deletion and
-  right-to-erasure, including immutable-raw (CC-2) and audit-log tensions.
-- **P10-4 Residency:** SHOULD define data-residency options and how tenant region
-  constraints are honoured.
-- **P10-5 PII posture:** SHOULD document the PII stance — file sources may carry
+- **P10-2 Backup & DR:** 📝 **Design** (see Design notes) — RPO/RTO + backup/restore
+  approach for both DBs + object storage. Not implemented (infra concern, Phase 11).
+- **P10-4 Residency:** 📝 **Design** (see Design notes) — data-residency options.
+- **P10-5 PII posture:** 📝 **Documented** (see Design notes) — file sources may carry
   PII; partner connector data is aggregate-only (no user-level PII, CC-10/OQ-9.6).
 
-## Deliverables (design artifacts)
+## Design notes (P10-2 / P10-4 / P10-5)
 
-- A retention matrix (data class → retention → deletion rule).
-- A backup/DR design note with RPO/RTO.
-- A deletion/erasure design reconciling immutability + audit needs.
+**Backup & DR (P10-2, OQ-10-2).** Targets: **RPO ≤ 24 h**, **RTO ≤ 4 h** for the
+managed offering. Approach — *Backend + UI databases:* on Postgres (the production
+target), daily full + WAL/PITR continuous archiving to object storage in a second
+region; nightly logical dumps as a portable fallback. *Object storage (raw files +
+output):* versioning + cross-region replication; lifecycle rules aligned to the
+retention matrix. *Restore drills:* quarterly; a restore runbook lives with the
+deployment phase (Phase 11). SQLite (dev) is out of scope for DR. Implementation is
+an **infrastructure** concern owned by Phase 11 — this phase sets the targets.
+
+**Residency (P10-4, OQ-10-4).** A tenant declares a home **region**; its two DBs +
+object-storage buckets are provisioned in that region and never replicated outside it
+except to same-jurisdiction DR regions. Partner-connector egress uses region-local
+endpoints where the partner offers them. Cross-region access is denied at the
+infra/network layer (Phase 11). v1 default: single region; multi-region is a
+deployment-time option, not app code.
+
+**PII posture (P10-5).** *Uploaded file sources may contain PII* (campaign data can
+include emails, user ids). Treatment: raw files are immutable + encrypted at rest,
+tenant-scoped, access-controlled (CC-1/CC-11), retained per the matrix, and erasable
+(P10-3). *Partner-connector data is aggregate-only* — no user-level PII (CC-10,
+OQ-9.6); credentials never logged (CC-10/CC-12). LLM inputs are **profiles, not raw
+rows** (P5-1), reducing PII exposure to the model. The platform does **not** attempt
+automatic PII detection/redaction in v1 — that is a future enhancement.
+
+## Deliverables
+
+- ✅ A retention matrix (data class → retention → deletion rule) + **implemented**
+  purge engine (P10-1).
+- ✅ A deletion/erasure design reconciling immutability + audit + **implemented**
+  erasure (P10-3).
+- 📝 A backup/DR design note with RPO/RTO; a residency design; a PII posture (above).
 
 ## Acceptance Criteria
 
-- The design is complete enough that Phase 08.1 controls can enforce it and an
-  implementation phase could be scoped from it. *(No runtime acceptance — spec-only.)*
+- ✅ Retention purge + right-to-erasure are implemented, admin-gated, audited, and
+  tenant-scoped, with tests (P10-1, P10-3).
+- ✅ The backup/DR + residency + PII designs are complete enough for Phase 08.1 to
+  reference and Phase 11 to implement the infra pieces.
 
 ## Dependencies
 
-Conceptually builds on Phases 0–8; consumed by Phase 08.1. No build dependency
-(design-only).
+Builds on Phases 0–8; the backup/DR + residency *implementation* is owned by Phase 11
+(deployment/infra). Consumed by Phase 08.1 (compliance controls).
 
 ## Open Questions
 
-- **OQ-10-1** Retention periods per data class.
-- **OQ-10-2** RPO/RTO targets.
-- **OQ-10-3** Erasure vs immutable-raw (CC-2) / audit-log reconciliation.
-- **OQ-10-4** Data-residency requirements + regions.
+- **OQ-10-1** ✅ Resolved — retention per data class (see the matrix); app-configurable.
+- **OQ-10-2** ✅ Resolved (targets) — RPO ≤ 24 h, RTO ≤ 4 h; implementation in Phase 11.
+- **OQ-10-3** ✅ Resolved — erasure deletes raw (CC-2 exception) + data; keeps audit +
+  identity and records the erasure (see P10-3).
+- **OQ-10-4** ✅ Resolved (design) — per-tenant home region; multi-region is a
+  deployment option (Phase 11).
 
 ## Sub-phases
 
-N/A (spec-only; break down if/when scheduled to build).
+Built in slices: **1** retention purge engine (P10-1), **2** right-to-erasure (P10-3),
+**3** design notes for backup/DR + residency + PII (P10-2/4/5) + governance admin UI.

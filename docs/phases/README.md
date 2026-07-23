@@ -44,7 +44,7 @@ until scoped.
 | 14 | 8 | [phase-08](./phase-08-governance-security.md) | RBAC + audit log + admin API + admin console UI; in-transit encryption deferred. | 7 | Done |
 | 15 | 08.1 | [phase-08.1](./phase-08.1-compliance-controls.md) | Access review + least-privilege self-check + controls matrix. | 8, 00.5, 00.6 | Done |
 | 16 | 9 (+09.1–09.8) | [phase-09](./phase-09-future-connectors-extraction.md) | Partner data connectors (SFTP + Meta/Google Ads/DV360/TikTok), full framework with mock partner clients; PDF/email extraction deferred. | 0–8 (+ Phase 1 seam) | Done (connectors); PDF/email Deferred |
-| 17 | 10 | [phase-10](./phase-10-data-governance-retention.md) | Data governance & retention, backup/DR, erasure, residency, PII posture. | 0–8 | Build (in progress) |
+| 17 | 10 | [phase-10](./phase-10-data-governance-retention.md) | Data governance & retention, backup/DR, erasure, residency, PII posture. | 0–8 | Done (retention + erasure built; backup-DR/residency = design) |
 | 18 | 11 | [phase-11](./phase-11-deployment-infrastructure.md) | Deployment & infra: environments, CI/CD, IaC, autoscaling, secret injection. | 0–8 | Spec-only |
 | 19 | 12 | [phase-12](./phase-12-load-scale-testing.md) | Load/scale test plan for 200–500 tenants + batch concurrency. | 0–8, 11 | Spec-only |
 | 20 | 13 | [phase-13](./phase-13-collaboration-multiuser-workflow.md) | Collaboration & multi-user workflow: config library + authorship + draft→publish lifecycle, runs history UI, review queue/assignment, comments/notifications. | 2, 3, 6, 8 | Done |

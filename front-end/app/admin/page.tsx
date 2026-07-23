@@ -1,23 +1,26 @@
 "use client";
 
-import { ScrollText, ShieldCheck, Users } from "lucide-react";
+import { Database, ScrollText, ShieldCheck, Users } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge, statusVariant } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorBanner, Loading } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, TD, TH, THead, TR } from "@/components/ui/table";
+import { useToast } from "@/components/ui/toast";
 import { api, ApiError } from "@/lib/api/client";
-import type { AccessReviewRow, AuditEntryRead, UserRead } from "@/lib/api/types";
+import type { AccessReviewRow, AuditEntryRead, RetentionPolicy, UserRead } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import { getStoredPrincipal } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
-type Tab = "users" | "audit" | "access";
+type Tab = "users" | "audit" | "access" | "retention";
 
 const TABS: { id: Tab; label: string; icon: typeof Users }[] = [
   { id: "users", label: "Users", icon: Users },
   { id: "audit", label: "Audit log", icon: ScrollText },
   { id: "access", label: "Access review", icon: ShieldCheck },
+  { id: "retention", label: "Data retention", icon: Database },
 ];
 
 /**
@@ -72,6 +75,85 @@ export default function AdminPage() {
       {tab === "users" ? <UsersTab /> : null}
       {tab === "audit" ? <AuditTab /> : null}
       {tab === "access" ? <AccessTab /> : null}
+      {tab === "retention" ? <RetentionTab /> : null}
+    </div>
+  );
+}
+
+function RetentionTab() {
+  const toast = useToast();
+  const [policy, setPolicy] = useState<RetentionPolicy | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [running, setRunning] = useState(false);
+
+  useEffect(() => {
+    api
+      .getRetentionPolicy()
+      .then(setPolicy)
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load policy."));
+  }, []);
+
+  async function run() {
+    setRunning(true);
+    try {
+      const { purged } = await api.runRetention();
+      const total = Object.values(purged).reduce((a, b) => a + b, 0);
+      toast.success(`Retention run complete — purged ${total} record(s).`);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Retention run failed.");
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  const rows: { label: string; days: number | undefined }[] = [
+    { label: "Raw files (+ derived data & storage bytes)", days: policy?.raw_file_days },
+    { label: "LLM usage", days: policy?.llm_usage_days },
+    { label: "Connector sync runs", days: policy?.sync_run_days },
+    { label: "Read notifications", days: policy?.notification_days },
+    { label: "Audit log", days: policy?.audit_log_days },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {error ? <ErrorBanner message={error} /> : null}
+      <div className="flex items-start justify-between gap-4">
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Data past its retention window is purged (idempotent). Purging a raw file cascades its
+          derived data and immutable-raw bytes (the governance exception to immutability). Windows
+          are configured via <span className="mono">RETENTION_*</span> env vars.
+        </p>
+        <Button onClick={run} disabled={running || policy === null}>
+          <Database className="h-4 w-4" />
+          {running ? "Purging…" : "Run retention now"}
+        </Button>
+      </div>
+      {policy === null ? (
+        <Loading label="Loading policy…" />
+      ) : (
+        <Table>
+          <THead>
+            <TR>
+              <TH>Data class</TH>
+              <TH className="text-right">Retention</TH>
+            </TR>
+          </THead>
+          <tbody>
+            {rows.map((r) => (
+              <TR key={r.label}>
+                <TD>{r.label}</TD>
+                <TD className="text-right tabular-nums">
+                  {r.days === 0 ? (
+                    <span className="text-muted-foreground">keep forever</span>
+                  ) : (
+                    `${r.days} days`
+                  )}
+                </TD>
+              </TR>
+            ))}
+          </tbody>
+        </Table>
+      )}
     </div>
   );
 }

@@ -36,6 +36,7 @@ import type {
   PreviewResponse,
   PrincipalRead,
   ProcessResponse,
+  RetentionPolicy,
   RuleSetRead,
   RuleSpecIn,
   SaveMappingResponse,
@@ -347,6 +348,9 @@ export const api = {
 
   // --- Governance / admin (admin-only; backend enforces Permission.ADMIN) ---
   listUsers: () => request<UserRead[]>(tenantPath("/users")),
+  getRetentionPolicy: () => request<RetentionPolicy>(tenantPath("/retention/policy")),
+  runRetention: () =>
+    request<{ purged: Record<string, number> }>(tenantPath("/retention/run"), { method: "POST" }),
   auditLog: (limit = 100) => request<AuditEntryRead[]>(tenantPath(`/audit-log?limit=${limit}`)),
   accessReview: () => request<AccessReviewRow[]>(tenantPath("/access-review")),
 };

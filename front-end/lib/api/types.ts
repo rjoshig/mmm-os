@@ -337,6 +337,15 @@ export interface OutputLineage {
   sources: LineageSource[];
 }
 
+// --- Data governance / retention (Phase 10) ---
+export interface RetentionPolicy {
+  raw_file_days: number;
+  llm_usage_days: number;
+  sync_run_days: number;
+  notification_days: number;
+  audit_log_days: number;
+}
+
 // --- Config library / authorship (Phase 13) ---
 export interface ConfigLibraryItem {
   kind: "mapping" | "rule_set";
