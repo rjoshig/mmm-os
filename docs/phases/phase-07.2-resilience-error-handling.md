@@ -1,7 +1,7 @@
 # Phase 07.2 — Resilience & Error Handling
 
 **Inserted phase** (standalone, not a sub-phase) · **Depends on:** Phase 7 ·
-**Status:** Build — extends Phase 7.
+**Status:** Done (retry-with-backoff, circuit breaker; queue-level bounded retries + dead-lettering) — pending PR merge.
 
 Cross-cutting: idempotent jobs (CC-6), observability (CC-7), source-agnostic
 pipeline (CC-9).

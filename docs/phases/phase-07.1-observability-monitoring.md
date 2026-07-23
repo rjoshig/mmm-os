@@ -1,8 +1,7 @@
 # Phase 07.1 — Observability & Monitoring
 
 **Inserted phase** (standalone, not a sub-phase) · **Depends on:** Phase 7 ·
-**Status:** Build — the standard is **defined here** but instrumented
-**incrementally from Phase 1** as each phase is built.
+**Status:** Done (metrics registry + structured context + pipeline wiring) — pending PR merge. The standard is defined here and instrumented incrementally; a production metrics/tracing backend exports the same signals (OQ-07.1-1).
 
 Cross-cutting: observability (CC-7), multi-tenant (CC-1).
 

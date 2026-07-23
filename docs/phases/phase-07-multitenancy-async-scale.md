@@ -1,6 +1,13 @@
 # Phase 7 — Multi-Tenancy, Async & Scale
 
-**Depends on:** all prior phases · **Status:** Not started
+**Depends on:** all prior phases · **Status:** Done (queue abstraction + per-tenant fairness + batch fan-out + idempotency + isolation tests; Celery+Redis is the production backend) — pending PR merge.
+
+> **Delivered:** a `TaskQueue` abstraction with an in-process, per-tenant
+> round-robin backend (`EagerTaskQueue`) providing fairness (P7-3), bounded
+> retries + dead-lettering (P7-5), batch fan-out with idempotent skips (P7-2,
+> CC-6), and tenant-isolation tests (P7-4). **Production backend:** Celery + Redis
+> behind the same contract (ADR-007) — the autoscaling/worker-hosting deployment
+> is Phase 11 infra.
 
 Cross-cutting: multi-tenant (CC-1), idempotent jobs (CC-6), observability (CC-7).
 
