@@ -8,10 +8,11 @@ import { OPERATIONS, RuleConfig, type UiRule } from "@/components/transform/rule
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorBanner, Loading } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
-import { Table, TD, TH, THead, TR } from "@/components/ui/table";
 import { useToast } from "@/components/ui/toast";
+import { Tooltip } from "@/components/ui/tooltip";
 import { api, ApiError } from "@/lib/api/client";
 import type { PreviewResponse, RuleSpecIn, SheetDetail, SuggestionRead } from "@/lib/api/types";
+import { cn } from "@/lib/utils";
 
 let ruleSeq = 0;
 function newRule(): UiRule {
@@ -282,8 +283,8 @@ export default function TransformBuilderPage() {
             )}
           </div>
 
-          <div className="space-y-3">
-            <h2 className="text-sm font-semibold">Live preview (before → after)</h2>
+          <div className="space-y-2">
+            <h2 className="text-sm font-semibold">Live preview</h2>
             {rows.length === 0 ? (
               <EmptyState
                 title="No sample data"
@@ -292,7 +293,7 @@ export default function TransformBuilderPage() {
             ) : previewError ? (
               <ErrorBanner message={previewError} />
             ) : (
-              <PreviewTables preview={preview} sampleRows={rows} />
+              <CompactPreview preview={preview} sampleRows={rows} />
             )}
           </div>
         </div>
@@ -301,7 +302,23 @@ export default function TransformBuilderPage() {
   );
 }
 
-function PreviewTables({
+const MAX_PREVIEW_ROWS = 8;
+
+function fmtCell(value: unknown): React.ReactNode {
+  return value === null || value === undefined || value === "" ? (
+    <span className="text-muted-foreground">—</span>
+  ) : (
+    String(value)
+  );
+}
+
+/**
+ * Compact single-table preview: shows the *after* result densely with a faint
+ * row-hover highlight and a sticky header. When the rule set preserves row count
+ * (cell-level ops), changed cells are highlighted and hovering one shows its prior
+ * value; row-count-changing ops (dedupe/aggregate/reshape) show a before→after count.
+ */
+function CompactPreview({
   preview,
   sampleRows,
 }: {
@@ -310,45 +327,68 @@ function PreviewTables({
 }) {
   const before = preview?.before ?? sampleRows;
   const after = preview?.after ?? sampleRows;
-  return (
-    <div className="space-y-4">
-      <PreviewGrid title="Before" rows={before} />
-      <PreviewGrid title="After" rows={after} />
-    </div>
-  );
-}
+  const cols = Array.from(new Set(after.flatMap((r) => Object.keys(r))));
+  const aligned = before.length === after.length; // 1:1 rows → cell diffs are meaningful
+  const shown = Math.min(after.length, MAX_PREVIEW_ROWS);
 
-function PreviewGrid({ title, rows }: { title: string; rows: Record<string, unknown>[] }) {
-  const cols = Array.from(new Set(rows.flatMap((r) => Object.keys(r))));
   return (
-    <div>
-      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {title}
+    <div className="space-y-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+        <span>
+          {aligned ? "Result — changed cells highlighted" : `Rows: ${before.length} → ${after.length}`}
+        </span>
+        <span>
+          showing {shown} of {after.length} sample row{after.length === 1 ? "" : "s"}
+        </span>
       </div>
-      <Table>
-        <THead>
-          <TR>
-            {cols.map((c) => (
-              <TH key={c}>{c}</TH>
-            ))}
-          </TR>
-        </THead>
-        <tbody>
-          {rows.slice(0, 6).map((row, i) => (
-            <TR key={i}>
+      <div className="max-h-[26rem] overflow-auto rounded-lg border border-border">
+        <table className="w-full border-collapse text-sm">
+          <thead className="sticky top-0 z-10 bg-muted/70 backdrop-blur">
+            <tr>
               {cols.map((c) => (
-                <TD key={c} className="tabular-nums">
-                  {row[c] == null ? (
-                    <span className="text-muted-foreground">—</span>
-                  ) : (
-                    String(row[c])
-                  )}
-                </TD>
+                <th
+                  key={c}
+                  className="whitespace-nowrap px-2 py-1.5 text-left text-xs font-medium text-muted-foreground"
+                >
+                  {c}
+                </th>
               ))}
-            </TR>
-          ))}
-        </tbody>
-      </Table>
+            </tr>
+          </thead>
+          <tbody>
+            {after.slice(0, shown).map((row, i) => {
+              const prev = aligned ? before[i] : undefined;
+              return (
+                <tr key={i} className="border-t border-border transition-colors hover:bg-muted/40">
+                  {cols.map((c) => {
+                    const val = row[c];
+                    const priorVal = prev?.[c];
+                    const changed =
+                      aligned && JSON.stringify(priorVal) !== JSON.stringify(val);
+                    return (
+                      <td
+                        key={c}
+                        className={cn(
+                          "whitespace-nowrap px-2 py-1 tabular-nums",
+                          changed && "bg-primary/10"
+                        )}
+                      >
+                        {changed && priorVal !== null && priorVal !== undefined ? (
+                          <Tooltip content={`was: ${String(priorVal)}`}>
+                            <span>{fmtCell(val)}</span>
+                          </Tooltip>
+                        ) : (
+                          fmtCell(val)
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
