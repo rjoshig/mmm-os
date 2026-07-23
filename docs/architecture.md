@@ -115,13 +115,18 @@ Mechanics (`src/mmm_os/db/routing.py`):
 - **Control plane stays on the pool.** Auth/session resolution and the customer
   registry use `get_control_session` (always pool); only tenant-scoped *business*
   queries route. A silo DB is seeded with the customer's tenant + user rows at
-  provision time so routed actor look-ups resolve.
+  provision time so routed actor look-ups resolve, and `db/silo_sync.py` re-mirrors
+  those rows from control-plane write paths (e.g. `create_user`) so a silo stays
+  self-contained after provisioning (Slice 7.6).
+- **Background scheduler routing (Slice 7.6).** The connector scheduler runs outside
+  any request, so it cannot use the per-request middleware routing.
+  `run_all_due_syncs` drives it explicitly: pool-tier customers run in one pass on
+  the pool; **each silo customer runs on its own engine**, so its `SyncRun` rows land
+  in its database, never the pool (silo customers are excluded from the pool pass).
+  The request-driven batch workers already inherit the routed request session.
 - Routing is gated by `MULTI_DB_ROUTING_ENABLED` (off by default), so the standard
   single-database deployment is unaffected. Reuses the existing env-var DB-URL
   portability — a silo URL can point at SQLite or Postgres.
-
-Known follow-ups: post-provision user changes need re-sync into the silo; the
-background scheduler routes per-tick (not yet per-silo-customer).
 
 ---
 

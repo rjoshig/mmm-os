@@ -8,12 +8,16 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Session
 
 from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.models import Tenant, User
 from mmm_os.schemas.tenant import TenantCreate, UserCreate
+
+if TYPE_CHECKING:
+    from mmm_os.secrets import SecretStore
 
 
 def create_tenant(session: Session, data: TenantCreate) -> Tenant:
@@ -32,12 +36,17 @@ def create_tenant(session: Session, data: TenantCreate) -> Tenant:
     return tenant
 
 
-def create_user(session: Session, data: UserCreate) -> User:
+def create_user(
+    session: Session, data: UserCreate, *, store: SecretStore | None = None
+) -> User:
     """Create a user scoped to a tenant.
 
     Args:
-        session: The database session.
+        session: The database session (control-plane / pool).
         data: The user creation payload (includes ``tenant_id``).
+        store: If given, the new user is mirrored into its tenant's silo database
+            when the tenant is on the silo isolation model (Slice 7.6); a no-op for
+            pool-tier tenants.
 
     Returns:
         The persisted ``User`` (flushed, with an assigned id).
@@ -50,6 +59,10 @@ def create_user(session: Session, data: UserCreate) -> User:
     )
     session.add(user)
     session.flush()
+    if store is not None:
+        from mmm_os.db.silo_sync import mirror_user_to_silo
+
+        mirror_user_to_silo(store, user)
     return user
 
 

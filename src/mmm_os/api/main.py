@@ -223,16 +223,23 @@ def create_app() -> FastAPI:
         def _loop() -> None:
             import time
 
-            from mmm_os.connectors.autoschedule import run_due_syncs
-            from mmm_os.db.session import SessionLocal
+            from mmm_os.connectors.autoschedule import run_all_due_syncs, run_due_syncs
+            from mmm_os.db.session import PoolSessionLocal
             from mmm_os.models.mixins import utcnow
+            from mmm_os.secrets import get_secret_store
 
             while True:
                 time.sleep(max(5, settings.scheduler_poll_seconds))
                 try:
-                    with SessionLocal() as db:
-                        run_due_syncs(db, utcnow())
-                        db.commit()
+                    # The scheduler runs outside any request, so it routes silo
+                    # customers explicitly (7.6); a single-DB deployment stays on the
+                    # pool. Control enumeration always uses the pool session.
+                    with PoolSessionLocal() as db:
+                        if settings.multi_db_routing_enabled:
+                            run_all_due_syncs(db, get_secret_store(), utcnow())
+                        else:
+                            run_due_syncs(db, utcnow())
+                            db.commit()
                 except Exception:  # noqa: BLE001 - a scheduler tick must not crash the loop
                     logger.exception("scheduler tick failed")
 

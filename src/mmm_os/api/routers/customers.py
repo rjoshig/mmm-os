@@ -21,6 +21,7 @@ from mmm_os.api.deps import get_secret_store_dep
 from mmm_os.authz import Permission, require_permission
 from mmm_os.db import routing
 from mmm_os.db.session import get_control_session
+from mmm_os.db.silo_sync import mirror_tenant_to_silo, mirror_user_to_silo
 from mmm_os.models import Tenant, User
 from mmm_os.schemas.customer import CustomerCreate, CustomerIsolationUpdate, CustomerRead
 from mmm_os.secrets import SecretStore
@@ -82,41 +83,19 @@ def get_customer(
     return CustomerRead.model_validate(tenant)
 
 
-def _seed_control_rows(store_url: str, tenant: Tenant, users: list[User]) -> None:
-    """Copy a customer's tenant + user rows into its freshly provisioned silo DB.
+def _seed_control_rows(
+    store: SecretStore, store_url: str, tenant: Tenant, users: list[User]
+) -> None:
+    """Provision the silo schema and seed the customer's tenant + user rows.
 
     Business routers (routed to the silo) resolve actor emails against these rows,
-    so a silo DB is self-contained. Auth/session control-plane still lives in the
-    pool; post-provision user changes need a re-sync (follow-up).
+    so a silo DB is self-contained. Ongoing changes are re-mirrored by
+    ``db/silo_sync.py`` from control-plane write paths.
     """
-    from sqlalchemy.orm import Session as _Session
-
-    engine = routing.provision_silo_database(store_url)
-    with _Session(engine) as silo:
-        if silo.get(Tenant, tenant.id) is None:
-            silo.merge(
-                Tenant(
-                    id=tenant.id,
-                    name=tenant.name,
-                    slug=tenant.slug,
-                    tier=tenant.tier,
-                    region=tenant.region,
-                    status=tenant.status,
-                    isolation_mode="silo",
-                )
-            )
-        for user in users:
-            silo.merge(
-                User(
-                    id=user.id,
-                    tenant_id=user.tenant_id,
-                    email=user.email,
-                    display_name=user.display_name,
-                    role=user.role,
-                    status=user.status,
-                )
-            )
-        silo.commit()
+    routing.provision_silo_database(store_url)
+    mirror_tenant_to_silo(store, tenant)
+    for user in users:
+        mirror_user_to_silo(store, user)
 
 
 @router.put(
@@ -156,9 +135,10 @@ def set_customer_isolation(
                 detail="silo isolation requires an enterprise-tier customer",
             )
         users = list(session.scalars(select(User).where(User.tenant_id == customer_id)).all())
-        _seed_control_rows(body.database_url, tenant, users)
+        # Register the URL first so the silo-sync mirrors can resolve the engine.
         routing.set_dedicated_database_url(store, customer_id, body.database_url)
         tenant.isolation_mode = "silo"
+        _seed_control_rows(store, body.database_url, tenant, users)
     else:
         routing.clear_dedicated_database_url(store, customer_id)
         tenant.isolation_mode = "pool"
