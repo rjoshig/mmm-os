@@ -2,6 +2,7 @@
 
 import {
   Building2,
+  FileStack,
   Inbox,
   Layers,
   LayoutDashboard,
@@ -24,6 +25,7 @@ const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/customers", label: "Customers", icon: Building2 },
   { href: "/sources", label: "Sources", icon: Plug },
+  { href: "/feeds", label: "File feeds", icon: FileStack },
   { href: "/runs", label: "Runs", icon: ListChecks },
   { href: "/configs", label: "Configs", icon: Library },
   { href: "/queue", label: "Queue", icon: Inbox },

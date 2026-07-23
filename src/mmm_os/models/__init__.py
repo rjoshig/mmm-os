@@ -15,6 +15,7 @@ from mmm_os.models.config import (
     TaxonomyAlias,
 )
 from mmm_os.models.connectors import ConnectorConfig, ConnectorCredential, SyncRun
+from mmm_os.models.feed_template import FeedTemplate
 from mmm_os.models.file import File, Profile, Sheet
 from mmm_os.models.governance import AuditLog
 from mmm_os.models.job import Job, JobEvent, Suggestion, ValidationFlag
@@ -27,6 +28,7 @@ __all__ = [
     "Comment",
     "ConnectorConfig",
     "ConnectorCredential",
+    "FeedTemplate",
     "File",
     "IdentityProviderConfig",
     "Job",

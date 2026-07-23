@@ -17,6 +17,9 @@ import type {
   ConfigVersionItem,
   ConnectorConfig,
   ConnectorCredentialStatus,
+  FeedTemplate,
+  FeedTemplatePreview,
+  FixedField,
   Customer,
   Notification,
   JobDetail,
@@ -365,6 +368,32 @@ export const api = {
     request<SyncRun[]>(tenantPath(`/connector-configs/${configId}/sync-runs`)),
   listAllSyncRuns: (limit = 100) =>
     request<SyncRunListItem[]>(tenantPath(`/sync-runs?limit=${limit}`)),
+
+  // --- Feed templates (per-customer recurring file layouts; Slice 7.4) ---
+  listFeedTemplates: () => request<FeedTemplate[]>(tenantPath("/feed-templates")),
+  createFeedTemplate: (input: {
+    name: string;
+    fmt: string;
+    delimiter?: string | null;
+    has_header?: boolean;
+    fixed_fields?: FixedField[];
+    expected_columns?: string[];
+    filename_glob?: string | null;
+  }) =>
+    request<FeedTemplate>(tenantPath("/feed-templates"), {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  deleteFeedTemplate: (templateId: string) =>
+    request<void>(tenantPath(`/feed-templates/${templateId}`), { method: "DELETE" }),
+  previewFeedTemplate: (templateId: string, file: File) => {
+    const form = new FormData();
+    form.append("upload", file);
+    return request<FeedTemplatePreview>(
+      tenantPath(`/feed-templates/${templateId}/preview`),
+      { method: "POST", body: form }
+    );
+  },
 
   // --- Runs / jobs history (Cycle 3) ---
   listJobs: () => request<JobListItem[]>(tenantPath("/jobs")),

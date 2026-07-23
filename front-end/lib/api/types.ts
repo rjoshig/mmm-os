@@ -304,6 +304,32 @@ export interface ConnectorCredentialStatus {
   expires_at: string | null;
 }
 
+export interface FixedField {
+  name: string;
+  start: number;
+  width: number;
+}
+
+export interface FeedTemplate {
+  id: Uuid;
+  tenant_id: Uuid;
+  name: string;
+  fmt: string;
+  delimiter: string | null;
+  has_header: boolean;
+  fixed_fields: FixedField[];
+  expected_columns: string[];
+  filename_glob: string | null;
+  created_at: string;
+}
+
+export interface FeedTemplatePreview {
+  columns: string[];
+  rows: (string | null)[][];
+  row_count: number;
+  signature_matches: boolean | null;
+}
+
 export interface SyncRun {
   id: Uuid;
   connector_config_id: Uuid;

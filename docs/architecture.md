@@ -164,6 +164,14 @@ for traceability (CC-3). Nothing downstream depends on which connector produced 
   to land one table per non-empty sheet (header row + inferred column structure).
   **`FileSource` is the first real implementation** and is what `ingestion`
   already routes through.
+  - **File formats (Slice 7.4).** The generic (no-template) path accepts clearly
+    tabular extensions (`.csv`/`.tsv`/`.psv`) + `.xlsx`. For the 50–60 recurring
+    fixed-width / oddly-delimited feeds an enterprise customer sends, a **feed
+    template** (`FeedTemplate`, config-as-data, CC-4) declares the layout —
+    delimited (explicit or sniffed delimiter) or fixed-width (column start/width
+    spec) — and `ingestion/parsing.py` parses any extension accordingly
+    (`ParseOptions`). Templates carry `expected_columns` so a matching feed
+    auto-maps by column signature (`mapping/signature.py`).
 - **API sources** (partner connectors — Meta, Google Ads, DV360, TikTok) call the
   partner reporting API and normalise the response **directly** into landed
   records — no header detection needed, since partner report schemas are known
