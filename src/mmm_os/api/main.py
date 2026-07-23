@@ -156,6 +156,32 @@ def create_app() -> FastAPI:
             except Exception:  # noqa: BLE001 - seeding must never block boot
                 db.rollback()
 
+    @app.on_event("startup")
+    def _start_scheduler() -> None:
+        """Start the in-app connector scheduler when enabled (Cycle 3, opt-in)."""
+        if not settings.scheduler_enabled:
+            return
+        import threading
+
+        def _loop() -> None:
+            import time
+
+            from mmm_os.connectors.autoschedule import run_due_syncs
+            from mmm_os.db.session import SessionLocal
+            from mmm_os.models.mixins import utcnow
+
+            while True:
+                time.sleep(max(5, settings.scheduler_poll_seconds))
+                try:
+                    with SessionLocal() as db:
+                        run_due_syncs(db, utcnow())
+                        db.commit()
+                except Exception:  # noqa: BLE001 - a scheduler tick must not crash the loop
+                    logger.exception("scheduler tick failed")
+
+        threading.Thread(target=_loop, name="connector-scheduler", daemon=True).start()
+        logger.info("connector scheduler started (every %ss)", settings.scheduler_poll_seconds)
+
     return app
 
 

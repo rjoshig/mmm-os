@@ -14,14 +14,18 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from mmm_os.authz import Permission, require_permission
+from mmm_os.connectors.autoschedule import run_due_syncs
 from mmm_os.connectors.registry import CONNECTOR_KEYS, PARTNER_KEYS, build_partner_connector
 from mmm_os.connectors.scheduling import incremental_window, run_sync
 from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.db.session import get_session
 from mmm_os.models import ConnectorConfig, SyncRun
+from mmm_os.models.mixins import utcnow
 from mmm_os.schemas.connectors import (
     ConnectorConfigCreate,
     ConnectorConfigRead,
+    RunDueResponse,
+    ScheduleUpdate,
     SyncRunListItem,
     SyncRunRead,
 )
@@ -154,6 +158,52 @@ def list_all_sync_runs(
             )
         )
     return items
+
+
+@router.put(
+    "/tenants/{tenant_id}/connector-configs/{config_id}/schedule",
+    response_model=ConnectorConfigRead,
+    dependencies=[_ADMIN],
+)
+def set_schedule(
+    tenant_id: uuid.UUID,
+    config_id: uuid.UUID,
+    body: ScheduleUpdate,
+    session: Session = Depends(get_session),
+) -> ConnectorConfigRead:
+    """Set or clear a connector's automatic schedule (``interval_minutes``).
+
+    Stored in ``settings.schedule`` (config-as-data). The scheduler runs an
+    incremental sync every interval once its previous run is that old.
+    """
+    config = _get_config(session, tenant_id, config_id)
+    settings = dict(config.settings)
+    if body.interval_minutes and body.interval_minutes > 0:
+        settings["schedule"] = {"interval_minutes": int(body.interval_minutes)}
+    else:
+        settings.pop("schedule", None)
+    config.settings = settings
+    session.commit()
+    return ConnectorConfigRead.model_validate(config)
+
+
+@router.post(
+    "/tenants/{tenant_id}/scheduler/run-due",
+    response_model=RunDueResponse,
+    dependencies=[_ADMIN],
+)
+def run_due(
+    tenant_id: uuid.UUID,
+    session: Session = Depends(get_session),
+) -> RunDueResponse:
+    """Run any due scheduled syncs for this tenant now (manual trigger).
+
+    Same code path as the background scheduler — useful to demonstrate or force a
+    scheduled run without waiting for the timer.
+    """
+    results = run_due_syncs(session, utcnow(), tenant_id=tenant_id)
+    session.commit()
+    return RunDueResponse(ran=[SyncRunRead.model_validate(r.sync_run) for r in results])
 
 
 @router.get(

@@ -29,6 +29,11 @@ Run connector syncs on a schedule with **rolling-window incremental** pulls,
 
 - `src/mmm_os/connectors/scheduling.py` implementation (currently a placeholder).
 - `sync_run` lifecycle + idempotent upsert of a window's output.
+- **In-app scheduler (Cycle 3, Slice 3):** `connectors/autoschedule.py` — a config's
+  `settings.schedule.interval_minutes` drives `run_due_syncs(session, now)` (pure,
+  tested). A background loop (`SCHEDULER_ENABLED`, off by default) and a manual
+  `POST /scheduler/run-due` both call it; `PUT …/schedule` sets/clears the interval.
+  UI: per-source schedule selector + "Run due now" on the Sources screen.
 
 ## Acceptance Criteria
 

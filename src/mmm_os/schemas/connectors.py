@@ -54,3 +54,17 @@ class SyncRunListItem(BaseModel):
     run: SyncRunRead
     connector_key: str
     connector_name: str
+
+
+class ScheduleUpdate(BaseModel):
+    """Set or clear a connector's automatic schedule (Cycle 3)."""
+
+    interval_minutes: int | None = Field(
+        default=None, description="Run every N minutes; null/0 disables the schedule."
+    )
+
+
+class RunDueResponse(BaseModel):
+    """Result of running due syncs on demand: the runs that fired."""
+
+    ran: list[SyncRunRead]

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronRight, Plug, Plus, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronRight, Clock, Play, Plug, Plus, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge, statusVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,43 @@ import { formatDateTime } from "@/lib/format";
 
 const inputCls =
   "h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+// Schedule interval options (minutes). 0 = off.
+const SCHEDULE_OPTIONS: { label: string; minutes: number }[] = [
+  { label: "Off", minutes: 0 },
+  { label: "Hourly", minutes: 60 },
+  { label: "Every 6h", minutes: 360 },
+  { label: "Daily", minutes: 1440 },
+  { label: "Weekly", minutes: 10080 },
+];
+
+function scheduleMinutes(config: ConnectorConfig): number {
+  const s = config.settings?.schedule as { interval_minutes?: number } | undefined;
+  return typeof s?.interval_minutes === "number" ? s.interval_minutes : 0;
+}
+
+function RunDueButton({ onDone }: { onDone: () => void }) {
+  const toast = useToast();
+  const [running, setRunning] = useState(false);
+  async function run() {
+    setRunning(true);
+    try {
+      const { ran } = await api.runDueSyncs();
+      toast.success(ran.length ? `Ran ${ran.length} due sync(s).` : "No syncs are due.");
+      onDone();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Run-due failed.");
+    } finally {
+      setRunning(false);
+    }
+  }
+  return (
+    <Button variant="outline" onClick={run} disabled={running}>
+      <Play className="h-4 w-4" />
+      {running ? "Running…" : "Run due now"}
+    </Button>
+  );
+}
 
 export default function SourcesPage() {
   const toast = useToast();
@@ -63,9 +100,12 @@ export default function SourcesPage() {
         title="Sources"
         description="Partner connectors and file sources that feed the pipeline. Configure a source, trigger a sync, and watch its run history."
         actions={
-          <Button onClick={() => setDialogOpen(true)} disabled={available.length === 0}>
-            <Plus className="h-4 w-4" /> New source
-          </Button>
+          <div className="flex items-center gap-2">
+            <RunDueButton onDone={load} />
+            <Button onClick={() => setDialogOpen(true)} disabled={available.length === 0}>
+              <Plus className="h-4 w-4" /> New source
+            </Button>
+          </div>
         }
       />
 
@@ -113,6 +153,18 @@ function SourceCard({
   const [open, setOpen] = useState(false);
   const [runs, setRuns] = useState<SyncRun[] | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [interval, setIntervalMin] = useState(scheduleMinutes(config));
+
+  async function onSchedule(minutes: number) {
+    setIntervalMin(minutes);
+    try {
+      await api.setConnectorSchedule(config.id, minutes || null);
+      toast.success(minutes ? "Schedule updated." : "Schedule turned off.");
+      onSynced();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not update schedule.");
+    }
+  }
 
   const loadRuns = useCallback(async () => {
     try {
@@ -168,10 +220,26 @@ function SourceCard({
         <div className="ml-auto flex items-center gap-2">
           {lastRun ? <Badge variant={statusVariant(lastRun.status)}>{lastRun.status}</Badge> : null}
           {isPartner ? (
-            <Button variant="outline" size="sm" onClick={onSync} disabled={syncing}>
-              <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
-              {syncing ? "Syncing…" : "Sync now"}
-            </Button>
+            <>
+              <label className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                <select
+                  className="h-8 rounded-md border border-input bg-background px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={interval}
+                  onChange={(e) => onSchedule(Number(e.target.value))}
+                >
+                  {SCHEDULE_OPTIONS.map((o) => (
+                    <option key={o.minutes} value={o.minutes}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <Button variant="outline" size="sm" onClick={onSync} disabled={syncing}>
+                <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
+                {syncing ? "Syncing…" : "Sync now"}
+              </Button>
+            </>
           ) : (
             <span className="text-xs text-muted-foreground">file source</span>
           )}

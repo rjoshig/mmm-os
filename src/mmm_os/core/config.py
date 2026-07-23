@@ -94,6 +94,12 @@ class Settings(BaseSettings):
     default_admin_password: str = "admin123"
     default_tenant_slug: str = "default"
 
+    # In-app connector scheduler (Cycle 3): when enabled, a background loop runs due
+    # scheduled syncs every scheduler_poll_seconds. Off by default (opt-in / prod);
+    # the manual run-due endpoint fires the same code path without the timer.
+    scheduler_enabled: bool = False
+    scheduler_poll_seconds: int = 60
+
     @property
     def cors_origins(self) -> list[str]:
         """Parse ``cors_allow_origins`` into a list of trimmed origins."""

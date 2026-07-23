@@ -249,6 +249,13 @@ export const api = {
     }),
   triggerSync: (configId: string) =>
     request<SyncRun>(tenantPath(`/connector-configs/${configId}/sync`), { method: "POST" }),
+  setConnectorSchedule: (configId: string, intervalMinutes: number | null) =>
+    request<ConnectorConfig>(tenantPath(`/connector-configs/${configId}/schedule`), {
+      method: "PUT",
+      body: JSON.stringify({ interval_minutes: intervalMinutes }),
+    }),
+  runDueSyncs: () =>
+    request<{ ran: SyncRun[] }>(tenantPath("/scheduler/run-due"), { method: "POST" }),
   listSyncRuns: (configId: string) =>
     request<SyncRun[]>(tenantPath(`/connector-configs/${configId}/sync-runs`)),
   listAllSyncRuns: (limit = 100) =>
