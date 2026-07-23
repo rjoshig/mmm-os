@@ -59,6 +59,7 @@ def config_library(
                 layer=latest.layer,
                 latest_version=latest.version,
                 version_count=len(versions),
+                status=latest.lifecycle_status,
                 updated_at=latest.updated_at,
                 created_by_email=emails.get(latest.created_by) if latest.created_by else None,
             )
@@ -78,6 +79,7 @@ def config_library(
                 layer=rs_latest.layer,
                 latest_version=rs_latest.version,
                 version_count=len(rs_versions),
+                status=rs_latest.lifecycle_status,
                 updated_at=rs_latest.updated_at,
                 created_by_email=emails.get(rs_latest.created_by) if rs_latest.created_by else None,
             )

@@ -16,6 +16,7 @@ class ConfigLibraryItem(BaseModel):
     layer: str
     latest_version: int
     version_count: int
+    status: str  # latest version's lifecycle status (draft | published | archived)
     updated_at: datetime
     created_by_email: str | None
 

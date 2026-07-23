@@ -362,6 +362,7 @@ export interface ConfigLibraryItem {
   layer: string;
   latest_version: number;
   version_count: number;
+  status: string;
   updated_at: string;
   created_by_email: string | null;
 }
