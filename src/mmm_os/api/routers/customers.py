@@ -19,9 +19,11 @@ from sqlalchemy.orm import Session
 
 from mmm_os.api.deps import get_secret_store_dep
 from mmm_os.authz import Permission, require_permission
+from mmm_os.core.config import get_settings
 from mmm_os.db import routing
 from mmm_os.db.session import get_control_session
 from mmm_os.db.silo_sync import mirror_tenant_to_silo, mirror_user_to_silo
+from mmm_os.governance.residency import ResidencyError, check_database_residency
 from mmm_os.models import Tenant, User
 from mmm_os.schemas.customer import CustomerCreate, CustomerIsolationUpdate, CustomerRead
 from mmm_os.secrets import SecretStore
@@ -134,6 +136,13 @@ def set_customer_isolation(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="silo isolation requires an enterprise-tier customer",
             )
+        # Residency (P10-4): the dedicated DB must live in the customer's region.
+        try:
+            check_database_residency(get_settings(), tenant.region, body.database_url)
+        except ResidencyError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+            ) from exc
         users = list(session.scalars(select(User).where(User.tenant_id == customer_id)).all())
         # Register the URL first so the silo-sync mirrors can resolve the engine.
         routing.set_dedicated_database_url(store, customer_id, body.database_url)

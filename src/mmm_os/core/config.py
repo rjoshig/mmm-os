@@ -116,6 +116,12 @@ class Settings(BaseSettings):
     retention_notification_days: int = 90
     retention_audit_log_days: int = 0  # keep the audit trail by default
 
+    # Data residency (Phase 10, P10-4). Off by default (single-region v1). When
+    # enforced, a customer's silo DB host must be allowed for its region; the map is
+    # "region=substr1,substr2;region2=…" (host must contain one substring).
+    residency_enforced: bool = False
+    residency_region_hosts: str = ""
+
     @property
     def cors_origins(self) -> list[str]:
         """Parse ``cors_allow_origins`` into a list of trimmed origins."""

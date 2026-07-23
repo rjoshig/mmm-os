@@ -108,7 +108,38 @@ tenant-scoped business queries route. See architecture §3.1.
   the previous image (migrations are expand/contract, so the prior image keeps
   working against the new schema).
 
-## 8. Local prod-like stack
+## 8. Backup & disaster recovery (Phase 10, P10-2)
+
+Two layers:
+
+- **Primary (infra):** managed Postgres point-in-time recovery + object-storage
+  versioning/cross-region replication. Targets: **RPO ≤ 24 h, RTO ≤ 4 h**. Restore
+  drills quarterly.
+- **Portable fallback (built):** a dialect-agnostic logical dump that restores into
+  SQLite **or** Postgres — use it for nightly exports, cross-environment moves, and
+  restore drills:
+
+  ```bash
+  # Nightly logical dump of the backend DB (defaults to BACKEND_DATABASE_URL):
+  uv run python -m mmm_os.governance.backup export /backups/$(date +%F)
+
+  # Restore into a fresh database (drill / recovery):
+  uv run python -m mmm_os.governance.backup import /backups/2026-01-01 \
+      --url postgresql+psycopg://…/restore_target
+  ```
+
+  Restore inserts parents-first so foreign keys resolve; `--no-truncate` appends
+  instead of replacing. A **silo** customer's dedicated DB is dumped by pointing
+  `--url` at that customer's database.
+
+## 9. Data residency (Phase 10, P10-4)
+
+A customer's `region` (set at onboarding) is enforced when provisioning a silo:
+with `RESIDENCY_ENFORCED=true` and `RESIDENCY_REGION_HOSTS` set, a silo DB whose
+host is not allowed for the customer's region is rejected before any data lands.
+The network/infra layer is the primary control; this is defense in depth.
+
+## 10. Local prod-like stack
 
 `docker compose up --build` starts Postgres + API + front-end wired together
 (see `docker-compose.yml`) for parity testing before shipping.

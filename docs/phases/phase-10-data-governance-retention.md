@@ -1,13 +1,14 @@
 # Phase 10 — Data Governance & Retention
 
-**Tail phase** · **Depends on:** Phases 0–8 · **Status:** Build (in progress) —
-retention purge engine + admin endpoints shipped (P10-1); right-to-erasure (P10-3)
-+ PII/backup-DR design next.
+**Tail phase** · **Depends on:** Phases 0–8 · **Status:** Done (retention purge,
+erasure, portable backup/restore, residency enforcement) — native PITR + infra
+controls owned by Phase 11.
 
-> Now being built (was spec-only). Implements the enforceable pieces (retention
-> purge + erasure) and keeps the policy/design parts (backup-DR, residency) as
-> documented design. Cross-references — not duplicates — Phase 08.1 (technical
-> compliance controls).
+> Built (was spec-only). Retention purge (P10-1), right-to-erasure (P10-3), a
+> portable logical backup/restore (P10-2), and a residency enforcement hook (P10-4)
+> are implemented; native point-in-time backup + network-level residency remain
+> infra concerns (Phase 11). Cross-references — not duplicates — Phase 08.1
+> (technical compliance controls).
 
 ## Objective
 
@@ -50,9 +51,20 @@ other classes are purged standalone. Purge runs on demand
   shell — and records the erasure event, so *what was erased* stays provable while the
   *data* is gone. Endpoints: `POST /erase/files/{id}`, `POST /erase` (requires
   `{"confirm":"ERASE"}`), both admin + audited.
-- **P10-2 Backup & DR:** 📝 **Design** (see Design notes) — RPO/RTO + backup/restore
-  approach for both DBs + object storage. Not implemented (infra concern, Phase 11).
-- **P10-4 Residency:** 📝 **Design** (see Design notes) — data-residency options.
+- **P10-2 Backup & DR:** ✅ **Built (portable logical backup)** —
+  `governance/backup.py` exports every table to a dialect-agnostic JSONL archive
+  (`export_backup`) that restores into SQLite **or** Postgres (`import_backup`,
+  parents-first, optional truncate), with a CLI
+  (`python -m mmm_os.governance.backup export|import <dir>`). This is the portable
+  DR fallback + the mechanism for restore drills. Native point-in-time backups
+  (managed Postgres PITR, object-storage versioning) remain the primary production
+  DR mechanism (infra, Phase 11 — see the runbook).
+- **P10-4 Residency:** ✅ **Built (enforcement hook)** — `governance/residency.py`
+  validates that an enterprise customer's silo DB host is allowed for its declared
+  region before provisioning (`check_database_residency`, wired into
+  `PUT /customers/{id}/isolation`). Off by default (single-region v1); enable with
+  `RESIDENCY_ENFORCED` + `RESIDENCY_REGION_HOSTS`. The network/infra layer (Phase
+  11) remains the primary control; this is defense in depth.
 - **P10-5 PII posture:** 📝 **Documented** (see Design notes) — file sources may carry
   PII; partner connector data is aggregate-only (no user-level PII, CC-10/OQ-9.6).
 
