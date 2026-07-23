@@ -7,10 +7,12 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from mmm_os.api.deps import get_canonical
+from mmm_os.api.deps import get_canonical, require_auth
+from mmm_os.auth.service import Principal
 from mmm_os.canonical import CanonicalConfig
 from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.db.session import get_session
+from mmm_os.governance import record_audit
 from mmm_os.models import Job
 from mmm_os.models.enums import ReviewStatus
 from mmm_os.schemas.validation import (
@@ -97,6 +99,7 @@ def review(
     flag_id: uuid.UUID,
     body: ReviewRequest,
     session: Session = Depends(get_session),
+    principal: Principal | None = Depends(require_auth),
 ) -> FlagRead:
     """Record a review decision (acknowledge/resolve/override) on a flag (P4-5).
 
@@ -105,6 +108,7 @@ def review(
         flag_id: The flag to review.
         body: The review decision.
         session: Database session (injected).
+        principal: The authenticated actor (recorded in the audit log).
 
     Returns:
         The updated flag.
@@ -125,5 +129,14 @@ def review(
     )
     if flag is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="flag not found")
+    record_audit(
+        session,
+        tenant_id=tenant_id,
+        action="flag.review",
+        principal=principal,
+        target_type="validation_flag",
+        target_id=str(flag_id),
+        detail={"status": body.status},
+    )
     session.commit()
     return FlagRead.model_validate(flag)

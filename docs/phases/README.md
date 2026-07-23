@@ -38,11 +38,11 @@ until scoped.
 | 8 | 5 | [phase-05](./phase-05-ai-suggestion-layer.md) | AI drafts mappings/labels/structure/anomaly; humans ratify. | 2, 3, 4 | Done |
 | 9 | 05.1 | [phase-05.1](./phase-05.1-llm-cost-controls.md) | LLM cost controls: per-tenant metering, budgets/caps, caching, tier routing (CC-13). | 5 | Build |
 | 10 | 6 | [phase-06](./phase-06-review-ui-nextjs.md) | Next.js review UI: dashboards, mapping review, transform builder, validation review. | 2–5, **00.5** | Build |
-| 11 | 7 | [phase-07](./phase-07-multitenancy-async-scale.md) | Queue + workers; batch fan-out; per-tenant fairness; isolation hardening. | all above | Build |
-| 12 | 07.1 | [phase-07.1](./phase-07.1-observability-monitoring.md) | Observability standard: logging/metrics/tracing/alerting (CC-7); instrumented from Phase 1. | 7 | Build |
-| 13 | 07.2 | [phase-07.2](./phase-07.2-resilience-error-handling.md) | Resilience: retry/backoff, DLQ, idempotency hardening, partner-failure isolation (CC-6). | 7 | Build |
-| 14 | 8 | [phase-08](./phase-08-governance-security.md) | RBAC, audit logging, encryption, admin UI. | 7 | Build |
-| 15 | 08.1 | [phase-08.1](./phase-08.1-compliance-controls.md) | SOC 2-aligned technical controls (audit, encryption, access reviews, least-privilege). | 8, 00.5, 00.6 | Build |
+| 11 | 7 | [phase-07](./phase-07-multitenancy-async-scale.md) | Queue abstraction + per-tenant fairness + batch fan-out + idempotency + isolation tests (Celery+Redis = prod backend). | all above | Done |
+| 12 | 07.1 | [phase-07.1](./phase-07.1-observability-monitoring.md) | Observability: metrics registry + structured context (CC-7); prod backend exports the same signals. | 7 | Done |
+| 13 | 07.2 | [phase-07.2](./phase-07.2-resilience-error-handling.md) | Resilience: retry/backoff, circuit breaker; queue bounded retries + DLQ (CC-6). | 7 | Done |
+| 14 | 8 | [phase-08](./phase-08-governance-security.md) | RBAC + audit log + admin API; in-transit encryption + admin UI deferred. | 7 | Done |
+| 15 | 08.1 | [phase-08.1](./phase-08.1-compliance-controls.md) | Access review + least-privilege self-check + controls matrix. | 8, 00.5, 00.6 | Done |
 | 16 | 9 (+09.1–09.8) | [phase-09](./phase-09-future-connectors-extraction.md) | Partner data connectors (SFTP + Meta/Google Ads/DV360/TikTok); PDF/email extraction. | 0–8 (+ Phase 1 seam) | Build (was Deferred) |
 | 17 | 10 | [phase-10](./phase-10-data-governance-retention.md) | Data governance & retention, backup/DR, erasure, residency, PII posture. | 0–8 | Spec-only |
 | 18 | 11 | [phase-11](./phase-11-deployment-infrastructure.md) | Deployment & infra: environments, CI/CD, IaC, autoscaling, secret injection. | 0–8 | Spec-only |

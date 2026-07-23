@@ -1,7 +1,7 @@
 # Phase 08.1 — Compliance Controls
 
 **Inserted phase** (standalone, not a sub-phase) · **Depends on:** Phase 8 ·
-**Status:** Build — extends Phase 8 governance.
+**Status:** Done (access review + least-privilege self-check + controls matrix) — pending PR merge. See [`../compliance-controls.md`](../compliance-controls.md). Certification remains an organizational process.
 
 Cross-cutting: authenticated access (CC-11), secrets via store (CC-12), credential
 security (CC-10), observability (CC-7).

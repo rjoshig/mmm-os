@@ -11,7 +11,16 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from mmm_os.api.deps import require_auth
-from mmm_os.api.routers import ai, auth, files, mapping, reads, transform, validation
+from mmm_os.api.routers import (
+    ai,
+    auth,
+    files,
+    governance,
+    mapping,
+    reads,
+    transform,
+    validation,
+)
 from mmm_os.canonical import load_and_validate
 from mmm_os.core.config import get_settings
 from mmm_os.core.logging import configure_logging
@@ -59,6 +68,9 @@ def create_app() -> FastAPI:
     app.include_router(transform.router, dependencies=protected)
     app.include_router(validation.router, dependencies=protected)
     app.include_router(ai.router, dependencies=protected)
+    # Governance/admin routes gate on Permission.ADMIN per-route (require_auth is
+    # applied within them via require_permission).
+    app.include_router(governance.router, dependencies=protected)
 
     @app.get("/health", tags=["system"])
     def health() -> dict[str, str]:

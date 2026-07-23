@@ -11,9 +11,16 @@ from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 
 from mmm_os.api.deps import get_secret_store_dep
-from mmm_os.auth.service import authenticate, create_session, resolve_session, revoke_session
+from mmm_os.auth.service import (
+    Principal,
+    authenticate,
+    create_session,
+    resolve_session,
+    revoke_session,
+)
 from mmm_os.core.config import Settings, get_settings
 from mmm_os.db.session import get_session
+from mmm_os.governance import record_audit
 from mmm_os.schemas.auth import LoginRequest, LoginResponse, PrincipalRead
 from mmm_os.secrets import SecretStore
 
@@ -32,6 +39,15 @@ def login(
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid credentials")
     token = create_session(session, store, user=user, ttl_hours=settings.session_ttl_hours)
+    actor = Principal(user_id=user.id, tenant_id=user.tenant_id, email=user.email, role=user.role)
+    record_audit(
+        session,
+        tenant_id=user.tenant_id,
+        action="auth.login",
+        principal=actor,
+        target_type="user",
+        target_id=str(user.id),
+    )
     session.commit()
     return LoginResponse(
         token=token,

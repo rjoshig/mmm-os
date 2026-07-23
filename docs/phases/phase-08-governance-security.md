@@ -1,6 +1,13 @@
 # Phase 8 — Governance & Security
 
-**Depends on:** Phase 7 · **Status:** Not started
+**Depends on:** Phase 7 · **Status:** Done (RBAC + audit log + admin API; encryption-in-transit + admin UI deferred) — pending PR merge.
+
+> **Delivered:** a deny-by-default role→permission matrix + `require_permission`
+> (P8-1/P8-4); an append-only `audit_log` wired to logins, mapping/rule saves,
+> flag reviews, and suggestion accept/reject (P8-2); admin endpoints for users +
+> audit log (P8-5, API). Secrets encrypted at rest via the SecretStore (P8-3
+> at-rest). **Deferred:** TLS/in-transit (Phase 11 infra) and an admin *UI*
+> (backend endpoints exist).
 
 Cross-cutting: multi-tenant (CC-1), traceability/audit (CC-3, CC-7).
 

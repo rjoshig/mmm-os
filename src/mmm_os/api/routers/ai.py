@@ -17,10 +17,12 @@ from mmm_os.ai.service import (
     reject_suggestion,
 )
 from mmm_os.ai.suggestions import SuggestionService
-from mmm_os.api.deps import get_canonical, get_llm_client
+from mmm_os.api.deps import get_canonical, get_llm_client, require_auth
+from mmm_os.auth.service import Principal
 from mmm_os.canonical import CanonicalConfig
 from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.db.session import get_session
+from mmm_os.governance import record_audit
 from mmm_os.models import Profile, Sheet
 from mmm_os.schemas.ai import AcceptResponse, SuggestionRead, SuggestMappingResponse
 
@@ -102,6 +104,7 @@ def accept(
     tenant_id: uuid.UUID,
     suggestion_id: uuid.UUID,
     session: Session = Depends(get_session),
+    principal: Principal | None = Depends(require_auth),
 ) -> AcceptResponse:
     """Accept a suggestion; a mapping suggestion is written into the config store (P5-8).
 
@@ -109,6 +112,7 @@ def accept(
         tenant_id: The owning tenant.
         suggestion_id: The suggestion to accept.
         session: Database session (injected).
+        principal: The authenticated actor (recorded in the audit log).
 
     Returns:
         The accepted suggestion and any resulting mapping-config version.
@@ -120,6 +124,15 @@ def accept(
     if result is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="suggestion not found")
     suggestion, version = result
+    record_audit(
+        session,
+        tenant_id=tenant_id,
+        action="suggestion.accept",
+        principal=principal,
+        target_type="suggestion",
+        target_id=str(suggestion_id),
+        detail={"mapping_config_version": version},
+    )
     session.commit()
     return AcceptResponse(
         suggestion=SuggestionRead.model_validate(suggestion), mapping_config_version=version
@@ -134,10 +147,19 @@ def reject(
     tenant_id: uuid.UUID,
     suggestion_id: uuid.UUID,
     session: Session = Depends(get_session),
+    principal: Principal | None = Depends(require_auth),
 ) -> SuggestionRead:
     """Reject a suggestion (records the decision; writes no config)."""
     suggestion = reject_suggestion(session, tenant_id, suggestion_id)
     if suggestion is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="suggestion not found")
+    record_audit(
+        session,
+        tenant_id=tenant_id,
+        action="suggestion.reject",
+        principal=principal,
+        target_type="suggestion",
+        target_id=str(suggestion_id),
+    )
     session.commit()
     return SuggestionRead.model_validate(suggestion)

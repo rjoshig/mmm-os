@@ -7,9 +7,11 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from mmm_os.api.deps import get_canonical
+from mmm_os.api.deps import get_canonical, require_auth
+from mmm_os.auth.service import Principal
 from mmm_os.canonical import CanonicalConfig
 from mmm_os.db.session import get_session
+from mmm_os.governance import record_audit
 from mmm_os.schemas.transform import (
     PreviewRequest,
     PreviewResponse,
@@ -75,6 +77,7 @@ def save_rule_set_route(
     tenant_id: uuid.UUID,
     body: SaveRuleSetRequest,
     session: Session = Depends(get_session),
+    principal: Principal | None = Depends(require_auth),
 ) -> RuleSetRead:
     """Save (version) a rule set and its ordered rules (P3-8).
 
@@ -82,6 +85,7 @@ def save_rule_set_route(
         tenant_id: The owning tenant.
         body: The rule-set payload.
         session: Database session (injected).
+        principal: The authenticated actor (recorded in the audit log).
 
     Returns:
         The saved rule set.
@@ -92,6 +96,15 @@ def save_rule_set_route(
         name=body.name,
         layer=body.layer,
         specs=[_to_spec(r) for r in body.rules],
+    )
+    record_audit(
+        session,
+        tenant_id=tenant_id,
+        action="ruleset.save",
+        principal=principal,
+        target_type="rule_set",
+        target_id=str(rule_set.id),
+        detail={"version": rule_set.version, "rules": len(body.rules)},
     )
     session.commit()
     return RuleSetRead(

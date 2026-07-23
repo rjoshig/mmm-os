@@ -7,10 +7,12 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from mmm_os.api.deps import get_canonical
+from mmm_os.api.deps import get_canonical, require_auth
+from mmm_os.auth.service import Principal
 from mmm_os.canonical import CanonicalConfig
 from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.db.session import get_session
+from mmm_os.governance import record_audit
 from mmm_os.mapping.engine import MappingResult, apply_mapping
 from mmm_os.mapping.service import auto_map_sheet, save_sheet_mapping
 from mmm_os.models import Sheet
@@ -58,6 +60,7 @@ def save_mapping(
     body: SaveMappingRequest,
     session: Session = Depends(get_session),
     canonical: CanonicalConfig = Depends(get_canonical),
+    principal: Principal | None = Depends(require_auth),
 ) -> SaveMappingResponse:
     """Save (version) a mapping for a sheet and return its validation.
 
@@ -67,6 +70,7 @@ def save_mapping(
         body: The mapping payload.
         session: Database session (injected).
         canonical: Canonical schema/taxonomies (injected).
+        principal: The authenticated actor (recorded in the audit log).
 
     Returns:
         The saved config and the validation of applying it to the sheet.
@@ -81,6 +85,15 @@ def save_mapping(
         layer=body.layer,
     )
     result = apply_mapping(sheet.columns, body.mapping, canonical.schema)
+    record_audit(
+        session,
+        tenant_id=tenant_id,
+        action="mapping.save",
+        principal=principal,
+        target_type="sheet",
+        target_id=str(sheet_id),
+        detail={"config_version": config.version},
+    )
     session.commit()
     return SaveMappingResponse(
         config=MappingConfigRead.model_validate(config),
