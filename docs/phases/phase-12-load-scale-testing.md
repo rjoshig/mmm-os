@@ -1,10 +1,30 @@
 # Phase 12 — Load & Scale Testing
 
 **Tail phase** · **Depends on:** Phases 0–8 (+ 11 for environments) · **Status:**
-Spec-only — **design only, not scheduled to build.**
+Built (plan + runnable harness + fairness/isolation proofs) — full-scale run is a
+stage-environment activity.
 
-> **Design-only.** Documents a load/scale **test plan**; **not** scheduled for
-> implementation.
+> **Now built:** the load/scale plan is written **and** backed by a runnable
+> harness and fast mechanism proofs. Executing it at full 200–500-tenant scale is
+> a stage-environment activity (managed Postgres + horizontal replicas), gated by
+> the SLA thresholds below.
+
+## Implemented artifacts
+
+- **Plan:** [`loadtest/PLAN.md`](../../loadtest/PLAN.md) — scenarios S1–S6, target
+  SLAs + pass/fail thresholds, noisy-neighbor + saturation + LLM-under-load designs.
+- **Harness (executable):** [`loadtest/run_load.py`](../../loadtest/run_load.py) —
+  drives N tenants × M files ingest→process concurrently, in-process (SQLite) or
+  against a live server (`--base-url`), reporting p50/p95/p99 + throughput.
+- **Mechanism proofs (CI, fast):** `tests/test_scale_fairness.py` — per-tenant
+  round-robin fairness (no starvation, P12-3) and tenant isolation under concurrent
+  ingest (CC-1 under load).
+- **Baseline captured:** 50 tenants × 3 files = 150 pipelines, 0 failures,
+  ≈103 pipelines/s in-process (a mechanism/regression baseline, not a capacity
+  number — real capacity is measured on stage; see PLAN §"Observed baseline").
+
+Still open: concrete per-stage SLA numbers (OQ-12-1) and the full-scale stage run
+(OQ-12-3) are set/executed against the deployed stage environment.
 
 ## Objective
 
