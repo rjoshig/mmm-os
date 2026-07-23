@@ -293,6 +293,15 @@ export interface ConnectorConfig {
   account_ids: string[];
   settings: Record<string, unknown>;
   enabled: boolean;
+  has_credential: boolean;
+  credential_scopes: string[] | null;
+  credential_expires_at: string | null;
+}
+
+export interface ConnectorCredentialStatus {
+  has_credential: boolean;
+  scopes: string[] | null;
+  expires_at: string | null;
 }
 
 export interface SyncRun {

@@ -16,6 +16,7 @@ import type {
   ConfigLibraryItem,
   ConfigVersionItem,
   ConnectorConfig,
+  ConnectorCredentialStatus,
   Customer,
   Notification,
   JobDetail,
@@ -341,6 +342,18 @@ export const api = {
     }),
   triggerSync: (configId: string) =>
     request<SyncRun>(tenantPath(`/connector-configs/${configId}/sync`), { method: "POST" }),
+  setConnectorCredential: (
+    configId: string,
+    input: { token: string; scopes?: string[] | null; expires_at?: string | null }
+  ) =>
+    request<ConnectorCredentialStatus>(
+      tenantPath(`/connector-configs/${configId}/credential`),
+      { method: "PUT", body: JSON.stringify(input) }
+    ),
+  deleteConnectorCredential: (configId: string) =>
+    request<void>(tenantPath(`/connector-configs/${configId}/credential`), {
+      method: "DELETE",
+    }),
   setConnectorSchedule: (configId: string, intervalMinutes: number | null) =>
     request<ConnectorConfig>(tenantPath(`/connector-configs/${configId}/schedule`), {
       method: "PUT",

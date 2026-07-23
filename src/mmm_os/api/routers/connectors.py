@@ -11,29 +11,55 @@ import uuid
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from mmm_os.api.deps import get_secret_store_dep
 from mmm_os.auth.service import Principal
 from mmm_os.authz import Permission, require_permission
 from mmm_os.connectors.autoschedule import run_due_syncs
+from mmm_os.connectors.credentials import store_token
 from mmm_os.connectors.registry import CONNECTOR_KEYS, PARTNER_KEYS, build_partner_connector
 from mmm_os.connectors.scheduling import incremental_window, run_sync
 from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.db.session import get_session
-from mmm_os.models import ConnectorConfig, SyncRun, User
+from mmm_os.models import ConnectorConfig, ConnectorCredential, SyncRun, User
 from mmm_os.models.mixins import utcnow
 from mmm_os.schemas.connectors import (
     ConnectorConfigCreate,
     ConnectorConfigRead,
+    ConnectorCredentialInput,
+    ConnectorCredentialStatus,
     RunDueResponse,
     ScheduleUpdate,
     SyncRunListItem,
     SyncRunRead,
 )
+from mmm_os.secrets import SecretStore
 
 router = APIRouter(prefix="/api/v1", tags=["connectors"])
 
 _ADMIN = Depends(require_permission(Permission.ADMIN))
+
+
+def _credential_for(session: Session, config_id: uuid.UUID) -> ConnectorCredential | None:
+    """Return the stored credential reference for a connector config, if any."""
+    return session.scalar(
+        select(ConnectorCredential).where(
+            ConnectorCredential.connector_config_id == config_id
+        )
+    )
+
+
+def _read_config(session: Session, config: ConnectorConfig) -> ConnectorConfigRead:
+    """Build a ConnectorConfigRead enriched with (non-secret) credential status."""
+    read = ConnectorConfigRead.model_validate(config)
+    credential = _credential_for(session, config.id)
+    if credential is not None:
+        read.has_credential = True
+        read.credential_scopes = credential.scopes
+        read.credential_expires_at = credential.expires_at
+    return read
 
 
 @router.get("/connectors/available", dependencies=[_ADMIN])
@@ -86,7 +112,7 @@ def create_connector_config(
     )
     session.add(config)
     session.commit()
-    return ConnectorConfigRead.model_validate(config)
+    return _read_config(session, config)
 
 
 @router.get(
@@ -102,7 +128,90 @@ def list_connector_configs(
     configs = session.scalars(
         tenant_scoped_select(ConnectorConfig, tenant_id).order_by(ConnectorConfig.created_at)
     ).all()
-    return [ConnectorConfigRead.model_validate(c) for c in configs]
+    return [_read_config(session, c) for c in configs]
+
+
+@router.put(
+    "/tenants/{tenant_id}/connector-configs/{config_id}/credential",
+    response_model=ConnectorCredentialStatus,
+    dependencies=[_ADMIN],
+)
+def set_connector_credential(
+    tenant_id: uuid.UUID,
+    config_id: uuid.UUID,
+    body: ConnectorCredentialInput,
+    session: Session = Depends(get_session),
+    store: SecretStore = Depends(get_secret_store_dep),
+) -> ConnectorCredentialStatus:
+    """Store (or replace) a partner token for a connector (CC-10/CC-12).
+
+    The token is encrypted in the ``SecretStore`` and never returned or logged; the
+    database keeps only a reference. Only partner connectors take credentials.
+
+    Raises:
+        HTTPException: 404 if unknown, 400 for a non-partner (file) connector.
+    """
+    config = _get_config(session, tenant_id, config_id)
+    if config.connector_key not in PARTNER_KEYS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="only partner connectors take credentials",
+        )
+    credential = store_token(
+        session,
+        store,
+        tenant_id=tenant_id,
+        connector_config_id=config_id,
+        token=body.token,
+        scopes=body.scopes,
+        expires_at=body.expires_at,
+    )
+    session.commit()
+    return ConnectorCredentialStatus(
+        has_credential=True,
+        scopes=credential.scopes,
+        expires_at=credential.expires_at,
+    )
+
+
+@router.get(
+    "/tenants/{tenant_id}/connector-configs/{config_id}/credential",
+    response_model=ConnectorCredentialStatus,
+    dependencies=[_ADMIN],
+)
+def get_connector_credential(
+    tenant_id: uuid.UUID,
+    config_id: uuid.UUID,
+    session: Session = Depends(get_session),
+) -> ConnectorCredentialStatus:
+    """Return whether a connector has a stored credential (never the token)."""
+    _get_config(session, tenant_id, config_id)
+    credential = _credential_for(session, config_id)
+    if credential is None:
+        return ConnectorCredentialStatus(has_credential=False)
+    return ConnectorCredentialStatus(
+        has_credential=True, scopes=credential.scopes, expires_at=credential.expires_at
+    )
+
+
+@router.delete(
+    "/tenants/{tenant_id}/connector-configs/{config_id}/credential",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[_ADMIN],
+)
+def delete_connector_credential(
+    tenant_id: uuid.UUID,
+    config_id: uuid.UUID,
+    session: Session = Depends(get_session),
+    store: SecretStore = Depends(get_secret_store_dep),
+) -> None:
+    """Remove a connector's stored credential + its secret (CC-10)."""
+    _get_config(session, tenant_id, config_id)
+    credential = _credential_for(session, config_id)
+    if credential is not None:
+        store.delete(credential.secret_ref_name)
+        session.delete(credential)
+        session.commit()
 
 
 @router.post(

@@ -155,3 +155,46 @@ def test_connector_api_config_and_sync(client: TestClient) -> None:
     assert items[0]["connector_key"] == "meta"
     assert items[0]["connector_name"] == "Meta Prod"
     assert items[0]["run"]["status"] == "succeeded"
+
+
+def test_connector_credential_onboarding(client: TestClient) -> None:
+    """A partner token can be stored, reflected in status, and deleted (CC-10)."""
+    tid = uuid.uuid4()
+    created = client.post(
+        f"/api/v1/tenants/{tid}/connector-configs",
+        json={"connector_key": "meta", "name": "Meta", "account_ids": ["act_1"]},
+    )
+    config_id = created.json()["id"]
+    assert created.json()["has_credential"] is False
+
+    cred = f"/api/v1/tenants/{tid}/connector-configs/{config_id}/credential"
+    put = client.put(cred, json={"token": "super-secret-token", "scopes": ["ads_read"]})
+    assert put.status_code == 200, put.text
+    assert put.json() == {
+        "has_credential": True,
+        "scopes": ["ads_read"],
+        "expires_at": None,
+    }
+    # The token itself is never returned by any endpoint.
+    listing = client.get(f"/api/v1/tenants/{tid}/connector-configs")
+    assert listing.json()[0]["has_credential"] is True
+    assert "super-secret-token" not in listing.text
+
+    assert client.get(cred).json()["has_credential"] is True
+    assert client.delete(cred).status_code == 204
+    assert client.get(cred).json()["has_credential"] is False
+
+
+def test_credential_rejected_for_file_connector(client: TestClient) -> None:
+    """SFTP (a file source, not a partner) does not take a credential here."""
+    tid = uuid.uuid4()
+    created = client.post(
+        f"/api/v1/tenants/{tid}/connector-configs",
+        json={"connector_key": "sftp", "name": "Drop"},
+    )
+    config_id = created.json()["id"]
+    resp = client.put(
+        f"/api/v1/tenants/{tid}/connector-configs/{config_id}/credential",
+        json={"token": "x"},
+    )
+    assert resp.status_code == 400

@@ -1,6 +1,15 @@
 "use client";
 
-import { ChevronDown, ChevronRight, Clock, Play, Plug, Plus, RefreshCw } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  KeyRound,
+  Play,
+  Plug,
+  Plus,
+  RefreshCw,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge, statusVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -154,6 +163,7 @@ function SourceCard({
   const [runs, setRuns] = useState<SyncRun[] | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [interval, setIntervalMin] = useState(scheduleMinutes(config));
+  const [credOpen, setCredOpen] = useState(false);
 
   async function onSchedule(minutes: number) {
     setIntervalMin(minutes);
@@ -197,6 +207,15 @@ function SourceCard({
 
   return (
     <div className="rounded-lg border border-border bg-card">
+      <CredentialDialog
+        config={config}
+        open={credOpen}
+        onClose={() => setCredOpen(false)}
+        onSaved={() => {
+          setCredOpen(false);
+          onSynced();
+        }}
+      />
       <div className="flex flex-wrap items-center gap-3 p-4">
         <button
           type="button"
@@ -218,9 +237,18 @@ function SourceCard({
           </div>
         </div>
         <div className="ml-auto flex items-center gap-2">
+          {isPartner ? (
+            <Badge variant={config.has_credential ? "success" : "warning"}>
+              {config.has_credential ? "connected" : "no credential"}
+            </Badge>
+          ) : null}
           {lastRun ? <Badge variant={statusVariant(lastRun.status)}>{lastRun.status}</Badge> : null}
           {isPartner ? (
             <>
+              <Button variant="ghost" size="sm" onClick={() => setCredOpen(true)}>
+                <KeyRound className="h-3.5 w-3.5" />
+                {config.has_credential ? "Credential" : "Connect"}
+              </Button>
               <label className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock className="h-3.5 w-3.5" />
                 <select
@@ -279,6 +307,109 @@ function SourceCard({
         </div>
       ) : null}
     </div>
+  );
+}
+
+function CredentialDialog({
+  config,
+  open,
+  onClose,
+  onSaved,
+}: {
+  config: ConnectorConfig;
+  open: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const toast = useToast();
+  const [token, setToken] = useState("");
+  const [scopes, setScopes] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    setSaving(true);
+    setError(null);
+    try {
+      await api.setConnectorCredential(config.id, {
+        token: token.trim(),
+        scopes: scopes.trim() ? scopes.split(",").map((s) => s.trim()).filter(Boolean) : null,
+      });
+      setToken("");
+      setScopes("");
+      toast.success("Credential stored (encrypted).");
+      onSaved();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not store the credential.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function remove() {
+    setSaving(true);
+    setError(null);
+    try {
+      await api.deleteConnectorCredential(config.id);
+      toast.success("Credential removed.");
+      onSaved();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not remove the credential.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={`Connect ${config.name}`}
+      description={`Store the ${config.connector_key} API token for this customer. It is encrypted at rest and never shown again or logged (CC-10).`}
+    >
+      <div className="flex flex-col gap-4">
+        {config.has_credential ? (
+          <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+            A credential is stored{config.credential_expires_at ? ` (expires ${formatDateTime(config.credential_expires_at)})` : ""}.
+            Enter a new token to replace it, or remove it below.
+          </div>
+        ) : null}
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className="font-medium">API token / OAuth access token</span>
+          <input
+            className={inputCls}
+            type="password"
+            placeholder="paste token"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            autoComplete="off"
+          />
+        </label>
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className="font-medium">Scopes (optional, comma-separated)</span>
+          <input
+            className={inputCls}
+            placeholder="ads_read, insights"
+            value={scopes}
+            onChange={(e) => setScopes(e.target.value)}
+          />
+        </label>
+        {error ? <ErrorBanner message={error} /> : null}
+        <div className="flex justify-end gap-2">
+          {config.has_credential ? (
+            <Button variant="ghost" onClick={remove} disabled={saving}>
+              Remove
+            </Button>
+          ) : null}
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={save} disabled={saving || !token.trim()}>
+            {saving ? "Saving…" : "Save credential"}
+          </Button>
+        </div>
+      </div>
+    </Dialog>
   );
 }
 
