@@ -20,6 +20,23 @@ export interface JobRead {
   file_id: Uuid | null;
   status: string;
   created_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+  error?: string | null;
+}
+
+export interface JobEventRead {
+  stage: string;
+  status: string;
+  message: string | null;
+  duration_ms: number | null;
+  created_at: string;
+}
+
+export interface JobDetail {
+  job: JobRead;
+  filename: string | null;
+  events: JobEventRead[];
 }
 
 export interface ColumnStructure {
@@ -281,6 +298,12 @@ export interface SyncRun {
   error: string | null;
   started_at: string | null;
   finished_at: string | null;
+}
+
+export interface SyncRunListItem {
+  run: SyncRun;
+  connector_key: string;
+  connector_name: string;
 }
 
 export interface GenerateOutputResponse {

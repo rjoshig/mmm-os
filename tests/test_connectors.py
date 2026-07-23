@@ -146,3 +146,12 @@ def test_connector_api_config_and_sync(client: TestClient) -> None:
 
     runs = client.get(f"/api/v1/tenants/{tid}/connector-configs/{config_id}/sync-runs")
     assert runs.status_code == 200 and len(runs.json()) == 1
+
+    # Tenant-wide runs view enriches each run with its connector key + name.
+    all_runs = client.get(f"/api/v1/tenants/{tid}/sync-runs")
+    assert all_runs.status_code == 200, all_runs.text
+    items = all_runs.json()
+    assert len(items) == 1
+    assert items[0]["connector_key"] == "meta"
+    assert items[0]["connector_name"] == "Meta Prod"
+    assert items[0]["run"]["status"] == "succeeded"

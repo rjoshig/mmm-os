@@ -20,13 +20,15 @@ from mmm_os.ingestion.service import load_sheet_rows
 from mmm_os.mapping.service import resolve_mapping
 from mmm_os.mapping.signature import column_signature
 from mmm_os.models import File as FileModel
-from mmm_os.models import Job, OutputRow, Profile, Sheet, ValidationFlag
+from mmm_os.models import Job, JobEvent, OutputRow, Profile, Sheet, ValidationFlag
 from mmm_os.models.enums import ReviewStatus, Severity, SheetStatus
 from mmm_os.schemas.canonical import CanonicalFieldRead, CanonicalFieldsResponse
 from mmm_os.schemas.file import (
     FileDetail,
     FileListItem,
     FileRead,
+    JobDetail,
+    JobEventRead,
     JobRead,
     ProfileRead,
     SheetDetail,
@@ -185,6 +187,32 @@ def list_jobs(
         select(Job).where(Job.tenant_id == tenant_id).order_by(Job.created_at.desc())
     ).all()
     return [JobRead.model_validate(j) for j in jobs]
+
+
+@router.get("/tenants/{tenant_id}/jobs/{job_id}", response_model=JobDetail)
+def get_job(
+    tenant_id: uuid.UUID,
+    job_id: uuid.UUID,
+    session: Session = Depends(get_session),
+) -> JobDetail:
+    """Return a job with its filename and ordered stage events (Runs drill-in, CC-7)."""
+    job = session.scalar(tenant_scoped_select(Job, tenant_id).where(Job.id == job_id))
+    if job is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="job not found")
+    filename: str | None = None
+    if job.file_id is not None:
+        file = session.scalar(
+            tenant_scoped_select(FileModel, tenant_id).where(FileModel.id == job.file_id)
+        )
+        filename = file.filename if file is not None else None
+    events = session.scalars(
+        select(JobEvent).where(JobEvent.job_id == job.id).order_by(JobEvent.created_at)
+    ).all()
+    return JobDetail(
+        job=JobRead.model_validate(job),
+        filename=filename,
+        events=[JobEventRead.model_validate(e) for e in events],
+    )
 
 
 # Stage states for the file-detail pipeline stepper (Phase 6 UX overhaul).

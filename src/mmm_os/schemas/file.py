@@ -34,6 +34,29 @@ class JobRead(BaseModel):
     file_id: uuid.UUID | None
     status: str
     created_at: datetime
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    error: str | None = None
+
+
+class JobEventRead(BaseModel):
+    """A per-stage status/timing record for a job (observability, CC-7)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    stage: str
+    status: str
+    message: str | None
+    duration_ms: int | None
+    created_at: datetime
+
+
+class JobDetail(BaseModel):
+    """A job with its filename and ordered stage events (the Runs drill-in)."""
+
+    job: JobRead
+    filename: str | None
+    events: list[JobEventRead]
 
 
 class IngestResponse(BaseModel):

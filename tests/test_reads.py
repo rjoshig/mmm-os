@@ -40,6 +40,29 @@ def test_list_files_and_detail(client: TestClient) -> None:
     assert body["latest_job"]["status"] == "succeeded"
 
 
+def test_job_detail_has_filename_and_stage_events(client: TestClient) -> None:
+    """Job detail returns the filename and ordered stage events (Runs drill-in)."""
+    tenant_id = uuid.uuid4()
+    _upload_and_process(client, tenant_id)
+    jobs = client.get(f"/api/v1/tenants/{tenant_id}/jobs").json()
+    assert jobs, "expected at least one job"
+    job_id = jobs[0]["id"]
+
+    detail = client.get(f"/api/v1/tenants/{tenant_id}/jobs/{job_id}")
+    assert detail.status_code == 200, detail.text
+    body = detail.json()
+    assert body["filename"] == "data.csv"
+    assert body["job"]["status"] == "succeeded"
+    assert len(body["events"]) >= 1  # processing records stage events (CC-7)
+
+
+def test_job_detail_unknown_404(client: TestClient) -> None:
+    """An unknown job id is a 404."""
+    tenant_id = uuid.uuid4()
+    resp = client.get(f"/api/v1/tenants/{tenant_id}/jobs/{uuid.uuid4()}")
+    assert resp.status_code == 404
+
+
 def test_sheet_detail_has_profile(client: TestClient) -> None:
     """Sheet detail returns the sheet plus its profile (row_count present)."""
     tenant_id = uuid.uuid4()

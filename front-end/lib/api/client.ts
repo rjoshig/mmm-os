@@ -12,7 +12,10 @@ import type {
   AvailableConnector,
   BulkReviewResponse,
   ConnectorConfig,
+  JobDetail,
+  JobRead,
   SyncRun,
+  SyncRunListItem,
   CanonicalFieldsResponse,
   FileDetail,
   FileListItem,
@@ -248,6 +251,12 @@ export const api = {
     request<SyncRun>(tenantPath(`/connector-configs/${configId}/sync`), { method: "POST" }),
   listSyncRuns: (configId: string) =>
     request<SyncRun[]>(tenantPath(`/connector-configs/${configId}/sync-runs`)),
+  listAllSyncRuns: (limit = 100) =>
+    request<SyncRunListItem[]>(tenantPath(`/sync-runs?limit=${limit}`)),
+
+  // --- Runs / jobs history (Cycle 3) ---
+  listJobs: () => request<JobRead[]>(tenantPath("/jobs")),
+  getJob: (jobId: string) => request<JobDetail>(tenantPath(`/jobs/${jobId}`)),
 
   // --- Governance / admin (admin-only; backend enforces Permission.ADMIN) ---
   listUsers: () => request<UserRead[]>(tenantPath("/users")),

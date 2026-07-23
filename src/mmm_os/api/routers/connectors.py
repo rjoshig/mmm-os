@@ -19,7 +19,12 @@ from mmm_os.connectors.scheduling import incremental_window, run_sync
 from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.db.session import get_session
 from mmm_os.models import ConnectorConfig, SyncRun
-from mmm_os.schemas.connectors import ConnectorConfigCreate, ConnectorConfigRead, SyncRunRead
+from mmm_os.schemas.connectors import (
+    ConnectorConfigCreate,
+    ConnectorConfigRead,
+    SyncRunListItem,
+    SyncRunRead,
+)
 
 router = APIRouter(prefix="/api/v1", tags=["connectors"])
 
@@ -118,6 +123,37 @@ def trigger_sync(
     result = run_sync(session, connector, config, incremental_window(config, date.today()))
     session.commit()
     return SyncRunRead.model_validate(result.sync_run)
+
+
+@router.get(
+    "/tenants/{tenant_id}/sync-runs",
+    response_model=list[SyncRunListItem],
+    dependencies=[_ADMIN],
+)
+def list_all_sync_runs(
+    tenant_id: uuid.UUID,
+    limit: int = 100,
+    session: Session = Depends(get_session),
+) -> list[SyncRunListItem]:
+    """List a tenant's sync runs across all connectors, newest first (Runs view)."""
+    configs = {
+        c.id: c
+        for c in session.scalars(tenant_scoped_select(ConnectorConfig, tenant_id)).all()
+    }
+    runs = session.scalars(
+        tenant_scoped_select(SyncRun, tenant_id).order_by(SyncRun.created_at.desc()).limit(limit)
+    ).all()
+    items: list[SyncRunListItem] = []
+    for run in runs:
+        config = configs.get(run.connector_config_id)
+        items.append(
+            SyncRunListItem(
+                run=SyncRunRead.model_validate(run),
+                connector_key=config.connector_key if config else "unknown",
+                connector_name=config.name if config else "(deleted)",
+            )
+        )
+    return items
 
 
 @router.get(

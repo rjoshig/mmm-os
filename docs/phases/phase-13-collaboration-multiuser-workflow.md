@@ -82,9 +82,10 @@ at build time (per the sub-phase convention in [`README.md`](./README.md)).
 - **13.2 — Config draft → review → publish lifecycle** (P13-3). Add a `status`
   (`draft` | `published` | `archived`) to config/rule-set versions; resolution reads
   the latest *published*; a `review`-role publish/request-changes action; audited.
-- **13.3 — Jobs & pipeline-runs history UI** (P13-4). A Runs list + run-detail view
-  over the existing `job` / pipeline-run / `sync_run` records and observability
-  signals (CC-7). Read-only; reuses the pipeline-stepper vocabulary.
+- **13.3 — Jobs & pipeline-runs history UI** (P13-4). **Delivered by Cycle 3, Slice 2**:
+  a `/runs` view over `job` (with stage `job_event`s) + tenant-wide `sync_run`
+  records — status, timing, errors, stage logs (CC-7). Endpoints: `GET /jobs/{id}`
+  (detail + events), `GET /sync-runs` (tenant-wide). Read-only.
 - **13.4 — Review queue & work assignment** (P13-5). `assignment` records
   (target_type/target_id → assignee); "Assigned to me" + tenant "Needs review"
   boards; assign/reassign/clear actions gated by `review`.

@@ -46,3 +46,11 @@ class SyncRunRead(BaseModel):
     error: str | None
     started_at: datetime | None
     finished_at: datetime | None
+
+
+class SyncRunListItem(BaseModel):
+    """A sync run enriched with its connector's key + name (tenant-wide runs view)."""
+
+    run: SyncRunRead
+    connector_key: str
+    connector_name: str
