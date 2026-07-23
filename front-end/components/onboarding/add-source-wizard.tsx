@@ -30,14 +30,18 @@ export function AddSourceWizard({
   const router = useRouter();
   const toast = useToast();
   const [step, setStep] = useState<Step>("pick");
+  const [mode, setMode] = useState<"upload" | "path">("upload");
   const [picked, setPicked] = useState<File | null>(null);
+  const [pathInput, setPathInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ file: FileRead; sheets: SheetRead[] } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const reset = useCallback(() => {
     setStep("pick");
+    setMode("upload");
     setPicked(null);
+    setPathInput("");
     setError(null);
     setResult(null);
     if (fileInput.current) fileInput.current.value = "";
@@ -48,12 +52,15 @@ export function AddSourceWizard({
     onClose();
   }, [reset, onClose]);
 
+  const canDetect = mode === "upload" ? picked !== null : pathInput.trim().length > 0;
+
   async function onDetect() {
-    if (!picked) return;
+    if (!canDetect) return;
     setStep("processing");
     setError(null);
     try {
-      const { file } = await api.uploadFile(picked);
+      const { file } =
+        mode === "upload" ? await api.uploadFile(picked!) : await api.ingestByPath(pathInput.trim());
       const processed = await api.processFile(file.id);
       setResult({ file, sheets: processed.sheets });
       setStep("done");
@@ -85,25 +92,63 @@ export function AddSourceWizard({
     >
       {step === "pick" ? (
         <div className="space-y-4">
-          <button
-            type="button"
-            onClick={() => fileInput.current?.click()}
-            className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border py-10 text-center transition-colors hover:border-primary/50 hover:bg-accent"
-          >
-            <UploadCloud className="h-7 w-7 text-muted-foreground" />
-            {picked ? (
-              <span className="text-sm font-medium text-foreground">{picked.name}</span>
-            ) : (
-              <>
-                <span className="text-sm font-medium text-foreground">
-                  Click to choose a CSV or XLSX
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  Multi-tab workbooks are detected sheet by sheet.
-                </span>
-              </>
-            )}
-          </button>
+          <div className="inline-flex rounded-md border border-border p-0.5 text-sm">
+            {(["upload", "path"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => {
+                  setMode(m);
+                  setError(null);
+                }}
+                className={
+                  mode === m
+                    ? "rounded px-3 py-1 bg-primary text-primary-foreground"
+                    : "rounded px-3 py-1 text-muted-foreground hover:text-foreground"
+                }
+              >
+                {m === "upload" ? "Upload" : "By path (large files)"}
+              </button>
+            ))}
+          </div>
+
+          {mode === "upload" ? (
+            <button
+              type="button"
+              onClick={() => fileInput.current?.click()}
+              className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border py-10 text-center transition-colors hover:border-primary/50 hover:bg-accent"
+            >
+              <UploadCloud className="h-7 w-7 text-muted-foreground" />
+              {picked ? (
+                <span className="text-sm font-medium text-foreground">{picked.name}</span>
+              ) : (
+                <>
+                  <span className="text-sm font-medium text-foreground">
+                    Click to choose a CSV or XLSX
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    Multi-tab workbooks are detected sheet by sheet.
+                  </span>
+                </>
+              )}
+            </button>
+          ) : (
+            <div className="space-y-1.5">
+              <input
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                placeholder="/data/landing/spend_2026.csv"
+                value={pathInput}
+                onChange={(e) => {
+                  setPathInput(e.target.value);
+                  setError(null);
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                A server-side path within an allowlisted landing zone. The backend reads it by
+                reference — nothing is uploaded through the browser (best for very large files).
+              </p>
+            </div>
+          )}
           <input
             ref={fileInput}
             type="file"
@@ -124,7 +169,7 @@ export function AddSourceWizard({
             <Button variant="ghost" onClick={close}>
               Cancel
             </Button>
-            <Button onClick={onDetect} disabled={!picked}>
+            <Button onClick={onDetect} disabled={!canDetect}>
               Detect structure <ArrowRight className="h-4 w-4" />
             </Button>
           </div>

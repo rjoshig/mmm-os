@@ -2,7 +2,23 @@
 
 **Parent:** [`phase-01`](./phase-01-file-ingestion-structure-detection.md) ·
 **Depends on:** 01.1 (object storage + source seam), 09.1 (`SourceConnector`) ·
-**Status:** Build (scoped; not yet implemented).
+**Status:** Done (copy-mode: local landing roots + ingest-by-path). Follow-ups:
+object-storage-URI / SFTP roots, reference-in-place, per-tenant roots.
+
+## Implemented (this build)
+
+- `ingestion/landing.py`: `resolve_landing_path` (allowlist + canonicalize + no
+  traversal) and `ingest_file_from_path` (copy into immutable storage, reusing the
+  upload pipeline so everything downstream is identical).
+- `POST /tenants/{id}/files/ingest-by-path` (400 disabled/not-allowed, 404 missing,
+  413 too-large); allowlist via `INGEST_LANDING_ROOTS` (app setting).
+- UI: add-source wizard **Upload / By path** toggle.
+- Tests: allowlist enforcement (outside-root + traversal rejected), disabled default,
+  by-path ingest → process parity.
+
+**Deferred to follow-ups:** object-storage-URI + SFTP landing roots as a dedicated
+`LandingZoneSource`; reference-in-place (no copy) when the landing store *is* the
+immutable store; per-tenant landing-root config (currently an app-level allowlist).
 
 ## Objective
 

@@ -11,12 +11,20 @@ from mmm_os.api.deps import get_storage
 from mmm_os.core.config import Settings, get_settings
 from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.db.session import get_session
+from mmm_os.ingestion.landing import (
+    LandingFileNotFoundError,
+    LandingRootsDisabledError,
+    LandingZoneError,
+    PathNotAllowedError,
+    ingest_file_from_path,
+)
 from mmm_os.ingestion.process import process_file
 from mmm_os.ingestion.service import ingest_file
 from mmm_os.models import File as FileModel
 from mmm_os.schemas.file import (
     BatchResponse,
     FileRead,
+    IngestByPathRequest,
     IngestResponse,
     JobRead,
     ProcessResponse,
@@ -68,6 +76,50 @@ def upload_file(
         )
     except FileTooLargeError as exc:
         # 413 Content Too Large (constant name varies across Starlette versions).
+        raise HTTPException(status_code=413, detail=str(exc)) from exc
+
+    session.commit()
+    return IngestResponse(file=FileRead.model_validate(file), job=JobRead.model_validate(job))
+
+
+@router.post(
+    "/tenants/{tenant_id}/files/ingest-by-path",
+    status_code=status.HTTP_201_CREATED,
+    response_model=IngestResponse,
+)
+def ingest_by_path(
+    tenant_id: uuid.UUID,
+    body: IngestByPathRequest,
+    session: Session = Depends(get_session),
+    storage: ObjectStorage = Depends(get_storage),
+    settings: Settings = Depends(get_settings),
+) -> IngestResponse:
+    """Ingest a large file by server path (landing zone) instead of an upload (P1.4-1).
+
+    The path must sit within an allowlisted landing root
+    (``INGEST_LANDING_ROOTS``); the bytes are copied into immutable storage and the
+    same file + job records are created as for an upload — no browser transfer.
+
+    Raises:
+        HTTPException: 400 if landing ingestion is disabled or the path is not
+            allowed; 404 if the file does not exist; 413 if it exceeds the size cap.
+    """
+    try:
+        file, job = ingest_file_from_path(
+            session,
+            storage,
+            tenant_id=tenant_id,
+            path=body.path,
+            roots=settings.landing_roots,
+            max_bytes=settings.max_upload_bytes,
+        )
+    except (LandingRootsDisabledError, PathNotAllowedError) as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except LandingFileNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except LandingZoneError as exc:  # pragma: no cover - defensive catch-all
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except FileTooLargeError as exc:
         raise HTTPException(status_code=413, detail=str(exc)) from exc
 
     session.commit()

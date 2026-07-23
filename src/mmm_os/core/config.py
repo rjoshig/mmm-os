@@ -62,6 +62,13 @@ class Settings(BaseSettings):
     # Dev default is the Next.js dev server; tighten per environment.
     cors_allow_origins: str = "http://localhost:3000"
 
+    # Path-based ingestion (Phase 01.4): comma-separated ABSOLUTE directories the
+    # backend may read files from by path (a "landing zone"), so large files are
+    # ingested by reference instead of a browser upload. Empty = feature disabled.
+    # Every ingest-by-path request is validated to sit within one of these roots
+    # (canonicalized, no traversal) — nothing outside a configured root is reachable.
+    ingest_landing_roots: str = ""
+
     # Secrets management (Phase 00.6, CC-12). "local" encrypts secrets on disk under
     # a key derived from secret_master_key; production swaps to a KMS/vault backend.
     secrets_backend: str = "local"
@@ -91,6 +98,11 @@ class Settings(BaseSettings):
     def cors_origins(self) -> list[str]:
         """Parse ``cors_allow_origins`` into a list of trimmed origins."""
         return [o.strip() for o in self.cors_allow_origins.split(",") if o.strip()]
+
+    @property
+    def landing_roots(self) -> list[str]:
+        """Parse ``ingest_landing_roots`` into a list of trimmed absolute directories."""
+        return [r.strip() for r in self.ingest_landing_roots.split(",") if r.strip()]
 
 
 @lru_cache

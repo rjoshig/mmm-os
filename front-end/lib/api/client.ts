@@ -125,6 +125,12 @@ export const api = {
   },
   processFile: (fileId: string) =>
     request<ProcessResponse>(tenantPath(`/files/${fileId}/process`), { method: "POST" }),
+  // Ingest a large file the backend can reach by path (landing zone) — no upload.
+  ingestByPath: (path: string) =>
+    request<IngestResponse>(tenantPath("/files/ingest-by-path"), {
+      method: "POST",
+      body: JSON.stringify({ path }),
+    }),
 
   // --- Mapping ---
   saveMapping: (sheetId: string, name: string, mapping: Record<string, string | null>) =>

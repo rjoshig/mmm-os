@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class FileRead(BaseModel):
@@ -41,6 +41,12 @@ class IngestResponse(BaseModel):
 
     file: FileRead
     job: JobRead
+
+
+class IngestByPathRequest(BaseModel):
+    """Request to ingest a file by server-side path (landing zone, Phase 01.4)."""
+
+    path: str = Field(min_length=1, description="Path within an allowlisted landing root.")
 
 
 class SheetRead(BaseModel):
