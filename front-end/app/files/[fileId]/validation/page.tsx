@@ -1,6 +1,16 @@
 "use client";
 
-import { ArrowLeft, Download, FileDown, Play, ShieldAlert, ShieldCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Download,
+  FileDown,
+  FileSpreadsheet,
+  GitBranch,
+  Play,
+  ShieldAlert,
+  ShieldCheck,
+} from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -17,6 +27,7 @@ import type {
   FlagRead,
   GenerateOutputResponse,
   OutputContract,
+  OutputLineage,
   OutputRowRead,
 } from "@/lib/api/types";
 
@@ -174,6 +185,7 @@ export default function ValidationReviewPage() {
         </div>
       ) : null}
       {outputSummary && jobId ? <ExportToMmm jobId={jobId} /> : null}
+      {outputSummary && jobId ? <OutputLineagePanel jobId={jobId} /> : null}
       {error ? <ErrorBanner message={error} /> : null}
 
       {flags === null ? (
@@ -336,6 +348,78 @@ function ExportToMmm({ jobId }: { jobId: string }) {
           </div>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function Node({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
+  return (
+    <div className="flex min-w-[7rem] flex-col items-center rounded-lg border border-border bg-background px-3 py-2 text-center">
+      <div className="text-muted-foreground">{icon}</div>
+      <div className="mt-1 max-w-[9rem] truncate text-xs font-medium">{title}</div>
+      <div className="text-[0.7rem] text-muted-foreground">{subtitle}</div>
+    </div>
+  );
+}
+
+function Arrow() {
+  return <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />;
+}
+
+/** Renders the stored source → config → output provenance for a job's output (CC-3). */
+function OutputLineagePanel({ jobId }: { jobId: string }) {
+  const [lineage, setLineage] = useState<OutputLineage | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    api
+      .getOutputLineage(jobId)
+      .then(setLineage)
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Could not load lineage."));
+  }, [jobId]);
+
+  if (error) return null;
+  if (!lineage) return null;
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <GitBranch className="h-4 w-4 text-muted-foreground" />
+        <div className="text-sm font-semibold">Lineage</div>
+        <span className="text-xs text-muted-foreground">
+          every clean row traces back to its source (CC-3)
+        </span>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Node
+          icon={<FileSpreadsheet className="h-4 w-4" />}
+          title={lineage.filename}
+          subtitle="source file"
+        />
+        <Arrow />
+        <div className="flex flex-wrap items-center gap-1.5">
+          {lineage.sources.map((s, i) => (
+            <Node
+              key={i}
+              icon={<FileSpreadsheet className="h-4 w-4" />}
+              title={s.source_sheet ?? "—"}
+              subtitle={`${s.row_count} rows`}
+            />
+          ))}
+        </div>
+        <Arrow />
+        <Node
+          icon={<GitBranch className="h-4 w-4" />}
+          title={`mapping v${lineage.mapping_config_version ?? "—"}`}
+          subtitle={`rules v${lineage.rule_set_version ?? "—"}`}
+        />
+        <Arrow />
+        <Node
+          icon={<Download className="h-4 w-4" />}
+          title={`${lineage.output_row_count} rows`}
+          subtitle="clean output"
+        />
+      </div>
     </div>
   );
 }

@@ -35,6 +35,9 @@ and acknowledge/resolve/override them.
   (`GET /jobs/{id}/output/contract` — the columns with type + kind, row count, applied
   config versions, and a sample), the handshake before a modeler consumes the data.
   (Warehouse / S3 / API destinations are follow-ups.)
+- **P6.5-7** (Cycle 3) **Lineage**: a provenance panel rendering the stored
+  traceability (CC-3) — source file → contributing sheet(s) with row counts →
+  applied mapping + rule-set versions → clean output — from `GET /jobs/{id}/lineage`.
 
 ## Deliverables
 

@@ -77,3 +77,16 @@ def test_output_contract_404_without_output(client: TestClient) -> None:
     tenant_id = uuid.uuid4()
     resp = client.get(f"/api/v1/tenants/{tenant_id}/jobs/{uuid.uuid4()}/output/contract")
     assert resp.status_code == 404
+
+
+def test_output_lineage_traces_source_to_output(client: TestClient, engine: Engine) -> None:
+    """Lineage aggregates output by source sheet + reports applied config versions (CC-3)."""
+    tenant_id, job_id = _seed_output(engine)
+    resp = client.get(f"/api/v1/tenants/{tenant_id}/jobs/{job_id}/lineage")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["filename"] == "meta_us.xlsx"
+    assert body["output_row_count"] == 2
+    assert body["mapping_config_version"] == 1
+    assert body["rule_set_version"] == 2
+    assert body["sources"] == [{"source_sheet": "sheet-1", "row_count": 2}]

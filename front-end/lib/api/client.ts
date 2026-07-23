@@ -24,6 +24,7 @@ import type {
   IngestResponse,
   LoginResponse,
   OutputContract,
+  OutputLineage,
   OutputListResponse,
   FilePipelineStatus,
   PipelineRunResponse,
@@ -208,6 +209,8 @@ export const api = {
     request<OutputListResponse>(tenantPath(`/jobs/${jobId}/output?limit=${limit}`)),
   getOutputContract: (jobId: string) =>
     request<OutputContract>(tenantPath(`/jobs/${jobId}/output/contract`)),
+  getOutputLineage: (jobId: string) =>
+    request<OutputLineage>(tenantPath(`/jobs/${jobId}/lineage`)),
   // Fetch the CSV export as a Blob (carries the auth header, unlike a plain link).
   fetchOutputCsv: async (jobId: string): Promise<Blob> => {
     const token = getToken();

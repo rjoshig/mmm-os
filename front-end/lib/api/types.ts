@@ -323,6 +323,20 @@ export interface OutputContract {
   sample: Record<string, unknown>[];
 }
 
+export interface LineageSource {
+  source_sheet: string | null;
+  row_count: number;
+}
+
+export interface OutputLineage {
+  file_id: Uuid;
+  filename: string;
+  output_row_count: number;
+  mapping_config_version: number | null;
+  rule_set_version: number | null;
+  sources: LineageSource[];
+}
+
 export interface GenerateOutputResponse {
   job_id: Uuid;
   file_id: Uuid;

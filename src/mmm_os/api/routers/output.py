@@ -32,7 +32,9 @@ from mmm_os.output import (
 from mmm_os.schemas.output import (
     ContractField,
     GenerateOutputResponse,
+    LineageSource,
     OutputContract,
+    OutputLineage,
     OutputListResponse,
     OutputRowRead,
 )
@@ -216,6 +218,42 @@ def output_contract_route(
         mapping_config_version=first.mapping_config_version if first else None,
         rule_set_version=first.rule_set_version if first else None,
         sample=[r.data for r in rows[:sample]],
+    )
+
+
+@router.get("/tenants/{tenant_id}/jobs/{job_id}/lineage", response_model=OutputLineage)
+def output_lineage_route(
+    tenant_id: uuid.UUID,
+    job_id: uuid.UUID,
+    session: Session = Depends(get_session),
+) -> OutputLineage:
+    """Return the provenance of a job's clean output (CC-3 traceability).
+
+    Aggregates output rows by their source sheet and reports the applied mapping +
+    rule-set versions — the chain source file → sheet(s) → config → clean output.
+
+    Raises:
+        HTTPException: 404 if the job has no generated output.
+    """
+    file, rows = list_output_rows(session, tenant_id, job_id, limit=None)
+    if file is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="no output generated for this job"
+        )
+    counts: dict[str | None, int] = {}
+    for row in rows:
+        counts[row.source_sheet] = counts.get(row.source_sheet, 0) + 1
+    first = rows[0] if rows else None
+    return OutputLineage(
+        file_id=file.id,
+        filename=file.filename,
+        output_row_count=len(rows),
+        mapping_config_version=first.mapping_config_version if first else None,
+        rule_set_version=first.rule_set_version if first else None,
+        sources=[
+            LineageSource(source_sheet=sheet, row_count=count)
+            for sheet, count in sorted(counts.items(), key=lambda kv: str(kv[0]))
+        ],
     )
 
 

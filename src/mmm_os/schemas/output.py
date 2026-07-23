@@ -61,3 +61,21 @@ class OutputContract(BaseModel):
     mapping_config_version: int | None
     rule_set_version: int | None
     sample: list[dict[str, Any]]
+
+
+class LineageSource(BaseModel):
+    """One source sheet contributing to a job's clean output."""
+
+    source_sheet: str | None
+    row_count: int
+
+
+class OutputLineage(BaseModel):
+    """Provenance of a job's clean output: source → config versions → output (CC-3)."""
+
+    file_id: uuid.UUID
+    filename: str
+    output_row_count: int
+    mapping_config_version: int | None
+    rule_set_version: int | None
+    sources: list[LineageSource]
