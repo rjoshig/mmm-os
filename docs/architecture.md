@@ -84,9 +84,21 @@ rules (from [`../CODING_STANDARDS.md`](../CODING_STANDARDS.md)):
 
 ### 2.4 Testing posture
 
-Tests run on **SQLite** for speed. Before switching any environment to Postgres,
-a **Postgres integration job MUST pass** in CI. CI on every PR runs `ruff`,
-`mypy`, and `pytest` (SQLite); a Postgres integration job is added before releases.
+Tests run on **SQLite** for speed. Portability is now **validated against a real
+Postgres**: `tests/test_postgres_portability.py` (skipped unless `TEST_POSTGRES_URL`
+is set) resets a Postgres schema and drives the full API stack — customer
+onboarding, connector config with JSON settings + an encrypted credential, feed
+templates, and file ingest+process — exercising JSON columns, `Uuid` PKs,
+timezone-aware datetimes, and booleans on Postgres. CI runs three jobs: backend
+(ruff · mypy · pytest on SQLite + `alembic upgrade head`), **Postgres portability**
+(a `postgres:16` service: `alembic upgrade head` + the portability test), and
+front-end. Install the driver with the `postgres` extra (`uv sync --extra postgres`).
+
+**One dialect caveat to know:** SQLite does not enforce foreign keys by default,
+so referential violations (e.g. a tenant-scoped row with no `tenant` parent) pass
+silently on SQLite but are rejected by Postgres. Production always has the parent
+rows, but test fixtures that fabricate a bare `tenant_id` must create the tenant
+first when run on Postgres.
 
 ---
 

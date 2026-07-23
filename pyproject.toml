@@ -31,6 +31,11 @@ llm = [
     "openai>=1.0",
     "anthropic>=0.39",
 ]
+# Postgres driver — optional; SQLite is the dev default. Install to run the backend
+# (or the Postgres portability tests) against Postgres via a postgresql+psycopg URL.
+postgres = [
+    "psycopg[binary]>=3.1",
+]
 
 [build-system]
 requires = ["hatchling"]

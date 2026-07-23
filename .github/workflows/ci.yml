@@ -35,6 +35,45 @@ jobs:
       - name: Alembic upgrade head (empty base)
         run: uv run alembic upgrade head
 
+  postgres:
+    name: Backend (Postgres portability)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mmm_os_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # Backend URL for the migration check + the portability test.
+      BACKEND_DATABASE_URL: "postgresql+psycopg://postgres:postgres@localhost:5432/mmm_os_test"
+      TEST_POSTGRES_URL: "postgresql+psycopg://postgres:postgres@localhost:5432/mmm_os_test"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python 3.10
+        run: uv python install 3.10
+
+      - name: Install dependencies (with Postgres driver)
+        run: uv sync --python 3.10 --extra postgres
+
+      - name: Alembic upgrade head (Postgres)
+        run: uv run alembic upgrade head
+
+      - name: Pytest (Postgres portability)
+        run: uv run pytest tests/test_postgres_portability.py -v
+
   frontend:
     name: Front-end (lint · typecheck · build)
     runs-on: ubuntu-latest
@@ -67,6 +106,3 @@ jobs:
 
       - name: Build
         run: npm run build
-
-  # NOTE: A Postgres integration job MUST be added and pass before switching any
-  # environment to Postgres (see CODING_STANDARDS.md — Database / Testing & CI).
