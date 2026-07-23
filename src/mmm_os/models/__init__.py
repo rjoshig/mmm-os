@@ -4,6 +4,7 @@ Importing this package registers every model on ``Base.metadata`` so Alembic
 autogenerate and ``create_all`` see the full schema.
 """
 
+from mmm_os.models.auth import IdentityProviderConfig, SecretRef, Session
 from mmm_os.models.config import (
     MappingConfig,
     Rule,
@@ -18,6 +19,7 @@ from mmm_os.models.tenant import Tenant, User
 
 __all__ = [
     "File",
+    "IdentityProviderConfig",
     "Job",
     "JobEvent",
     "MappingConfig",
@@ -25,6 +27,8 @@ __all__ = [
     "Profile",
     "Rule",
     "RuleSet",
+    "SecretRef",
+    "Session",
     "Sheet",
     "Suggestion",
     "Taxonomy",

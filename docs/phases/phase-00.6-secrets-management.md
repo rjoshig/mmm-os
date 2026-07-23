@@ -1,7 +1,7 @@
 # Phase 00.6 — Secrets Management
 
 **Inserted phase** (standalone, not a sub-phase) · **Depends on:** Phase 0 ·
-**Status:** Build — foundational.
+**Status:** Done (SecretStore + local encrypted-dev backend + secret_ref; KMS backend deferred) — pending PR merge.
 
 Cross-cutting: secrets via store (CC-12), credential security (CC-10).
 

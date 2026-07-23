@@ -1,7 +1,13 @@
 # Phase 00.5 — Authentication & Identity
 
 **Inserted phase** (standalone, not a sub-phase) · **Depends on:** Phase 0 ·
-**Status:** Build — foundational, built right after Phase 0.
+**Status:** Done (password auth + sessions + endpoint guard + seed; MFA/SSO deferred) — pending PR merge.
+
+> **Delivered now:** email/password login (PBKDF2), DB-backed sessions (tokens
+> stored hashed via the SecretStore, CC-12), a `require_auth` guard on every
+> feature router (enforced when `AUTH_ENABLED=true`), and a seeded default admin
+> (`admin` / `admin123`). **Deferred to a follow-up:** MFA, OIDC/SAML SSO, and
+> moving `tenant_id` out of the URL path onto the session.
 
 Cross-cutting: multi-tenant (CC-1), authenticated access (CC-11), secrets via
 store (CC-12).

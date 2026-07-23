@@ -29,8 +29,8 @@ until scoped.
 | # | Phase | Spec | One-line summary | Depends on | Status |
 |---|---|---|---|---|---|
 | 1 | 0 | [phase-00](./phase-00-foundations-canonical-schema-data-model.md) | Repo, canonical schema, taxonomies, data model, tenancy. | — | Done |
-| 2 | 00.5 | [phase-00.5](./phase-00.5-authentication-identity.md) | Auth & identity: tenant users, password+MFA, OIDC/SAML SSO, endpoint authz (CC-11). | 0 | Build |
-| 3 | 00.6 | [phase-00.6](./phase-00.6-secrets-management.md) | Secrets management: `SecretStore` for all secrets/tokens (CC-12). | 0 | Build |
+| 2 | 00.5 | [phase-00.5](./phase-00.5-authentication-identity.md) | Auth & identity: password login + sessions + endpoint guard + seeded admin (CC-11); MFA/SSO deferred. | 0 | Done |
+| 3 | 00.6 | [phase-00.6](./phase-00.6-secrets-management.md) | Secrets management: `SecretStore` + local encrypted-dev backend + `secret_ref` (CC-12). | 0 | Done |
 | 4 | 1 | [phase-01](./phase-01-file-ingestion-structure-detection.md) | Land files immutably; parse CSV/multi-tab XLSX; detect structure; profile. | 0 | Done |
 | 5 | 2 | [phase-02](./phase-02-mapping-engine-saved-configs.md) | Map columns to canonical schema; layered, versioned saved configs. | 0, 1 | Done |
 | 6 | 3 | [phase-03](./phase-03-transformation-rule-engine.md) | Declarative, ordered, layered transformation rules with preview. | 0, 2 | Done |

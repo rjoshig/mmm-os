@@ -7,10 +7,11 @@ AI) are added thinly in their respective phases — routers hold no business log
 
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from mmm_os.api.routers import ai, files, mapping, reads, transform, validation
+from mmm_os.api.deps import require_auth
+from mmm_os.api.routers import ai, auth, files, mapping, reads, transform, validation
 from mmm_os.canonical import load_and_validate
 from mmm_os.core.config import get_settings
 from mmm_os.core.logging import configure_logging
@@ -46,12 +47,18 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    app.include_router(files.router)
-    app.include_router(reads.router)
-    app.include_router(mapping.router)
-    app.include_router(transform.router)
-    app.include_router(validation.router)
-    app.include_router(ai.router)
+    # Auth routes are the entry point and are NOT behind require_auth.
+    app.include_router(auth.router)
+
+    # Every feature router requires authenticated access (CC-11). The dependency
+    # is a no-op when auth_enabled is false (dev/tests default).
+    protected = [Depends(require_auth)]
+    app.include_router(files.router, dependencies=protected)
+    app.include_router(reads.router, dependencies=protected)
+    app.include_router(mapping.router, dependencies=protected)
+    app.include_router(transform.router, dependencies=protected)
+    app.include_router(validation.router, dependencies=protected)
+    app.include_router(ai.router, dependencies=protected)
 
     @app.get("/health", tags=["system"])
     def health() -> dict[str, str]:
@@ -61,6 +68,21 @@ def create_app() -> FastAPI:
             A small status payload including the active environment.
         """
         return {"status": "ok", "env": settings.app_env}
+
+    @app.on_event("startup")
+    def _seed_admin() -> None:
+        """Seed the default tenant + admin when auth is enabled (dev convenience)."""
+        if not (settings.auth_enabled and settings.seed_default_admin):
+            return
+        from mmm_os.auth.service import seed_default_admin
+        from mmm_os.db.session import SessionLocal
+
+        with SessionLocal() as db:
+            try:
+                seed_default_admin(db, settings)
+                db.commit()
+            except Exception:  # noqa: BLE001 - seeding must never block boot
+                db.rollback()
 
     return app
 

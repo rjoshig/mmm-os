@@ -12,10 +12,12 @@ from openpyxl import Workbook
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from mmm_os.api.deps import get_storage
+from mmm_os.api.deps import get_secret_store_dep, get_storage
 from mmm_os.api.main import app
 from mmm_os.db.base import Base
 from mmm_os.db.session import get_session
+from mmm_os.secrets import SecretStore
+from mmm_os.secrets.local import LocalEncryptedSecretStore
 from mmm_os.storage.local import LocalObjectStorage
 
 
@@ -36,8 +38,16 @@ def storage(tmp_path: Path) -> LocalObjectStorage:
 
 
 @pytest.fixture
-def client(engine: Engine, storage: LocalObjectStorage) -> Iterator[TestClient]:
-    """A TestClient with DB and storage dependencies overridden."""
+def secret_store(tmp_path: Path) -> SecretStore:
+    """An encrypted local secret store rooted under the test's tmp_path."""
+    return LocalEncryptedSecretStore(tmp_path / "secrets", b"test-master-key")
+
+
+@pytest.fixture
+def client(
+    engine: Engine, storage: LocalObjectStorage, secret_store: SecretStore
+) -> Iterator[TestClient]:
+    """A TestClient with DB, storage, and secret-store dependencies overridden."""
     testing_session = sessionmaker(bind=engine)
 
     def override_session() -> Iterator[Session]:
@@ -49,6 +59,7 @@ def client(engine: Engine, storage: LocalObjectStorage) -> Iterator[TestClient]:
 
     app.dependency_overrides[get_session] = override_session
     app.dependency_overrides[get_storage] = lambda: storage
+    app.dependency_overrides[get_secret_store_dep] = lambda: secret_store
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

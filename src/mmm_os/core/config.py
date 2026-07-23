@@ -56,6 +56,25 @@ class Settings(BaseSettings):
     # Dev default is the Next.js dev server; tighten per environment.
     cors_allow_origins: str = "http://localhost:3000"
 
+    # Secrets management (Phase 00.6, CC-12). "local" encrypts secrets on disk under
+    # a key derived from secret_master_key; production swaps to a KMS/vault backend.
+    secrets_backend: str = "local"
+    secrets_local_path: str = "./_secrets"
+    # Dev-only default key material; MUST be overridden via env in any real
+    # deployment (never commit a real key). Used only by the local backend.
+    secret_master_key: str = "dev-insecure-master-key-change-me"
+
+    # Authentication (Phase 00.5, CC-11). When enabled, feature endpoints require a
+    # valid session. Defaults off so the API/tests run unauthenticated in dev; the
+    # Review UI enables it. Session lifetime is in hours.
+    auth_enabled: bool = False
+    session_ttl_hours: int = 12
+    # Seed a default admin on startup (dev convenience). Credentials below.
+    seed_default_admin: bool = True
+    default_admin_email: str = "admin"
+    default_admin_password: str = "admin123"
+    default_tenant_slug: str = "default"
+
     @property
     def cors_origins(self) -> list[str]:
         """Parse ``cors_allow_origins`` into a list of trimmed origins."""

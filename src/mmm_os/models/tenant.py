@@ -23,7 +23,7 @@ class Tenant(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
 
 class User(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):
-    """A user belonging to a tenant. Roles/RBAC are enforced in Phase 8."""
+    """A user belonging to a tenant. Auth lands in Phase 00.5; RBAC in Phase 8."""
 
     __tablename__ = "user"
     __table_args__ = (UniqueConstraint("tenant_id", "email"),)
@@ -31,3 +31,9 @@ class User(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):
     email: Mapped[str] = mapped_column(String(320), nullable=False)
     display_name: Mapped[str | None] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(50), nullable=False, default="member")
+
+    # Authentication (Phase 00.5). Password is stored as a PBKDF2 hash + salt;
+    # the plaintext is never persisted. Nullable so pre-auth rows remain valid.
+    password_hash: Mapped[str | None] = mapped_column(String(255))
+    password_salt: Mapped[str | None] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="active")
