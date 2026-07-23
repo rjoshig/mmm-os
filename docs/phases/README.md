@@ -41,7 +41,7 @@ until scoped.
 | 11 | 7 | [phase-07](./phase-07-multitenancy-async-scale.md) | Queue abstraction + per-tenant fairness + batch fan-out + idempotency + isolation tests (Celery+Redis = prod backend). | all above | Done |
 | 12 | 07.1 | [phase-07.1](./phase-07.1-observability-monitoring.md) | Observability: metrics registry + structured context (CC-7); prod backend exports the same signals. | 7 | Done |
 | 13 | 07.2 | [phase-07.2](./phase-07.2-resilience-error-handling.md) | Resilience: retry/backoff, circuit breaker; queue bounded retries + DLQ (CC-6). | 7 | Done |
-| 14 | 8 | [phase-08](./phase-08-governance-security.md) | RBAC + audit log + admin API; in-transit encryption + admin UI deferred. | 7 | Done |
+| 14 | 8 | [phase-08](./phase-08-governance-security.md) | RBAC + audit log + admin API + admin console UI; in-transit encryption deferred. | 7 | Done |
 | 15 | 08.1 | [phase-08.1](./phase-08.1-compliance-controls.md) | Access review + least-privilege self-check + controls matrix. | 8, 00.5, 00.6 | Done |
 | 16 | 9 (+09.1–09.8) | [phase-09](./phase-09-future-connectors-extraction.md) | Partner data connectors (SFTP + Meta/Google Ads/DV360/TikTok), full framework with mock partner clients; PDF/email extraction deferred. | 0–8 (+ Phase 1 seam) | Done (connectors); PDF/email Deferred |
 | 17 | 10 | [phase-10](./phase-10-data-governance-retention.md) | Data governance & retention, backup/DR, erasure, residency, PII posture. | 0–8 | Spec-only |

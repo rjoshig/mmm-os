@@ -1,6 +1,6 @@
 # Phase 8 — Governance & Security
 
-**Depends on:** Phase 7 · **Status:** Done (RBAC + audit log + admin API; encryption-in-transit + admin UI deferred) — pending PR merge.
+**Depends on:** Phase 7 · **Status:** Done (RBAC + audit log + admin API + admin UI; encryption-in-transit deferred).
 
 > **Delivered:** a deny-by-default role→permission matrix + `require_permission`
 > (P8-1/P8-4); an append-only `audit_log` wired to logins, mapping/rule saves,

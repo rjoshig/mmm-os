@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, Layers, LogOut } from "lucide-react";
+import { LayoutDashboard, Layers, LogOut, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -10,11 +10,15 @@ import { cn } from "@/lib/utils";
 
 const NAV = [{ href: "/", label: "Dashboard", icon: LayoutDashboard }];
 
+// Admin-only nav; the backend still enforces Permission.ADMIN on every call.
+const ADMIN_NAV = [{ href: "/admin", label: "Admin", icon: ShieldCheck }];
+
 /** App shell sidebar: brand, primary nav, signed-in user + logout, theme toggle. */
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const principal = getStoredPrincipal();
+  const nav = principal?.role === "admin" ? [...NAV, ...ADMIN_NAV] : NAV;
 
   async function onLogout() {
     try {
@@ -39,7 +43,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 px-2 py-2">
-        {NAV.map(({ href, label, icon: Icon }) => {
+        {nav.map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
             <Link

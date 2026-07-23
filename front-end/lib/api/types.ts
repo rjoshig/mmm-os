@@ -201,6 +201,32 @@ export interface RuleSetRead {
   rules: RuleSpecIn[];
 }
 
+// --- Governance / admin (Phase 8 / 08.1) ---
+export interface UserRead {
+  id: Uuid;
+  email: string;
+  display_name: string | null;
+  role: string;
+  status: string;
+}
+
+export interface AuditEntryRead {
+  id: Uuid;
+  actor_user_id: Uuid | null;
+  action: string;
+  target_type: string | null;
+  target_id: string | null;
+  detail: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface AccessReviewRow {
+  user_id: Uuid;
+  email: string;
+  role: string;
+  permissions: string[];
+}
+
 // --- Validation ---
 export interface FlagRead {
   id: Uuid;

@@ -6,6 +6,8 @@
 
 import type {
   AcceptResponse,
+  AccessReviewRow,
+  AuditEntryRead,
   AutoMapResponse,
   CanonicalFieldsResponse,
   FileDetail,
@@ -23,6 +25,7 @@ import type {
   SheetRowsResponse,
   SuggestionRead,
   SuggestMappingResponse,
+  UserRead,
   ValidateResponse,
 } from "@/lib/api/types";
 import { clearSession, getToken } from "@/lib/session";
@@ -162,4 +165,9 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ status }),
     }),
+
+  // --- Governance / admin (admin-only; backend enforces Permission.ADMIN) ---
+  listUsers: () => request<UserRead[]>(tenantPath("/users")),
+  auditLog: (limit = 100) => request<AuditEntryRead[]>(tenantPath(`/audit-log?limit=${limit}`)),
+  accessReview: () => request<AccessReviewRow[]>(tenantPath("/access-review")),
 };
