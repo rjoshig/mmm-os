@@ -1,6 +1,6 @@
 # Phase 6 — Review UI (Next.js)
 
-**Depends on:** Phases 2–5 (+ **00.5 auth**, per the build order) · **Status:** Done (all sub-phases implemented; pending PR merge); **UX overhaul in progress (Cycle 1)** — see "UX overhaul" below.
+**Depends on:** Phases 2–5 (+ **00.5 auth**, per the build order) · **Status:** Done (all sub-phases implemented; pending PR merge); **UX overhaul (Cycle 1) complete** — see "UX overhaul" below.
 
 The UI shell is scaffolded during repo initialization; feature screens land here.
 All UI MUST match the design language in [`../../front-end/CLAUDE.md`](../../front-end/CLAUDE.md).
@@ -61,10 +61,10 @@ confirm mappings, tune transformations, and resolve validation flags —
 - A user can run the full pipeline from the file-detail screen and see clean output
   generated (or a per-sheet "needs mapping" / "blocked" status).
 
-## UX overhaul (Cycle 1 — in progress)
+## UX overhaul (Cycle 1 — complete)
 
 The platform is being upgraded from an interactive MVP to an enterprise UX (see
-`~/.claude/plans/ok-so-yes-i-swift-micali.md`). Cycle 1 deliverables landing in
+`~/.claude/plans/ok-so-yes-i-swift-micali.md`). Cycle 1 deliverables, all landed in
 Phase 6:
 
 - ✅ **Pipeline stepper** (`components/pipeline-stepper.tsx`) + `pipeline-status`
@@ -78,8 +78,17 @@ Phase 6:
   via new `GET`/`POST /sheets/{sheet_id}/rule-set` endpoints — so a rule set saved on one
   sheet is reused by any file with identical headers ("configure once, reuse forever").
   Backend `resolve_rule_specs`/output/validation/pipeline-status all resolve by signature.
-- ⏳ **Clustered validation flags** with bulk resolve + data-quality score.
-- ⏳ **Guided add-source wizard** + design-system polish (skeletons, toasts).
+- ✅ **Clustered validation flags** + bulk resolve + data-quality score: flags are
+  grouped by check + field into clusters ("3 rows: missing 'channel'"), each
+  bulk-resolvable in one call (`POST /jobs/{job_id}/validation-flags/bulk-review`)
+  or expandable for per-row review; a severity-weighted **data-quality score** header
+  rises as clusters are cleared. (Per-flag AI remediation lands in Cycle 4.)
+- ✅ **Guided add-source wizard** + design-system polish: a modal
+  `onboarding/add-source-wizard.tsx` sequences upload → detect structure → review
+  detected sheets → jump into mapping, replacing the bare file input; new shared
+  primitives `ui/toast.tsx` (app-wide `ToastProvider`/`useToast`), `ui/skeleton.tsx`
+  (+`TableSkeleton`), and `ui/dialog.tsx`. Dashboard uses a table skeleton while
+  loading; save/generate/bulk-resolve actions confirm via toast.
 
 ## Dependencies
 

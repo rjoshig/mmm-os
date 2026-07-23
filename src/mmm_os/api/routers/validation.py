@@ -20,6 +20,8 @@ from mmm_os.mapping.signature import column_signature
 from mmm_os.models import Job
 from mmm_os.models.enums import ReviewStatus
 from mmm_os.schemas.validation import (
+    BulkReviewRequest,
+    BulkReviewResponse,
     FlagRead,
     ReviewRequest,
     ValidateRequest,
@@ -30,7 +32,12 @@ from mmm_os.transform.engine import apply_rules
 from mmm_os.transform.registry import RuleContext
 from mmm_os.transform.service import resolve_rule_specs, rule_set_name_for_sheet
 from mmm_os.validation.policy import Policy
-from mmm_os.validation.service import list_flags, review_flag, run_validation
+from mmm_os.validation.service import (
+    list_flags,
+    review_flag,
+    review_flags_bulk,
+    run_validation,
+)
 
 router = APIRouter(prefix="/api/v1", tags=["validation"])
 
@@ -219,3 +226,52 @@ def review(
     )
     session.commit()
     return FlagRead.model_validate(flag)
+
+
+@router.post(
+    "/tenants/{tenant_id}/jobs/{job_id}/validation-flags/bulk-review",
+    response_model=BulkReviewResponse,
+)
+def bulk_review(
+    tenant_id: uuid.UUID,
+    job_id: uuid.UUID,
+    body: BulkReviewRequest,
+    session: Session = Depends(get_session),
+    principal: Principal | None = Depends(require_auth),
+) -> BulkReviewResponse:
+    """Apply one review decision to a cluster of a job's flags in one call.
+
+    The UI groups similar flags (same check + field) into clusters; this resolves
+    the whole cluster at once (Cycle-1 bulk resolve). Ids that do not belong to the
+    job are ignored, so a stale client list can never touch another job's flags.
+
+    Raises:
+        HTTPException: 400 for an invalid status; 404 if the job is not found.
+    """
+    if body.status not in _REVIEW_STATES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=f"invalid status: {body.status!r}"
+        )
+    job = session.scalar(tenant_scoped_select(Job, tenant_id).where(Job.id == job_id))
+    if job is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="job not found")
+
+    updated = review_flags_bulk(
+        session,
+        tenant_id=tenant_id,
+        job_id=job_id,
+        flag_ids=body.flag_ids,
+        status=body.status,
+        resolved_by=body.resolved_by,
+    )
+    record_audit(
+        session,
+        tenant_id=tenant_id,
+        action="flag.bulk_review",
+        principal=principal,
+        target_type="job",
+        target_id=str(job_id),
+        detail={"status": body.status, "count": len(updated)},
+    )
+    session.commit()
+    return BulkReviewResponse(updated=[FlagRead.model_validate(f) for f in updated])

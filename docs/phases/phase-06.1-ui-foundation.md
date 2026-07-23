@@ -12,7 +12,9 @@ primitives (ADR-009), a typed API client, the tenant/auth seam, the app shell
 ## Scope
 
 - **In:** `components/ui/*` primitives (Card, Badge, Button, Table, PageHeader,
-  StatCard, EmptyState); `lib/api/*` (typed fetch client + response types);
+  StatCard, EmptyState; + Cycle-1: `toast` (`ToastProvider`/`useToast`), `skeleton`
+  (+`TableSkeleton`), `dialog`, `searchable-select`) and the
+  `onboarding/add-source-wizard`; `lib/api/*` (typed fetch client + response types);
   `lib/tenant.ts` (auth seam); sidebar + layout; backend GET/list routes.
 - **Out:** the feature screens themselves (06.2–06.5).
 

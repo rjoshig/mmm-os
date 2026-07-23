@@ -45,3 +45,22 @@ class ReviewRequest(BaseModel):
 
     status: str = Field(description="acknowledged | resolved | overridden")
     resolved_by: uuid.UUID | None = None
+
+
+class BulkReviewRequest(BaseModel):
+    """Request to apply one review decision to many flags at once (a cluster).
+
+    Callers pass explicit flag ids (the UI groups flags into clusters by
+    ``location.check`` + field), so the endpoint stays dialect-agnostic — no
+    JSON-column filtering — and the client controls the grouping.
+    """
+
+    flag_ids: list[uuid.UUID] = Field(min_length=1)
+    status: str = Field(description="acknowledged | resolved | overridden")
+    resolved_by: uuid.UUID | None = None
+
+
+class BulkReviewResponse(BaseModel):
+    """Result of a bulk review: the updated flags (only those found for the job)."""
+
+    updated: list[FlagRead]

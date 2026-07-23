@@ -1,12 +1,14 @@
 "use client";
 
-import { AlertTriangle, FileSpreadsheet, Layers, Upload } from "lucide-react";
+import { AlertTriangle, FileSpreadsheet, Layers, Plus } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { AddSourceWizard } from "@/components/onboarding/add-source-wizard";
 import { Badge, statusVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { EmptyState, ErrorBanner, Loading } from "@/components/ui/feedback";
+import { EmptyState, ErrorBanner } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
+import { TableSkeleton } from "@/components/ui/skeleton";
 import { StatCard } from "@/components/ui/stat-card";
 import { Table, TD, TH, THead, TR } from "@/components/ui/table";
 import { api, ApiError } from "@/lib/api/client";
@@ -16,8 +18,7 @@ import { formatBytes, formatDateTime } from "@/lib/format";
 export default function DashboardPage() {
   const [items, setItems] = useState<FileListItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const fileInput = useRef<HTMLInputElement>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -33,47 +34,26 @@ export default function DashboardPage() {
     void load();
   }, [load]);
 
-  async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const { file: created } = await api.uploadFile(file);
-      await api.processFile(created.id);
-      await load();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Upload failed.");
-    } finally {
-      setBusy(false);
-      if (fileInput.current) fileInput.current.value = "";
-    }
-  }
-
   const needsAttention = (items ?? []).filter(
     (i) => i.needs_review_sheets > 0 || i.latest_job_status === "failed"
   ).length;
 
   return (
     <div className="space-y-6">
+      <AddSourceWizard
+        open={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+        onCompleted={load}
+      />
       <PageHeader
         eyebrow="Review UI"
         title="Dashboard"
         description="Upload marketing data files, then map, transform, and validate them into clean, model-ready output."
         actions={
-          <>
-            <input
-              ref={fileInput}
-              type="file"
-              accept=".csv,.xlsx"
-              className="hidden"
-              onChange={onUpload}
-            />
-            <Button onClick={() => fileInput.current?.click()} disabled={busy}>
-              <Upload className="h-4 w-4" />
-              {busy ? "Uploading…" : "Upload file"}
-            </Button>
-          </>
+          <Button onClick={() => setWizardOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Add source
+          </Button>
         }
       />
 
@@ -99,16 +79,16 @@ export default function DashboardPage() {
       {error ? <ErrorBanner message={error} /> : null}
 
       {items === null ? (
-        <Loading label="Loading files…" />
+        <TableSkeleton rows={5} cols={6} />
       ) : items.length === 0 ? (
         <EmptyState
           icon={<FileSpreadsheet className="h-6 w-6" />}
-          title="No files yet"
-          description="Upload a CSV or XLSX to start the ingest → map → transform → validate flow."
+          title="No sources yet"
+          description="Add a CSV or XLSX to start the ingest → map → transform → validate flow."
           action={
-            <Button onClick={() => fileInput.current?.click()} disabled={busy}>
-              <Upload className="h-4 w-4" />
-              Upload file
+            <Button onClick={() => setWizardOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Add source
             </Button>
           }
         />

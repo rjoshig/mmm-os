@@ -244,6 +244,10 @@ export interface ValidateResponse {
   flags: FlagRead[];
 }
 
+export interface BulkReviewResponse {
+  updated: FlagRead[];
+}
+
 export interface GenerateOutputResponse {
   job_id: Uuid;
   file_id: Uuid;

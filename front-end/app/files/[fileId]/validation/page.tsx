@@ -4,11 +4,13 @@ import { ArrowLeft, Download, Play, ShieldAlert, ShieldCheck } from "lucide-reac
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { Badge, statusVariant } from "@/components/ui/badge";
+import { DataQualityScore } from "@/components/data-quality-score";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorBanner, Loading } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, TD, TH, THead, TR } from "@/components/ui/table";
+import { useToast } from "@/components/ui/toast";
+import { FlagClusters } from "@/components/validation/flag-clusters";
 import { api, ApiError } from "@/lib/api/client";
 import type {
   FileDetail,
@@ -17,14 +19,9 @@ import type {
   OutputRowRead,
 } from "@/lib/api/types";
 
-const REVIEW_ACTIONS: { status: string; label: string }[] = [
-  { status: "acknowledged", label: "Acknowledge" },
-  { status: "resolved", label: "Resolve" },
-  { status: "overridden", label: "Override" },
-];
-
 export default function ValidationReviewPage() {
   const { fileId } = useParams<{ fileId: string }>();
+  const toast = useToast();
   const [file, setFile] = useState<FileDetail | null>(null);
   const [flags, setFlags] = useState<FlagRead[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +80,19 @@ export default function ValidationReviewPage() {
     }
   }
 
+  async function onBulkReview(flagIds: string[], status: string) {
+    if (!jobId || flagIds.length === 0) return;
+    try {
+      const { updated } = await api.bulkReviewFlags(jobId, flagIds, status);
+      const byId = new Map(updated.map((f) => [f.id, f]));
+      setFlags((fs) => (fs ?? []).map((f) => byId.get(f.id) ?? f));
+      toast.success(`${status.replace(/^\w/, (c) => c.toUpperCase())} ${updated.length} flag(s).`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Bulk review failed.");
+      toast.error("Bulk review failed.");
+    }
+  }
+
   async function onGenerate(force = false) {
     if (!jobId || !firstSheetId) return;
     setGenerating(true);
@@ -92,8 +102,10 @@ export default function ValidationReviewPage() {
       setOutputSummary(summary);
       const out = await api.getOutput(jobId, 50);
       setOutputRows(out.rows);
+      toast.success(`Generated ${summary.rows_written} clean output row(s).`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Output generation failed.");
+      toast.error("Output generation failed.");
     } finally {
       setGenerating(false);
     }
@@ -175,48 +187,19 @@ export default function ValidationReviewPage() {
           }
         />
       ) : (
-        <Table>
-          <THead>
-            <TR>
-              <TH>Severity</TH>
-              <TH>Issue</TH>
-              <TH>Location</TH>
-              <TH>Status</TH>
-              <TH className="text-right">Review</TH>
-            </TR>
-          </THead>
-          <tbody>
-            {flags.map((f) => (
-              <TR key={f.id}>
-                <TD>
-                  <Badge variant={statusVariant(f.severity)}>{f.severity}</Badge>
-                </TD>
-                <TD className="max-w-md">{f.description}</TD>
-                <TD className="font-mono text-xs text-muted-foreground">
-                  {formatLocation(f.location)}
-                </TD>
-                <TD>
-                  <Badge variant={statusVariant(f.review_status)}>{f.review_status}</Badge>
-                </TD>
-                <TD>
-                  <div className="flex justify-end gap-1">
-                    {REVIEW_ACTIONS.map((a) => (
-                      <Button
-                        key={a.status}
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onReview(f.id, a.status)}
-                        disabled={f.review_status === a.status}
-                      >
-                        {a.label}
-                      </Button>
-                    ))}
-                  </div>
-                </TD>
-              </TR>
-            ))}
-          </tbody>
-        </Table>
+        <div className="space-y-4">
+          <DataQualityScore flags={flags} />
+          <div>
+            <h2 className="mb-2 text-sm font-semibold">
+              Issues grouped by type ({flags.length} flag{flags.length === 1 ? "" : "s"})
+            </h2>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Similar flags are clustered so you can resolve a whole group at once. Expand a group
+              to review individual rows.
+            </p>
+            <FlagClusters flags={flags} onBulkReview={onBulkReview} onReview={onReview} />
+          </div>
+        </div>
       )}
 
       {outputRows ? (
@@ -264,12 +247,4 @@ function OutputPreview({ rows }: { rows: OutputRowRead[] }) {
       </tbody>
     </Table>
   );
-}
-
-function formatLocation(loc: Record<string, unknown>): string {
-  const parts: string[] = [];
-  if (loc.field != null) parts.push(`field=${String(loc.field)}`);
-  if (loc.row != null) parts.push(`row=${String(loc.row)}`);
-  if (loc.column != null) parts.push(`col=${String(loc.column)}`);
-  return parts.length ? parts.join(" ") : "—";
 }

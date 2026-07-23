@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorBanner, Loading } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, TD, TH, THead, TR } from "@/components/ui/table";
+import { useToast } from "@/components/ui/toast";
 import { api, ApiError } from "@/lib/api/client";
 import type { PreviewResponse, RuleSpecIn, SheetDetail } from "@/lib/api/types";
 
@@ -24,6 +25,7 @@ function toSpec(rule: UiRule, order: number): RuleSpecIn {
 
 export default function TransformBuilderPage() {
   const { sheetId } = useParams<{ sheetId: string }>();
+  const toast = useToast();
   const [sheet, setSheet] = useState<SheetDetail | null>(null);
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [rules, setRules] = useState<UiRule[]>([]);
@@ -106,8 +108,10 @@ export default function TransformBuilderPage() {
         `Saved rule set (v${res.version}, ${res.rules.length} rule(s)). ` +
           "Reused automatically by any file with these same columns."
       );
+      toast.success(`Saved rule set v${res.version}.`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Save failed.");
+      toast.error("Could not save the rule set.");
     } finally {
       setSaving(false);
     }

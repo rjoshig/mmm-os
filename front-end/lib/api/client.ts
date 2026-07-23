@@ -9,6 +9,7 @@ import type {
   AccessReviewRow,
   AuditEntryRead,
   AutoMapResponse,
+  BulkReviewResponse,
   CanonicalFieldsResponse,
   FileDetail,
   FileListItem,
@@ -203,6 +204,12 @@ export const api = {
     request<FlagRead>(tenantPath(`/validation-flags/${flagId}/review`), {
       method: "POST",
       body: JSON.stringify({ status }),
+    }),
+  // Apply one review decision to a whole cluster of a job's flags in one call.
+  bulkReviewFlags: (jobId: string, flagIds: string[], status: string) =>
+    request<BulkReviewResponse>(tenantPath(`/jobs/${jobId}/validation-flags/bulk-review`), {
+      method: "POST",
+      body: JSON.stringify({ flag_ids: flagIds, status }),
     }),
 
   // --- Governance / admin (admin-only; backend enforces Permission.ADMIN) ---

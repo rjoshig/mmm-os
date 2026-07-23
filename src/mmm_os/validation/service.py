@@ -108,6 +108,50 @@ def review_flag(
     return flag
 
 
+def review_flags_bulk(
+    session: Session,
+    *,
+    tenant_id: uuid.UUID,
+    job_id: uuid.UUID,
+    flag_ids: Sequence[uuid.UUID],
+    status: str,
+    resolved_by: uuid.UUID | None = None,
+) -> list[ValidationFlag]:
+    """Apply one review decision to many flags of a job in a single transaction.
+
+    Only flags that belong to ``job_id`` for this tenant and appear in ``flag_ids``
+    are updated; unknown or cross-job ids are silently ignored. Used to resolve a
+    whole cluster of similar flags at once (P4-5, Cycle-1 bulk resolve).
+
+    Args:
+        session: The database session.
+        tenant_id: The owning tenant.
+        job_id: The job the flags must belong to.
+        flag_ids: The flags to review.
+        status: The new review status (acknowledged/resolved/overridden).
+        resolved_by: The user id resolving/overriding (recorded with the time).
+
+    Returns:
+        The updated flags (in no particular order).
+    """
+    wanted = set(flag_ids)
+    flags = session.scalars(
+        tenant_scoped_select(ValidationFlag, tenant_id)
+        .where(ValidationFlag.job_id == job_id)
+        .where(ValidationFlag.id.in_(wanted))
+    ).all()
+    now = utcnow()
+    updated: list[ValidationFlag] = []
+    for flag in flags:
+        flag.review_status = status
+        if status in _RESOLVED_STATES:
+            flag.resolved_by = resolved_by
+            flag.resolved_at = now
+        updated.append(flag)
+    session.flush()
+    return updated
+
+
 def list_flags(
     session: Session, tenant_id: uuid.UUID, job_id: uuid.UUID
 ) -> Sequence[ValidationFlag]:
