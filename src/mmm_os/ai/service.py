@@ -14,12 +14,18 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from mmm_os.ai.config import LLMConfig
-from mmm_os.ai.suggestions import MappingSuggestion
+from mmm_os.ai.suggestions import MappingSuggestion, RuleSuggestion
 from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.mapping.service import resolve_mapping, save_sheet_mapping
 from mmm_os.mapping.signature import column_signature
 from mmm_os.models import Profile, Sheet, Suggestion
-from mmm_os.models.enums import SuggestionKind, SuggestionState
+from mmm_os.models.enums import RuleLayer, SuggestionKind, SuggestionState
+from mmm_os.transform.service import (
+    resolve_rule_specs,
+    rule_set_name_for_sheet,
+    save_rule_set_with_rules,
+)
+from mmm_os.transform.types import RuleSpec
 
 
 def disposition(confidence: float, config: LLMConfig) -> str:
@@ -93,6 +99,69 @@ def persist_mapping_suggestions(
     return records
 
 
+def persist_transform_suggestions(
+    session: Session,
+    *,
+    tenant_id: uuid.UUID,
+    sheet_id: uuid.UUID,
+    suggestions: list[RuleSuggestion],
+    config: LLMConfig,
+) -> list[Suggestion]:
+    """Persist AI transform-rule suggestions as pending, with confidence (Cycle 4)."""
+    records: list[Suggestion] = []
+    for suggestion in suggestions:
+        record = Suggestion(
+            tenant_id=tenant_id,
+            kind=SuggestionKind.TRANSFORM_RULE.value,
+            payload={
+                "sheet_id": str(sheet_id),
+                "target_field": suggestion.target_field,
+                "operation": suggestion.operation,
+                "params": suggestion.params,
+                "disposition": disposition(suggestion.confidence, config),
+            },
+            confidence=suggestion.confidence,
+            rationale=suggestion.rationale,
+            state=SuggestionState.PENDING.value,
+        )
+        session.add(record)
+        records.append(record)
+    session.flush()
+    return records
+
+
+def _accept_transform_rule(
+    session: Session, tenant_id: uuid.UUID, payload: dict[str, Any]
+) -> int | None:
+    """Append an accepted rule to the sheet's signature-scoped rule set; return version."""
+    sheet = session.scalar(
+        tenant_scoped_select(Sheet, tenant_id).where(
+            Sheet.id == uuid.UUID(str(payload["sheet_id"]))
+        )
+    )
+    if sheet is None or not payload.get("operation"):
+        return None
+    name = rule_set_name_for_sheet(sheet)
+    specs = resolve_rule_specs(session, tenant_id, name)
+    specs.append(
+        RuleSpec(
+            target_field=str(payload.get("target_field", "")),
+            operation=str(payload["operation"]),
+            params=dict(payload.get("params", {})),
+            order=len(specs),
+            layer=RuleLayer.CUSTOMER.value,
+        )
+    )
+    rule_set = save_rule_set_with_rules(
+        session,
+        tenant_id=tenant_id,
+        name=name,
+        layer=RuleLayer.CUSTOMER.value,
+        specs=specs,
+    )
+    return rule_set.version
+
+
 def _get_suggestion(
     session: Session, tenant_id: uuid.UUID, suggestion_id: uuid.UUID
 ) -> Suggestion | None:
@@ -137,6 +206,8 @@ def accept_suggestion(
                 session, tenant_id=tenant_id, sheet=sheet, name="ai-accepted", mapping=merged
             )
             version = config.version
+    elif suggestion.kind == SuggestionKind.TRANSFORM_RULE.value:
+        version = _accept_transform_rule(session, tenant_id, suggestion.payload)
 
     suggestion.state = SuggestionState.ACCEPTED.value
     session.flush()

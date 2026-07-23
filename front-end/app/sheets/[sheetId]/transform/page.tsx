@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Plus, Save } from "lucide-react";
+import { ArrowLeft, Plus, Save, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Table, TD, TH, THead, TR } from "@/components/ui/table";
 import { useToast } from "@/components/ui/toast";
 import { api, ApiError } from "@/lib/api/client";
-import type { PreviewResponse, RuleSpecIn, SheetDetail } from "@/lib/api/types";
+import type { PreviewResponse, RuleSpecIn, SheetDetail, SuggestionRead } from "@/lib/api/types";
 
 let ruleSeq = 0;
 function newRule(): UiRule {
@@ -37,6 +37,52 @@ export default function TransformBuilderPage() {
 
   const columns = useMemo(() => (sheet?.sheet.columns ?? []).map((c) => c.name), [sheet]);
   const [ruleSetVersion, setRuleSetVersion] = useState<number | null>(null);
+  const [aiSuggestions, setAiSuggestions] = useState<SuggestionRead[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  async function onSuggestAi() {
+    setAiLoading(true);
+    setError(null);
+    try {
+      const res = await api.suggestTransforms(sheetId);
+      setAiSuggestions(res.suggestions);
+      toast.success(
+        res.suggestions.length
+          ? `${res.suggestions.length} AI suggestion(s).`
+          : "No transform suggestions — data looks clean."
+      );
+    } catch (err) {
+      const msg =
+        err instanceof ApiError && err.isLlmDisabled
+          ? "AI is disabled — set LLM_ENABLED on the backend to use suggestions."
+          : err instanceof ApiError
+            ? err.message
+            : "Could not get AI suggestions.";
+      toast.error(msg);
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  function addSuggestion(s: SuggestionRead) {
+    ruleSeq += 1;
+    const p = s.payload as { operation?: string; target_field?: string; params?: Record<string, unknown> };
+    setRules((rs) => [
+      ...rs,
+      {
+        id: `r${ruleSeq}`,
+        operation: String(p.operation ?? "normalize_text"),
+        target_field: String(p.target_field ?? ""),
+        params: p.params ?? {},
+      },
+    ]);
+    setAiSuggestions((list) => list.filter((x) => x.id !== s.id));
+    toast.success("Rule added to the builder — review and save.");
+  }
+
+  function dismissSuggestion(id: string) {
+    setAiSuggestions((list) => list.filter((x) => x.id !== id));
+  }
 
   useEffect(() => {
     (async () => {
@@ -138,6 +184,10 @@ export default function TransformBuilderPage() {
         }
         actions={
           <>
+            <Button variant="outline" onClick={onSuggestAi} disabled={aiLoading}>
+              <Sparkles className="h-4 w-4" />
+              {aiLoading ? "Thinking…" : "Suggest with AI"}
+            </Button>
             <Button variant="outline" onClick={() => setRules((r) => [...r, newRule()])}>
               <Plus className="h-4 w-4" /> Add rule
             </Button>
@@ -161,6 +211,42 @@ export default function TransformBuilderPage() {
       ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="space-y-3">
+            {aiSuggestions.length > 0 ? (
+              <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Sparkles className="h-4 w-4 text-primary" /> AI suggestions
+                </div>
+                {aiSuggestions.map((s) => {
+                  const p = s.payload as { operation?: string; target_field?: string };
+                  return (
+                    <div key={s.id} className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="font-mono text-xs">
+                        {String(p.operation)}
+                        {p.target_field ? ` · ${p.target_field}` : ""}
+                      </span>
+                      {s.confidence != null ? (
+                        <span className="text-xs text-muted-foreground">
+                          {Math.round(s.confidence * 100)}%
+                        </span>
+                      ) : null}
+                      {s.rationale ? (
+                        <span className="min-w-0 truncate text-xs text-muted-foreground">
+                          {s.rationale}
+                        </span>
+                      ) : null}
+                      <div className="ml-auto flex gap-1">
+                        <Button size="sm" variant="outline" onClick={() => addSuggestion(s)}>
+                          Add
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => dismissSuggestion(s.id)}>
+                          Dismiss
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
             <h2 className="text-sm font-semibold">Rules</h2>
             {rules.length === 0 ? (
               <EmptyState

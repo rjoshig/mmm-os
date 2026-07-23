@@ -154,6 +154,11 @@ export const api = {
     request<SuggestMappingResponse>(tenantPath(`/sheets/${sheetId}/suggest-mapping`), {
       method: "POST",
     }),
+  suggestTransforms: (sheetId: string, remediate = false) =>
+    request<SuggestMappingResponse>(
+      tenantPath(`/sheets/${sheetId}/suggest-transforms?remediate=${remediate}`),
+      { method: "POST" }
+    ),
   listSuggestions: (sheetId: string) =>
     request<SuggestionRead[]>(tenantPath(`/sheets/${sheetId}/suggestions`)),
   acceptSuggestion: (suggestionId: string) =>

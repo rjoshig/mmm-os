@@ -10,6 +10,7 @@ import {
   Play,
   ShieldAlert,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -92,6 +93,29 @@ export default function ValidationReviewPage() {
     }
   }
 
+  async function onSuggestFixes() {
+    const firstSheet = file?.sheets[0];
+    if (!firstSheet) return;
+    try {
+      const res = await api.suggestTransforms(firstSheet.id, true);
+      if (res.suggestions.length) {
+        toast.success(
+          `${res.suggestions.length} AI fix(es) proposed — open the transform builder to apply.`
+        );
+      } else {
+        toast.info("No AI fixes proposed for the current issues.");
+      }
+    } catch (err) {
+      const msg =
+        err instanceof ApiError && err.isLlmDisabled
+          ? "AI is disabled — set LLM_ENABLED on the backend."
+          : err instanceof ApiError
+            ? err.message
+            : "Could not get AI fixes.";
+      toast.error(msg);
+    }
+  }
+
   async function onBulkReview(flagIds: string[], status: string) {
     if (!jobId || flagIds.length === 0) return;
     try {
@@ -146,6 +170,12 @@ export default function ValidationReviewPage() {
         actions={
           jobId ? (
             <div className="flex items-center gap-2">
+              {(flags ?? []).length > 0 ? (
+                <Button variant="outline" onClick={onSuggestFixes}>
+                  <Sparkles className="h-4 w-4" />
+                  Suggest fixes (AI)
+                </Button>
+              ) : null}
               <Button variant="outline" onClick={onRun} disabled={running}>
                 <Play className="h-4 w-4" />
                 {running ? "Running…" : "Run validation"}

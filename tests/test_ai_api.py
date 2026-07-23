@@ -89,6 +89,47 @@ def test_reject_updates_state(ai_client: TestClient) -> None:
     assert rejected.json()["state"] == "rejected"
 
 
+_TRANSFORM_RESPONSE = (
+    '[{"target_field":"channel","operation":"normalize_text","params":{"lower":true},'
+    '"confidence":0.9,"rationale":"trim/case"},'
+    '{"target_field":"spend","operation":"nope","params":{},"confidence":0.8,"rationale":"x"}]'
+)
+
+
+class FakeTransformLLM:
+    def complete(self, *, system: str, user: str) -> str:
+        return _TRANSFORM_RESPONSE
+
+
+def test_suggest_transforms_persists_and_accept_appends_rule(client: TestClient) -> None:
+    """AI transform suggestions persist (bad ops filtered); accepting appends a rule."""
+    app.dependency_overrides[get_llm_client] = lambda: FakeTransformLLM()
+    try:
+        tenant_id = uuid.uuid4()
+        sheet_id = _sheet_id(client, tenant_id)
+        resp = client.post(f"/api/v1/tenants/{tenant_id}/sheets/{sheet_id}/suggest-transforms")
+        assert resp.status_code == 201, resp.text
+        suggestions = resp.json()["suggestions"]
+        # The invalid "nope" operation is filtered out; only normalize_text remains.
+        assert len(suggestions) == 1
+        assert suggestions[0]["payload"]["operation"] == "normalize_text"
+        assert suggestions[0]["kind"] == "transform_rule"
+
+        accepted = client.post(
+            f"/api/v1/tenants/{tenant_id}/suggestions/{suggestions[0]['id']}/accept"
+        )
+        assert accepted.status_code == 200, accepted.text
+        # Accepting appends the rule to the sheet's rule set (a new version).
+        assert accepted.json()["mapping_config_version"] == 1
+
+        rule_set = client.get(f"/api/v1/tenants/{tenant_id}/sheets/{sheet_id}/rule-set")
+        assert rule_set.status_code == 200, rule_set.text
+        ops = [r["operation"] for r in rule_set.json()["rules"]]
+        assert ops == ["normalize_text"]
+    finally:
+        app.dependency_overrides.pop(get_llm_client, None)
+
+
 def test_suggest_when_disabled_returns_503(client: TestClient) -> None:
     """With the LLM off (default) and no override, suggesting returns 503."""
     tenant_id = uuid.uuid4()

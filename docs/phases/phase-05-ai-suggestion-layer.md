@@ -26,6 +26,7 @@ Accelerate mapping, labelling, structure detection, and anomaly triage with AI
 - **P5-6 Confidence thresholds:** configurable thresholds drive auto-fill-as-pending vs flag-for-review behaviour.
 - **P5-7 Reasoning stored:** every suggestion MUST store its rationale so the review UI can show *why*.
 - **P5-8 Ratification:** accepting a suggestion writes the corresponding **mapping/rule** into the config store (Phases 2/3). AI never writes directly to committed config.
+- **P5-9 Transform-rule suggestions (Cycle 4 — Data-MAITE parity):** propose declarative **transform rules** (normalize_text, map_value, fill_missing, cast_type, parse_date, convert_currency, dedupe) from the column profile, and — with `remediate=true` — from the sheet's **open validation flags** (AI remediation). `POST /sheets/{id}/suggest-transforms`; only allowlisted operations are kept; accepting appends the rule to the sheet's rule set (CC-5). UI: "Suggest with AI" on the transform builder + "Suggest fixes (AI)" on the validation screen — reuses the metered/budgeted LLM path (CC-13).
 
 ## Deliverables
 

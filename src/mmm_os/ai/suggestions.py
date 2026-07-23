@@ -16,6 +16,12 @@ from mmm_os.ai.prompts import (
     mapping_prompt,
     parse_json_response,
     taxonomy_prompt,
+    transform_prompt,
+)
+
+_ALLOWED_OPS = frozenset(
+    {"normalize_text", "map_value", "fill_missing", "cast_type", "parse_date",
+     "convert_currency", "dedupe"}
 )
 
 
@@ -34,6 +40,17 @@ class TaxonomySuggestion:
     """A suggested canonical taxonomy term for raw values."""
 
     canonical_term: str
+    confidence: float
+    rationale: str
+
+
+@dataclass(frozen=True)
+class RuleSuggestion:
+    """A suggested declarative transform rule (Cycle 4)."""
+
+    target_field: str
+    operation: str
+    params: dict[str, Any]
     confidence: float
     rationale: str
 
@@ -84,6 +101,37 @@ class SuggestionService:
             confidence=_as_float(payload.get("confidence")),
             rationale=str(payload.get("rationale", "")),
         )
+
+    def suggest_transform_rules(
+        self,
+        profile_columns: list[dict[str, Any]],
+        canonical_fields: list[str],
+        issues: list[dict[str, Any]] | None = None,
+    ) -> list[RuleSuggestion]:
+        """Suggest declarative transform rules to clean/fix the data (Cycle 4).
+
+        ``issues`` (optional open validation findings) let the model propose
+        *remediation* rules. Only allowlisted operations are returned.
+        """
+        system, user = transform_prompt(profile_columns, canonical_fields, issues)
+        data = parse_json_response(self._client.complete(system=system, user=user))
+        items = data.get("rules", []) if isinstance(data, dict) else data
+        suggestions: list[RuleSuggestion] = []
+        for item in items if isinstance(items, list) else []:
+            operation = str(item.get("operation", ""))
+            if operation not in _ALLOWED_OPS:
+                continue
+            params = item.get("params")
+            suggestions.append(
+                RuleSuggestion(
+                    target_field=str(item.get("target_field", "")),
+                    operation=operation,
+                    params=params if isinstance(params, dict) else {},
+                    confidence=_as_float(item.get("confidence")),
+                    rationale=str(item.get("rationale", "")),
+                )
+            )
+        return suggestions
 
     def explain_anomaly(self, description: str, context: dict[str, Any] | None = None) -> str:
         """Return a plain-language likely-cause explanation for a flag (P5-5)."""

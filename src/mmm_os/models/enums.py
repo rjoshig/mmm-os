@@ -71,6 +71,7 @@ class SuggestionKind(str, Enum):
     TAXONOMY = "taxonomy"
     STRUCTURE = "structure"
     ANOMALY_EXPLANATION = "anomaly_explanation"
+    TRANSFORM_RULE = "transform_rule"
 
 
 class SuggestionState(str, Enum):

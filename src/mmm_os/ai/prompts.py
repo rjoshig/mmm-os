@@ -27,6 +27,37 @@ _ANOMALY_SYSTEM = (
     "You explain data-quality anomalies in one plain-language sentence. Respond "
     'with ONLY a JSON object {"explanation": str}.'
 )
+_TRANSFORM_SYSTEM = (
+    "You are a marketing-data cleaning assistant. Given canonical-keyed column "
+    "profiles and (optionally) open data-quality issues, propose declarative "
+    "transform rules that clean or fix the data. Use ONLY these operations: "
+    "normalize_text, map_value, fill_missing, cast_type, parse_date, "
+    "convert_currency, dedupe. Respond with ONLY a JSON array; each element is "
+    '{"target_field": str, "operation": str, "params": object, '
+    '"confidence": number 0-1, "rationale": str}. Propose only rules you are '
+    "confident about; return [] if the data looks clean."
+)
+
+
+def transform_prompt(
+    profile_columns: list[dict[str, Any]],
+    canonical_fields: list[str],
+    issues: list[dict[str, Any]] | None = None,
+) -> tuple[str, str]:
+    """Build the (system, user) prompt for transform-rule suggestions (Cycle 4).
+
+    ``issues`` (optional) are open validation findings (check + field) so the model
+    can propose *remediation* rules, not just profile-driven cleaning.
+    """
+    user = json.dumps(
+        {
+            "canonical_fields": canonical_fields,
+            "columns": profile_columns,
+            "issues": issues or [],
+        },
+        ensure_ascii=False,
+    )
+    return _TRANSFORM_SYSTEM, user
 
 
 def mapping_prompt(
