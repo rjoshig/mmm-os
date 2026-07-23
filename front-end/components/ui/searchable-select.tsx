@@ -64,7 +64,7 @@ export function SearchableSelect({
       </button>
 
       {open ? (
-        <div className="absolute z-20 mt-1 w-full rounded-md border border-border bg-popover shadow-md">
+        <div className="absolute z-20 mt-1 w-full rounded-md border border-border bg-popover text-popover-foreground shadow-md">
           <div className="flex items-center gap-1.5 border-b border-border px-2">
             <Search className="h-3.5 w-3.5 text-muted-foreground" />
             <input
@@ -100,16 +100,18 @@ export function SearchableSelect({
                   }}
                   className="flex w-full items-center justify-between gap-2 px-2 py-1.5 text-left hover:bg-accent"
                 >
-                  <span className="flex items-center gap-1.5">
+                  <span className="flex min-w-0 items-center gap-1.5">
                     {o.value === value ? (
-                      <Check className="h-3.5 w-3.5 text-primary" />
+                      <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
                     ) : (
-                      <span className="inline-block h-3.5 w-3.5" />
+                      <span className="inline-block h-3.5 w-3.5 shrink-0" />
                     )}
-                    <span>{o.label}</span>
+                    <span className="truncate">{o.label}</span>
                   </span>
                   {o.hint ? (
-                    <span className="text-[11px] text-muted-foreground">{o.hint}</span>
+                    <span className="max-w-[45%] shrink-0 truncate text-[11px] text-muted-foreground">
+                      {o.hint}
+                    </span>
                   ) : null}
                 </button>
               </li>
