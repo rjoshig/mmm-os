@@ -22,18 +22,24 @@ class Control:
     implemented_by: str
 
 
+# Admin-tier roles allowed to hold ``ADMIN`` (Phase 19 adds ``platform_admin`` for
+# customer/tenant management). Any role outside this set holding ADMIN is a violation.
+_ADMIN_TIER_ROLES = frozenset({"admin", "platform_admin"})
+
+
 def verify_least_privilege() -> list[str]:
     """Return any least-privilege violations (empty list = compliant).
 
-    Rules: only ``admin`` may hold ``ADMIN``; every role's permissions must be a
-    subset of ``admin``'s (no role exceeds the superuser).
+    Rules: only admin-tier roles (``admin`` / ``platform_admin``) may hold
+    ``ADMIN``; every role's permissions must be a subset of ``admin``'s (no role
+    exceeds the superuser).
     """
     violations: list[str] = []
     admin_perms = ROLE_PERMISSIONS.get("admin", frozenset())
     for role, perms in ROLE_PERMISSIONS.items():
         if not perms <= admin_perms:
             violations.append(f"role {role!r} holds permissions outside admin's set")
-        if role != "admin" and Permission.ADMIN in perms:
+        if role not in _ADMIN_TIER_ROLES and Permission.ADMIN in perms:
             violations.append(f"non-admin role {role!r} holds ADMIN")
     return violations
 

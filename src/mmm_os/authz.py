@@ -22,12 +22,20 @@ class Permission(str, Enum):
     READ = "read"  # view files, mappings, flags, suggestions
     WRITE_CONFIG = "write_config"  # save mappings / rule sets
     REVIEW = "review"  # accept/reject suggestions; resolve flags
+    APPROVE = "approve"  # publish configs / stacks (Phase 19; author != approver)
     ADMIN = "admin"  # manage users, view audit log
 
 
+# Small, deny-by-default matrix (Phase 19 adds `approver` + `platform_admin`).
+# `platform_admin` mirrors `admin` (full permissions) but is the role intended for
+# cross-customer/tenant management; keeping it a distinct label avoids overloading
+# `admin`. The 08.1 least-privilege self-check requires no role to *exceed* admin —
+# both admin roles equal it, never exceed it.
 ROLE_PERMISSIONS: dict[str, frozenset[Permission]] = {
     "admin": frozenset(Permission),
+    "platform_admin": frozenset(Permission),
     "member": frozenset({Permission.READ, Permission.WRITE_CONFIG, Permission.REVIEW}),
+    "approver": frozenset({Permission.READ, Permission.REVIEW, Permission.APPROVE}),
     "viewer": frozenset({Permission.READ}),
 }
 
