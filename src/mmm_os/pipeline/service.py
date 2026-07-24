@@ -24,6 +24,7 @@ from mmm_os.mapping.signature import column_signature
 from mmm_os.models import File, Job, Sheet
 from mmm_os.models.enums import RuleLayer, Severity
 from mmm_os.output import generate_output, prepare_sheet_rows, record_file_lifecycle
+from mmm_os.services.validation_rule import active_validation_rules
 from mmm_os.storage.base import ObjectStorage
 from mmm_os.validation.service import run_validation
 
@@ -182,6 +183,7 @@ def run_pipeline(
             job_id=job.id,
             table=prepared.rows,
             schema=canonical.schema,
+            rules=active_validation_rules(session, tenant_id),
         )
         # Freshly persisted flags are review_status=open, so blocking severity ⇒ blocked.
         blocked = any(f.severity == Severity.BLOCKING.value for f in flags)

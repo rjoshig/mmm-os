@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 
 from sqlalchemy.orm import Session
 
@@ -11,8 +12,10 @@ from mmm_os.db.scoping import tenant_scoped_select
 from mmm_os.models import Stack, StackRow
 from mmm_os.output.service import list_output_rows
 from mmm_os.services.tenant_settings import reporting_context
+from mmm_os.services.validation_rule import active_validation_rules
 from mmm_os.stack.harmonize import HarmonizationSpec, harmonize_rows
 from mmm_os.transform.types import Table
+from mmm_os.validation.custom import ValidationRuleSpec, run_validation_rules
 from mmm_os.validation.engine import finalize, validate
 from mmm_os.validation.flags import Finding, Flag
 from mmm_os.validation.policy import Policy
@@ -110,16 +113,22 @@ def _taxonomy_completeness(table: Table, canonical: CanonicalConfig) -> list[Fin
 
 
 def validate_panel(
-    table: Table, canonical: CanonicalConfig, policy: Policy | None = None
+    table: Table,
+    canonical: CanonicalConfig,
+    policy: Policy | None = None,
+    rules: Sequence[ValidationRuleSpec] | None = None,
 ) -> list[Flag]:
     """Run cross-source panel validation on an assembled stack (Gold gate, CC-15).
 
     Combines the standard + semantic checks with cross-source panel checks
-    (taxonomy completeness). Returns severity-assigned flags.
+    (taxonomy completeness) and any tenant validation rules. Returns
+    severity-assigned flags.
     """
     active = policy or Policy()
     flags = validate(table, canonical.schema, active)
     flags += finalize(_taxonomy_completeness(table, canonical), active)
+    if rules:
+        flags += run_validation_rules(table, rules)
     return flags
 
 
@@ -154,7 +163,7 @@ def publish_stack(
     if stack is None:
         return None, []
     table = stack_rows_as_dicts(session, tenant_id, stack_id)
-    flags = validate_panel(table, canonical)
+    flags = validate_panel(table, canonical, rules=active_validation_rules(session, tenant_id))
     blocking = [f for f in flags if f.severity == "blocking"]
     if blocking and not force:
         return stack, blocking

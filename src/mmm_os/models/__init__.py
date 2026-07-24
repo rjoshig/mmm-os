@@ -24,6 +24,7 @@ from mmm_os.models.output import OutputRow
 from mmm_os.models.schema_extension import SchemaExtension
 from mmm_os.models.stack import Stack, StackRow
 from mmm_os.models.tenant import Tenant, TenantSettings, User
+from mmm_os.models.validation_rule import ValidationRule
 
 __all__ = [
     "Assignment",
@@ -59,4 +60,5 @@ __all__ = [
     "TenantSettings",
     "User",
     "ValidationFlag",
+    "ValidationRule",
 ]

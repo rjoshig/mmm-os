@@ -14,7 +14,7 @@ from mmm_os.models.enums import ReviewStatus
 from mmm_os.models.mixins import utcnow
 from mmm_os.transform.types import Table
 from mmm_os.validation.anomaly import detect_anomalies
-from mmm_os.validation.custom import run_custom_checks
+from mmm_os.validation.custom import ValidationRuleSpec, run_custom_checks, run_validation_rules
 from mmm_os.validation.engine import finalize, validate
 from mmm_os.validation.flags import Flag
 from mmm_os.validation.policy import Policy, is_blocked
@@ -53,6 +53,7 @@ def run_validation(
     anomaly_measure: str | None = None,
     group_by: str | None = None,
     custom_check_exprs: Sequence[tuple[str, str]] | None = None,
+    rules: Sequence[ValidationRuleSpec] | None = None,
 ) -> tuple[list[ValidationFlag], bool]:
     """Validate records, detect anomalies, persist flags, and report blocking.
 
@@ -67,6 +68,8 @@ def run_validation(
         group_by: Optional dimension to slice anomaly detection by.
         custom_check_exprs: Optional tenant custom checks as ``(name, expression)``
             pairs (Phase 21) evaluated per row via the sandbox.
+        rules: Optional first-class tenant validation rules (Part 3), each carrying
+            its own severity, evaluated per row via the sandbox.
 
     Returns:
         The persisted flags and whether output is blocked (CC — a blocking flag).
@@ -77,6 +80,9 @@ def run_validation(
         flags += finalize(detect_anomalies(table, anomaly_measure, group_by=group_by), active)
     if custom_check_exprs:
         flags += finalize(run_custom_checks(table, custom_check_exprs), active)
+    if rules:
+        # Tenant validation rules carry their own severity (applied directly).
+        flags += run_validation_rules(table, rules)
     records = persist_flags(session, tenant_id, job_id, flags)
     return records, is_blocked(flags)
 
