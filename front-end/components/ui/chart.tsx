@@ -48,7 +48,12 @@ export function SimpleBarChart({
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, bottom: 4, left: 4 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={token("border")} vertical={false} />
-          <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={{ stroke: token("border") }} />
+          <XAxis
+            dataKey="label"
+            tick={AXIS}
+            tickLine={false}
+            axisLine={{ stroke: token("border") }}
+          />
           <YAxis tick={AXIS} tickLine={false} axisLine={false} width={36} allowDecimals={false} />
           <Tooltip
             cursor={{ fill: token("muted") }}
@@ -86,7 +91,10 @@ export function MiniBars({ data, className }: { data: BarDatum[]; className?: st
           <span className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
             <span
               className="block h-full rounded-full"
-              style={{ width: `${(d.value / max) * 100}%`, background: d.color ?? token("primary") }}
+              style={{
+                width: `${(d.value / max) * 100}%`,
+                background: d.color ?? token("primary"),
+              }}
             />
           </span>
           <span className="w-10 text-right tabular-nums">{d.value}</span>

@@ -1,11 +1,12 @@
 "use client";
 
-import { Building2, DatabaseZap, Plus } from "lucide-react";
+import { Building2, Copy, DatabaseZap, Plus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable, type DataColumn } from "@/components/ui/data-table";
 import { Dialog } from "@/components/ui/dialog";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { EmptyState, ErrorBanner } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
 import { TableSkeleton } from "@/components/ui/skeleton";
@@ -25,6 +26,25 @@ export default function CustomersPage() {
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isolationFor, setIsolationFor] = useState<Customer | null>(null);
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [copyTarget, setCopyTarget] = useState("");
+  const [copying, setCopying] = useState(false);
+
+  async function copyConfigs() {
+    if (!copyTarget) return;
+    setCopying(true);
+    try {
+      const res = await api.cloneCustomerConfigs(copyTarget);
+      const total = Object.values(res.counts).reduce((a, b) => a + b, 0);
+      toast.success(`Copied ${total} config item(s) to the target customer.`);
+      setCopyOpen(false);
+      setCopyTarget("");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not copy configs.");
+    } finally {
+      setCopying(false);
+    }
+  }
 
   const load = useCallback(async () => {
     try {
@@ -61,11 +81,18 @@ export default function CustomersPage() {
       ),
       sortKey: (c) => c.tier,
     },
-    { key: "region", header: "Region", cell: (c) => c.region.toUpperCase(), sortKey: (c) => c.region },
+    {
+      key: "region",
+      header: "Region",
+      cell: (c) => c.region.toUpperCase(),
+      sortKey: (c) => c.region,
+    },
     {
       key: "status",
       header: "Status",
-      cell: (c) => <Badge variant={c.status === "active" ? "success" : "warning"}>{c.status}</Badge>,
+      cell: (c) => (
+        <Badge variant={c.status === "active" ? "success" : "warning"}>{c.status}</Badge>
+      ),
       sortKey: (c) => c.status,
     },
     {
@@ -131,11 +158,43 @@ export default function CustomersPage() {
         title="Customers"
         description="Each customer is an isolated workspace (all data tenant-scoped, CC-1). Onboard a customer, then switch into their workspace to connect partners and map files."
         actions={
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="h-4 w-4" /> New customer
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setCopyOpen(true)}>
+              <Copy className="h-4 w-4" /> Copy configs to…
+            </Button>
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="h-4 w-4" /> New customer
+            </Button>
+          </div>
         }
       />
+
+      <Dialog
+        open={copyOpen}
+        onClose={() => setCopyOpen(false)}
+        title="Copy this workspace's configs"
+        description="Clone the active workspace's mappings, rule sets, feed templates, and connector configs (never credentials) into another customer."
+      >
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Target customer</label>
+            <SearchableSelect
+              value={copyTarget}
+              onChange={setCopyTarget}
+              placeholder="Choose a customer"
+              options={(customers ?? []).map((c) => ({ value: c.id, label: c.name, hint: c.slug }))}
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => setCopyOpen(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={copyConfigs} disabled={copying || !copyTarget}>
+              {copying ? "Copying…" : "Copy configs"}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
 
       {error ? <ErrorBanner message={error} /> : null}
 
@@ -208,7 +267,8 @@ function IsolationDialog({
     >
       <div className="space-y-4">
         <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
-          Current: <span className="font-medium">{isSilo ? "Dedicated DB (silo)" : "Shared pool"}</span>
+          Current:{" "}
+          <span className="font-medium">{isSilo ? "Dedicated DB (silo)" : "Shared pool"}</span>
         </div>
         {!isSilo ? (
           <label className="block space-y-1.5">
@@ -220,14 +280,13 @@ function IsolationDialog({
               onChange={(e) => setDbUrl(e.target.value)}
             />
             <span className="text-xs text-muted-foreground">
-              Schema is provisioned automatically. Routing activates when
-              MULTI_DB_ROUTING_ENABLED is on.
+              Schema is provisioned automatically. Routing activates when MULTI_DB_ROUTING_ENABLED
+              is on.
             </span>
           </label>
         ) : (
           <p className="text-sm text-muted-foreground">
-            This customer runs on a dedicated database. You can return it to the shared
-            pool below.
+            This customer runs on a dedicated database. You can return it to the shared pool below.
           </p>
         )}
         {error ? <ErrorBanner message={error} /> : null}

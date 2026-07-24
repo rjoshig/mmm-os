@@ -1,7 +1,8 @@
 "use client";
 
-import { FileStack, Plus, Trash2, Upload } from "lucide-react";
+import { Copy, FileStack, Plus, Trash2, Upload } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { CloneDialog } from "@/components/clone-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable, type DataColumn } from "@/components/ui/data-table";
@@ -23,6 +24,7 @@ export default function FeedsPage() {
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [previewFor, setPreviewFor] = useState<FeedTemplate | null>(null);
+  const [cloneFor, setCloneFor] = useState<FeedTemplate | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -101,6 +103,9 @@ export default function FeedsPage() {
           <Button variant="ghost" size="sm" onClick={() => setPreviewFor(t)}>
             <Upload className="h-4 w-4" /> Test
           </Button>
+          <Button variant="ghost" size="sm" onClick={() => setCloneFor(t)} aria-label="Duplicate">
+            <Copy className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="sm" onClick={() => void remove(t)}>
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -121,6 +126,18 @@ export default function FeedsPage() {
         }}
       />
       <PreviewDialog template={previewFor} onClose={() => setPreviewFor(null)} />
+      {cloneFor && (
+        <CloneDialog
+          open
+          onClose={() => setCloneFor(null)}
+          entityLabel="feed template"
+          currentName={cloneFor.name}
+          onClone={async (opts) => {
+            await api.cloneFeedTemplate(cloneFor.id, { new_name: opts.new_name });
+            void load();
+          }}
+        />
+      )}
       <PageHeader
         eyebrow="Ingestion"
         title="File feeds"
@@ -198,7 +215,10 @@ function NewTemplateDialog({
         expected_columns:
           fmt === "fixed_width"
             ? cleanFields.map((f) => f.name.trim())
-            : expected.split(",").map((c) => c.trim()).filter(Boolean),
+            : expected
+                .split(",")
+                .map((c) => c.trim())
+                .filter(Boolean),
         filename_glob: glob.trim() || null,
       });
       onCreated(t);
@@ -210,11 +230,21 @@ function NewTemplateDialog({
   }
 
   return (
-    <Dialog open={open} onClose={onClose} title="New feed template" description="Describe how this recurring file is laid out.">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title="New feed template"
+      description="Describe how this recurring file is laid out."
+    >
       <div className="space-y-4">
         <label className="block space-y-1.5">
           <span className="text-sm font-medium">Name</span>
-          <input className={inputCls} placeholder="Daily store sales" value={name} onChange={(e) => setName(e.target.value)} />
+          <input
+            className={inputCls}
+            placeholder="Daily store sales"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
         </label>
         <div className="grid grid-cols-2 gap-3">
           <label className="block space-y-1.5">
@@ -226,7 +256,11 @@ function NewTemplateDialog({
             </select>
           </label>
           <label className="flex items-end gap-2 pb-2 text-sm">
-            <input type="checkbox" checked={hasHeader} onChange={(e) => setHasHeader(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={hasHeader}
+              onChange={(e) => setHasHeader(e.target.checked)}
+            />
             <span>File has a header row</span>
           </label>
         </div>
@@ -235,11 +269,21 @@ function NewTemplateDialog({
           <>
             <label className="block space-y-1.5">
               <span className="text-sm font-medium">Delimiter (blank = auto-detect)</span>
-              <input className={inputCls} placeholder="e.g. | or ; or \t" value={delimiter} onChange={(e) => setDelimiter(e.target.value)} />
+              <input
+                className={inputCls}
+                placeholder="e.g. | or ; or \t"
+                value={delimiter}
+                onChange={(e) => setDelimiter(e.target.value)}
+              />
             </label>
             <label className="block space-y-1.5">
               <span className="text-sm font-medium">Expected columns (comma-separated)</span>
-              <input className={inputCls} placeholder="date, store, spend" value={expected} onChange={(e) => setExpected(e.target.value)} />
+              <input
+                className={inputCls}
+                placeholder="date, store, spend"
+                value={expected}
+                onChange={(e) => setExpected(e.target.value)}
+              />
             </label>
           </>
         ) : null}
@@ -249,15 +293,43 @@ function NewTemplateDialog({
             <span className="text-sm font-medium">Fixed-width fields</span>
             {fields.map((f, i) => (
               <div key={i} className="grid grid-cols-[1fr_5rem_5rem_2rem] items-center gap-2">
-                <input className={inputCls} placeholder="column name" value={f.name} onChange={(e) => setField(i, { name: e.target.value })} />
-                <input className={inputCls} type="number" min={0} placeholder="start" value={f.start} onChange={(e) => setField(i, { start: Number(e.target.value) })} />
-                <input className={inputCls} type="number" min={1} placeholder="width" value={f.width} onChange={(e) => setField(i, { width: Number(e.target.value) })} />
-                <button type="button" className="text-muted-foreground hover:text-destructive" onClick={() => setFields((fs) => fs.filter((_, idx) => idx !== i))} aria-label="Remove field">
+                <input
+                  className={inputCls}
+                  placeholder="column name"
+                  value={f.name}
+                  onChange={(e) => setField(i, { name: e.target.value })}
+                />
+                <input
+                  className={inputCls}
+                  type="number"
+                  min={0}
+                  placeholder="start"
+                  value={f.start}
+                  onChange={(e) => setField(i, { start: Number(e.target.value) })}
+                />
+                <input
+                  className={inputCls}
+                  type="number"
+                  min={1}
+                  placeholder="width"
+                  value={f.width}
+                  onChange={(e) => setField(i, { width: Number(e.target.value) })}
+                />
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-destructive"
+                  onClick={() => setFields((fs) => fs.filter((_, idx) => idx !== i))}
+                  aria-label="Remove field"
+                >
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             ))}
-            <Button variant="outline" size="sm" onClick={() => setFields((fs) => [...fs, { name: "", start: 0, width: 1 }])}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFields((fs) => [...fs, { name: "", start: 0, width: 1 }])}
+            >
               <Plus className="h-4 w-4" /> Add field
             </Button>
           </div>
@@ -265,12 +337,19 @@ function NewTemplateDialog({
 
         <label className="block space-y-1.5">
           <span className="text-sm font-medium">Filename match (optional glob)</span>
-          <input className={inputCls} placeholder="sales_*.txt" value={glob} onChange={(e) => setGlob(e.target.value)} />
+          <input
+            className={inputCls}
+            placeholder="sales_*.txt"
+            value={glob}
+            onChange={(e) => setGlob(e.target.value)}
+          />
         </label>
 
         {error ? <ErrorBanner message={error} /> : null}
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
           <Button onClick={create} disabled={saving || !name.trim()}>
             {saving ? "Creating…" : "Create template"}
           </Button>
@@ -280,7 +359,13 @@ function NewTemplateDialog({
   );
 }
 
-function PreviewDialog({ template, onClose }: { template: FeedTemplate | null; onClose: () => void }) {
+function PreviewDialog({
+  template,
+  onClose,
+}: {
+  template: FeedTemplate | null;
+  onClose: () => void;
+}) {
   const [preview, setPreview] = useState<FeedTemplatePreview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -330,7 +415,9 @@ function PreviewDialog({ template, onClose }: { template: FeedTemplate | null; o
           <div className="space-y-2">
             {preview.signature_matches !== null ? (
               <Badge variant={preview.signature_matches ? "success" : "warning"}>
-                {preview.signature_matches ? "Matches expected columns" : "Columns differ from expected"}
+                {preview.signature_matches
+                  ? "Matches expected columns"
+                  : "Columns differ from expected"}
               </Badge>
             ) : null}
             <div className="overflow-x-auto rounded-md border border-border">
@@ -338,7 +425,9 @@ function PreviewDialog({ template, onClose }: { template: FeedTemplate | null; o
                 <thead className="bg-muted/50">
                   <tr>
                     {preview.columns.map((c, i) => (
-                      <th key={i} className="px-2 py-1 text-left font-medium">{c}</th>
+                      <th key={i} className="px-2 py-1 text-left font-medium">
+                        {c}
+                      </th>
                     ))}
                   </tr>
                 </thead>
@@ -346,7 +435,9 @@ function PreviewDialog({ template, onClose }: { template: FeedTemplate | null; o
                   {preview.rows.slice(0, 10).map((row, ri) => (
                     <tr key={ri} className="border-t border-border hover:bg-muted/40">
                       {row.map((cell, ci) => (
-                        <td key={ci} className="px-2 py-1 tabular-nums">{cell ?? ""}</td>
+                        <td key={ci} className="px-2 py-1 tabular-nums">
+                          {cell ?? ""}
+                        </td>
                       ))}
                     </tr>
                   ))}

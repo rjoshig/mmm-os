@@ -83,14 +83,20 @@ export default function StackDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link href="/stacks" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <Link
+        href="/stacks"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
         <ArrowLeft className="h-4 w-4" /> Stacks
       </Link>
 
       <PageHeader
         eyebrow="Model-ready panel (Gold)"
         title={stack.name}
-        description={stack.description ?? "Assembled from cleaned per-source outputs and harmonized across sources."}
+        description={
+          stack.description ??
+          "Assembled from cleaned per-source outputs and harmonized across sources."
+        }
         actions={
           <div className="flex items-center gap-2">
             <Badge variant={statusVariant(stack.lifecycle_status)}>{stack.lifecycle_status}</Badge>
@@ -117,7 +123,8 @@ export default function StackDetailPage() {
         <Card className="border-destructive/40">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-4 w-4" /> Publish blocked — {blocking.length} panel issue(s)
+              <AlertTriangle className="h-4 w-4" /> Publish blocked — {blocking.length} panel
+              issue(s)
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -225,5 +232,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 function fmt(v: number | null): string {
   if (v == null) return "—";
-  return Math.abs(v) >= 1000 ? v.toLocaleString(undefined, { maximumFractionDigits: 0 }) : String(v);
+  return Math.abs(v) >= 1000
+    ? v.toLocaleString(undefined, { maximumFractionDigits: 0 })
+    : String(v);
 }

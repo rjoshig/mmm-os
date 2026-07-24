@@ -99,7 +99,9 @@ export function AssembleStackWizard({
         name: name.trim() || "New stack",
         source_job_ids: [...selected],
         grain,
-        harmonization: Object.keys(valueMap).length ? { value_map: { channel: valueMap } } : undefined,
+        harmonization: Object.keys(valueMap).length
+          ? { value_map: { channel: valueMap } }
+          : undefined,
       });
       success("Stack assembled as a draft.");
       onCreated(stack.id);
@@ -138,7 +140,12 @@ export function AssembleStackWizard({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">Stack name</label>
-              <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="Q1 media panel" />
+              <input
+                className={inputCls}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Q1 media panel"
+              />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">Grain</label>
@@ -160,8 +167,15 @@ export function AssembleStackWizard({
                 </p>
               ) : (
                 jobs.map((j) => (
-                  <label key={j.job.id} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent">
-                    <input type="checkbox" checked={selected.has(j.job.id)} onChange={() => toggle(j.job.id)} />
+                  <label
+                    key={j.job.id}
+                    className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected.has(j.job.id)}
+                      onChange={() => toggle(j.job.id)}
+                    />
                     <span className="flex-1 truncate">{j.filename ?? "file"}</span>
                     <Badge variant="success">{j.job.status}</Badge>
                   </label>
@@ -170,7 +184,9 @@ export function AssembleStackWizard({
             </div>
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+            <Button variant="outline" size="sm" onClick={onClose}>
+              Cancel
+            </Button>
             <Button size="sm" onClick={() => setStep("harmonize")} disabled={selected.size === 0}>
               Next
             </Button>
@@ -202,14 +218,18 @@ export function AssembleStackWizard({
               <div className="text-xs font-medium text-muted-foreground">Accepted mappings</div>
               <div className="flex flex-wrap gap-1.5">
                 {Object.entries(valueMap).map(([raw, canonical]) => (
-                  <Badge key={raw} variant="secondary">{raw} → {canonical}</Badge>
+                  <Badge key={raw} variant="secondary">
+                    {raw} → {canonical}
+                  </Badge>
                 ))}
               </div>
             </div>
           )}
 
           <div className="flex justify-between gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setStep("pick")}>Back</Button>
+            <Button variant="ghost" size="sm" onClick={() => setStep("pick")}>
+              Back
+            </Button>
             <Button size="sm" onClick={create} disabled={busy}>
               {busy ? "Assembling…" : "Assemble stack"}
             </Button>

@@ -7,6 +7,7 @@ import {
   FileDown,
   FileSpreadsheet,
   GitBranch,
+  HardDriveUpload,
   Play,
   ShieldAlert,
   ShieldCheck,
@@ -393,6 +394,23 @@ function ExportToMmm({ jobId }: { jobId: string }) {
   const [contract, setContract] = useState<OutputContract | null>(null);
   const [open, setOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [writing, setWriting] = useState(false);
+
+  async function writeToDestination() {
+    setWriting(true);
+    try {
+      const res = await api.exportToDestination(jobId);
+      toast.success(
+        res.written_key
+          ? `Wrote ${res.row_count} rows to ${res.written_key}.`
+          : "No output rows to write."
+      );
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not write to destination.");
+    } finally {
+      setWriting(false);
+    }
+  }
 
   async function toggleContract() {
     const next = !open;
@@ -437,6 +455,10 @@ function ExportToMmm({ jobId }: { jobId: string }) {
           <Button variant="ghost" size="sm" onClick={toggleContract}>
             {open ? "Hide contract" : "View contract"}
           </Button>
+          <Button variant="outline" size="sm" onClick={writeToDestination} disabled={writing}>
+            <HardDriveUpload className="h-4 w-4" />
+            {writing ? "Writing…" : "Write to destination"}
+          </Button>
           <Button size="sm" onClick={downloadCsv} disabled={downloading}>
             <FileDown className="h-4 w-4" />
             {downloading ? "Preparing…" : "Download CSV"}
@@ -471,7 +493,15 @@ function ExportToMmm({ jobId }: { jobId: string }) {
   );
 }
 
-function Node({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
+function Node({
+  icon,
+  title,
+  subtitle,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+}) {
   return (
     <div className="flex min-w-[7rem] flex-col items-center rounded-lg border border-border bg-background px-3 py-2 text-center">
       <div className="text-muted-foreground">{icon}</div>

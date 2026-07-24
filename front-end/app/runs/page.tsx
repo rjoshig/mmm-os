@@ -171,7 +171,7 @@ export default function RunsPage() {
         description="Every pipeline job and connector sync — status, timing, who ran it, and per-stage logs (CC-7)."
         actions={
           activeCount > 0 ? (
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-success/12 px-2.5 py-1 text-xs font-medium text-success">
+            <span className="bg-success/12 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-success">
               <span className="h-2 w-2 animate-pulse rounded-full bg-success" />
               Live · {activeCount} running
             </span>
@@ -187,7 +187,7 @@ export default function RunsPage() {
             onClick={() => setTab(t)}
             className={
               tab === t
-                ? "rounded px-3 py-1 bg-primary text-primary-foreground"
+                ? "rounded bg-primary px-3 py-1 text-primary-foreground"
                 : "rounded px-3 py-1 text-muted-foreground hover:text-foreground"
             }
           >
@@ -262,7 +262,7 @@ function JobStages({ jobId }: { jobId: string }) {
           <span className="font-medium">{ev.stage}</span>
           {ev.message ? <span className="text-muted-foreground">{ev.message}</span> : null}
           {ev.duration_ms != null ? (
-            <span className="ml-auto tabular-nums text-xs text-muted-foreground">
+            <span className="ml-auto text-xs tabular-nums text-muted-foreground">
               {ev.duration_ms} ms
             </span>
           ) : null}

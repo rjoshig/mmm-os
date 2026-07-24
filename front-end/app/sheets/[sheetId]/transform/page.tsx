@@ -1,17 +1,24 @@
 "use client";
 
-import { ArrowLeft, Plus, Save, Sparkles } from "lucide-react";
+import { ArrowLeft, FlaskConical, Plus, Save, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { OPERATIONS, RuleConfig, type UiRule } from "@/components/transform/rule-config";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorBanner, Loading } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 import { Tooltip } from "@/components/ui/tooltip";
 import { api, ApiError } from "@/lib/api/client";
-import type { PreviewResponse, RuleSpecIn, SheetDetail, SuggestionRead } from "@/lib/api/types";
+import type {
+  PreviewResponse,
+  RuleSpecIn,
+  SandboxRunResponse,
+  SheetDetail,
+  SuggestionRead,
+} from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 let ruleSeq = 0;
@@ -40,6 +47,20 @@ export default function TransformBuilderPage() {
   const [ruleSetVersion, setRuleSetVersion] = useState<number | null>(null);
   const [aiSuggestions, setAiSuggestions] = useState<SuggestionRead[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
+  const [sandbox, setSandbox] = useState<SandboxRunResponse | null>(null);
+  const [sandboxLoading, setSandboxLoading] = useState(false);
+
+  async function onSandbox() {
+    setSandboxLoading(true);
+    try {
+      setSandbox(await api.sandboxRun(sheetId));
+      toast.info("Sandbox run complete — nothing was written or published.");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Sandbox run failed.");
+    } finally {
+      setSandboxLoading(false);
+    }
+  }
 
   async function onSuggestAi() {
     setAiLoading(true);
@@ -67,7 +88,11 @@ export default function TransformBuilderPage() {
 
   function addSuggestion(s: SuggestionRead) {
     ruleSeq += 1;
-    const p = s.payload as { operation?: string; target_field?: string; params?: Record<string, unknown> };
+    const p = s.payload as {
+      operation?: string;
+      target_field?: string;
+      params?: Record<string, unknown>;
+    };
     setRules((rs) => [
       ...rs,
       {
@@ -191,6 +216,10 @@ export default function TransformBuilderPage() {
               <Sparkles className="h-4 w-4" />
               {aiLoading ? "Thinking…" : "Suggest with AI"}
             </Button>
+            <Button variant="outline" onClick={onSandbox} disabled={sandboxLoading}>
+              <FlaskConical className="h-4 w-4" />
+              {sandboxLoading ? "Running…" : "Test in sandbox"}
+            </Button>
             <Button variant="outline" onClick={() => setRules((r) => [...r, newRule()])}>
               <Plus className="h-4 w-4" /> Add rule
             </Button>
@@ -212,6 +241,32 @@ export default function TransformBuilderPage() {
       {notice ? (
         <div className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
           {notice}
+        </div>
+      ) : null}
+      {sandbox ? (
+        <div className="rounded-lg border border-tertiary/40 bg-tertiary/10 p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <Badge variant="warning">Sandbox</Badge>
+            <span className="text-sm font-medium">
+              Dry run · {sandbox.row_count} rows · nothing written or published
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+            {Object.entries(sandbox.flag_counts).length === 0 ? (
+              <span>No validation flags.</span>
+            ) : (
+              Object.entries(sandbox.flag_counts).map(([sev, n]) => (
+                <span key={sev}>
+                  {n} {sev}
+                </span>
+              ))
+            )}
+            {sandbox.blocking ? (
+              <span className="text-destructive">Would block output.</span>
+            ) : (
+              <span className="text-success">Would generate output.</span>
+            )}
+          </div>
         </div>
       ) : null}
       {error ? <ErrorBanner message={error} /> : null}
@@ -335,7 +390,9 @@ function CompactPreview({
     <div className="space-y-1.5">
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
         <span>
-          {aligned ? "Result — changed cells highlighted" : `Rows: ${before.length} → ${after.length}`}
+          {aligned
+            ? "Result — changed cells highlighted"
+            : `Rows: ${before.length} → ${after.length}`}
         </span>
         <span>
           showing {shown} of {after.length} sample row{after.length === 1 ? "" : "s"}
@@ -363,8 +420,7 @@ function CompactPreview({
                   {cols.map((c) => {
                     const val = row[c];
                     const priorVal = prev?.[c];
-                    const changed =
-                      aligned && JSON.stringify(priorVal) !== JSON.stringify(val);
+                    const changed = aligned && JSON.stringify(priorVal) !== JSON.stringify(val);
                     return (
                       <td
                         key={c}

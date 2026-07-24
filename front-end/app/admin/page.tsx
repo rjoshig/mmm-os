@@ -1,23 +1,47 @@
 "use client";
 
-import { Database, ScrollText, ShieldCheck, Users } from "lucide-react";
+import {
+  Boxes,
+  Database,
+  KeyRound,
+  Plus,
+  ScrollText,
+  ShieldCheck,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge, statusVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { EmptyState, ErrorBanner, Loading } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, TD, TH, THead, TR } from "@/components/ui/table";
 import { useToast } from "@/components/ui/toast";
 import { api, ApiError } from "@/lib/api/client";
-import type { AccessReviewRow, AuditEntryRead, RetentionPolicy, UserRead } from "@/lib/api/types";
+import type {
+  AccessReviewRow,
+  AuditEntryRead,
+  ResolvedField,
+  RetentionPolicy,
+  RoleMatrixResponse,
+  SchemaExtension,
+  UserRead,
+} from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import { getStoredPrincipal } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
-type Tab = "users" | "audit" | "access" | "retention";
+const inputCls =
+  "h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const ADMIN_ROLES = new Set(["admin", "platform_admin"]);
+
+type Tab = "users" | "roles" | "schema" | "audit" | "access" | "retention";
 
 const TABS: { id: Tab; label: string; icon: typeof Users }[] = [
   { id: "users", label: "Users", icon: Users },
+  { id: "roles", label: "Roles", icon: KeyRound },
+  { id: "schema", label: "Schema & Fields", icon: Boxes },
   { id: "audit", label: "Audit log", icon: ScrollText },
   { id: "access", label: "Access review", icon: ShieldCheck },
   { id: "retention", label: "Data retention", icon: Database },
@@ -32,7 +56,7 @@ export default function AdminPage() {
   const principal = getStoredPrincipal();
   const [tab, setTab] = useState<Tab>("users");
 
-  if (principal && principal.role !== "admin") {
+  if (principal && !ADMIN_ROLES.has(principal.role)) {
     return (
       <div className="space-y-6">
         <PageHeader eyebrow="Governance" title="Admin" />
@@ -73,9 +97,320 @@ export default function AdminPage() {
       </div>
 
       {tab === "users" ? <UsersTab /> : null}
+      {tab === "roles" ? <RolesTab /> : null}
+      {tab === "schema" ? <SchemaTab /> : null}
       {tab === "audit" ? <AuditTab /> : null}
       {tab === "access" ? <AccessTab /> : null}
       {tab === "retention" ? <RetentionTab /> : null}
+    </div>
+  );
+}
+
+/** Role management (Phase 19): assign roles + view the role→permission matrix. */
+function RolesTab() {
+  const toast = useToast();
+  const [users, setUsers] = useState<UserRead[] | null>(null);
+  const [matrix, setMatrix] = useState<RoleMatrixResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const [u, m] = await Promise.all([api.listUsers(), api.getRoleMatrix()]);
+      setUsers(u);
+      setMatrix(m);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to load roles.");
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function setRole(userId: string, role: string) {
+    try {
+      await api.setUserRole(userId, role);
+      toast.success(`Role updated to ${role}.`);
+      await load();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not set role.");
+    }
+  }
+
+  if (error) return <ErrorBanner message={error} />;
+  if (users === null || matrix === null) return <Loading label="Loading roles…" />;
+
+  const roles = Object.keys(matrix.roles);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="mb-2 text-sm font-semibold">Assign roles</h3>
+        {users.length === 0 ? (
+          <EmptyState icon={<Users className="h-6 w-6" />} title="No users" />
+        ) : (
+          <Table>
+            <THead>
+              <TR>
+                <TH>Email</TH>
+                <TH>Name</TH>
+                <TH>Role</TH>
+              </TR>
+            </THead>
+            <tbody>
+              {users.map((u) => (
+                <TR key={u.id} className="hover:bg-muted/40">
+                  <TD className="font-medium text-foreground">{u.email}</TD>
+                  <TD className="text-muted-foreground">{u.display_name ?? "—"}</TD>
+                  <TD>
+                    <select
+                      className={cn(inputCls, "h-8 w-40")}
+                      value={u.role}
+                      onChange={(e) => setRole(u.id, e.target.value)}
+                    >
+                      {roles.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                  </TD>
+                </TR>
+              ))}
+            </tbody>
+          </Table>
+        )}
+      </div>
+
+      <div>
+        <h3 className="mb-2 text-sm font-semibold">Role → permission matrix</h3>
+        <Table>
+          <THead>
+            <TR>
+              <TH>Role</TH>
+              <TH>Permissions</TH>
+            </TR>
+          </THead>
+          <tbody>
+            {roles.map((role) => (
+              <TR key={role}>
+                <TD className="font-medium">{role}</TD>
+                <TD>
+                  <div className="flex flex-wrap gap-1">
+                    {matrix.roles[role].map((p) => (
+                      <Badge key={p} variant="outline">
+                        {p}
+                      </Badge>
+                    ))}
+                  </div>
+                </TD>
+              </TR>
+            ))}
+          </tbody>
+        </Table>
+      </div>
+    </div>
+  );
+}
+
+/** Tenant schema extensions (Phase 21): custom dimensions/measures/factors. */
+function SchemaTab() {
+  const toast = useToast();
+  const [exts, setExts] = useState<SchemaExtension[] | null>(null);
+  const [resolved, setResolved] = useState<ResolvedField[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState({
+    kind: "dimension",
+    name: "",
+    data_type: "string",
+    validation: "",
+  });
+
+  const load = useCallback(async () => {
+    try {
+      const [e, r] = await Promise.all([api.listSchemaExtensions(), api.getResolvedSchema()]);
+      setExts(e);
+      setResolved(r.fields);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to load schema.");
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function create() {
+    try {
+      await api.createSchemaExtension({
+        kind: form.kind,
+        name: form.name.trim(),
+        data_type: form.data_type,
+        validation: form.validation.trim() || undefined,
+      });
+      toast.success(`Added custom ${form.kind} “${form.name}”.`);
+      setDialogOpen(false);
+      setForm({ kind: "dimension", name: "", data_type: "string", validation: "" });
+      await load();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not add field.");
+    }
+  }
+
+  async function remove(id: string) {
+    try {
+      await api.deleteSchemaExtension(id);
+      await load();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not delete field.");
+    }
+  }
+
+  if (error) return <ErrorBanner message={error} />;
+  if (exts === null || resolved === null) return <Loading label="Loading schema…" />;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Extend the canonical schema with your own dimensions, measures, and factors — no code, no
+          migration. Custom fields appear everywhere (mapping, stacks, export). An optional
+          expression (e.g. <span className="mono">clicks &lt;= impressions</span>) runs as a
+          sandboxed validation check.
+        </p>
+        <Button onClick={() => setDialogOpen(true)}>
+          <Plus className="h-4 w-4" /> Add field
+        </Button>
+      </div>
+
+      <div>
+        <h3 className="mb-2 text-sm font-semibold">Custom fields ({exts.length})</h3>
+        {exts.length === 0 ? (
+          <EmptyState
+            icon={<Boxes className="h-6 w-6" />}
+            title="No custom fields"
+            description="Add a dimension, measure, or factor to tailor the schema for this customer."
+          />
+        ) : (
+          <Table>
+            <THead>
+              <TR>
+                <TH>Name</TH>
+                <TH>Kind</TH>
+                <TH>Type</TH>
+                <TH>Check</TH>
+                <TH className="text-right">Actions</TH>
+              </TR>
+            </THead>
+            <tbody>
+              {exts.map((e) => (
+                <TR key={e.id} className="hover:bg-muted/40">
+                  <TD className="font-medium">{e.name}</TD>
+                  <TD>
+                    <Badge variant="secondary">{e.kind}</Badge>
+                  </TD>
+                  <TD className="text-muted-foreground">{e.data_type}</TD>
+                  <TD className="mono text-xs text-muted-foreground">{e.validation ?? "—"}</TD>
+                  <TD className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => remove(e.id)}
+                      aria-label="Delete"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TD>
+                </TR>
+              ))}
+            </tbody>
+          </Table>
+        )}
+      </div>
+
+      <div>
+        <h3 className="mb-2 text-sm font-semibold">Resolved schema (core + extensions)</h3>
+        <div className="flex flex-wrap gap-1.5">
+          {resolved.map((f) => (
+            <span
+              key={`${f.kind}-${f.name}`}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs",
+                f.source === "extension"
+                  ? "border-primary/40 text-primary"
+                  : "border-border text-muted-foreground"
+              )}
+              title={`${f.kind} · ${f.type} · ${f.source}`}
+            >
+              {f.name}
+              {f.source === "extension" ? <Badge variant="default">custom</Badge> : null}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} title="Add a custom field">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Kind</label>
+              <select
+                className={inputCls}
+                value={form.kind}
+                onChange={(e) => setForm({ ...form, kind: e.target.value })}
+              >
+                <option value="dimension">dimension</option>
+                <option value="measure">measure</option>
+                <option value="factor">factor</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Data type</label>
+              <select
+                className={inputCls}
+                value={form.data_type}
+                onChange={(e) => setForm({ ...form, data_type: e.target.value })}
+              >
+                <option value="string">string</option>
+                <option value="number">number</option>
+                <option value="date">date</option>
+                <option value="boolean">boolean</option>
+              </select>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Field name</label>
+            <input
+              className={inputCls}
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="brand"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">
+              Validation expression (optional)
+            </label>
+            <input
+              className={inputCls}
+              value={form.validation}
+              onChange={(e) => setForm({ ...form, validation: e.target.value })}
+              placeholder="clicks <= impressions"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={create} disabled={!form.name.trim()}>
+              Add field
+            </Button>
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 }

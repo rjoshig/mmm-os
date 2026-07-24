@@ -60,9 +60,7 @@ function KpiPanel({ kpi }: { kpi: DashboardResponse }) {
         <CardHeader>
           <CardTitle>Jobs by status</CardTitle>
         </CardHeader>
-        <CardContent>
-          {jobs.length ? <MiniBars data={jobs} /> : <Empty />}
-        </CardContent>
+        <CardContent>{jobs.length ? <MiniBars data={jobs} /> : <Empty />}</CardContent>
       </Card>
       <Card>
         <CardHeader>
@@ -109,7 +107,10 @@ export default function DashboardPage() {
       const [f, j, c] = await Promise.all([
         api.listFiles(),
         api.listJobs().catch(() => []),
-        api.getConfigLibrary().then((r) => r.items).catch(() => []),
+        api
+          .getConfigLibrary()
+          .then((r) => r.items)
+          .catch(() => []),
       ]);
       setFiles(f);
       setJobs(j);
@@ -154,7 +155,7 @@ export default function DashboardPage() {
               {j.filename ?? "file"}
             </Link>
           ) : (
-            j.filename ?? "file"
+            (j.filename ?? "file")
           )}
           {j.triggered_by_email ? ` · ${j.triggered_by_email}` : ""}
         </>
@@ -179,8 +180,7 @@ export default function DashboardPage() {
       status: c.status,
       text: (
         <>
-          {c.name} ({c.kind === "mapping" ? "mapping" : "rule set"}) updated to v
-          {c.latest_version}
+          {c.name} ({c.kind === "mapping" ? "mapping" : "rule set"}) updated to v{c.latest_version}
           {c.created_by_email ? ` · ${c.created_by_email}` : ""}
         </>
       ),
@@ -214,7 +214,13 @@ export default function DashboardPage() {
       ),
       sortKey: (i) => i.latest_job_status ?? "",
     },
-    { key: "sheets", header: "Sheets", align: "right", cell: (i) => i.sheet_count, sortKey: (i) => i.sheet_count },
+    {
+      key: "sheets",
+      header: "Sheets",
+      align: "right",
+      cell: (i) => i.sheet_count,
+      sortKey: (i) => i.sheet_count,
+    },
     {
       key: "review",
       header: "Needs review",
@@ -237,7 +243,9 @@ export default function DashboardPage() {
     {
       key: "uploaded",
       header: "Uploaded",
-      cell: (i) => <span className="text-muted-foreground">{formatDateTime(i.file.created_at)}</span>,
+      cell: (i) => (
+        <span className="text-muted-foreground">{formatDateTime(i.file.created_at)}</span>
+      ),
       sortKey: (i) => i.file.created_at,
     },
   ];
@@ -295,11 +303,15 @@ export default function DashboardPage() {
             onClick={() => setTab(t)}
             className={
               tab === t
-                ? "flex items-center gap-1.5 rounded px-3 py-1 bg-primary text-primary-foreground"
+                ? "flex items-center gap-1.5 rounded bg-primary px-3 py-1 text-primary-foreground"
                 : "flex items-center gap-1.5 rounded px-3 py-1 text-muted-foreground hover:text-foreground"
             }
           >
-            {t === "files" ? <FileSpreadsheet className="h-3.5 w-3.5" /> : <Activity className="h-3.5 w-3.5" />}
+            {t === "files" ? (
+              <FileSpreadsheet className="h-3.5 w-3.5" />
+            ) : (
+              <Activity className="h-3.5 w-3.5" />
+            )}
             {t === "files" ? "Files" : "Recent activity"}
           </button>
         ))}

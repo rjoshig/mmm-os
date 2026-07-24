@@ -47,7 +47,10 @@ export function CloneDialog({
     setName(`${currentName} (copy)`);
     setTarget("");
     if (allowTargetCustomer) {
-      api.listCustomers().then(setCustomers).catch(() => setCustomers([]));
+      api
+        .listCustomers()
+        .then(setCustomers)
+        .catch(() => setCustomers([]));
     }
   }, [open, currentName, allowTargetCustomer]);
 

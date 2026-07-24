@@ -251,8 +251,7 @@ export const api = {
     request<OutputListResponse>(tenantPath(`/jobs/${jobId}/output?limit=${limit}`)),
   getOutputContract: (jobId: string) =>
     request<OutputContract>(tenantPath(`/jobs/${jobId}/output/contract`)),
-  getOutputLineage: (jobId: string) =>
-    request<OutputLineage>(tenantPath(`/jobs/${jobId}/lineage`)),
+  getOutputLineage: (jobId: string) => request<OutputLineage>(tenantPath(`/jobs/${jobId}/lineage`)),
   // Fetch the CSV export as a Blob (carries the auth header, unlike a plain link).
   fetchOutputCsv: async (jobId: string): Promise<Blob> => {
     const token = getToken();
@@ -294,17 +293,13 @@ export const api = {
       body: JSON.stringify(input),
     }),
   listAssignments: (assignee?: string) =>
-    request<Assignment[]>(
-      tenantPath(`/assignments${assignee ? `?assignee=${assignee}` : ""}`)
-    ),
+    request<Assignment[]>(tenantPath(`/assignments${assignee ? `?assignee=${assignee}` : ""}`)),
   resolveAssignment: (id: string) =>
     request<Assignment>(tenantPath(`/assignments/${id}/resolve`), { method: "POST" }),
 
   // --- Comments + notifications (Phase 13.5) ---
   listComments: (targetType: string, targetId: string) =>
-    request<Comment[]>(
-      tenantPath(`/comments?target_type=${targetType}&target_id=${targetId}`)
-    ),
+    request<Comment[]>(tenantPath(`/comments?target_type=${targetType}&target_id=${targetId}`)),
   createComment: (input: {
     target_type: string;
     target_id: string;
@@ -325,8 +320,7 @@ export const api = {
     request<Notification>(tenantPath(`/notifications/${id}/read`), { method: "POST" }),
 
   // --- Config library / authorship (Phase 13) ---
-  getConfigLibrary: () =>
-    request<{ items: ConfigLibraryItem[] }>(tenantPath("/config-library")),
+  getConfigLibrary: () => request<{ items: ConfigLibraryItem[] }>(tenantPath("/config-library")),
   getConfigVersions: (kind: string, key: string) =>
     request<{ kind: string; key: string; versions: ConfigVersionItem[] }>(
       tenantPath(`/config-library/versions?kind=${kind}&key=${encodeURIComponent(key)}`)
@@ -365,10 +359,10 @@ export const api = {
     configId: string,
     input: { token: string; scopes?: string[] | null; expires_at?: string | null }
   ) =>
-    request<ConnectorCredentialStatus>(
-      tenantPath(`/connector-configs/${configId}/credential`),
-      { method: "PUT", body: JSON.stringify(input) }
-    ),
+    request<ConnectorCredentialStatus>(tenantPath(`/connector-configs/${configId}/credential`), {
+      method: "PUT",
+      body: JSON.stringify(input),
+    }),
   deleteConnectorCredential: (configId: string) =>
     request<void>(tenantPath(`/connector-configs/${configId}/credential`), {
       method: "DELETE",
@@ -405,10 +399,10 @@ export const api = {
   previewFeedTemplate: (templateId: string, file: File) => {
     const form = new FormData();
     form.append("upload", file);
-    return request<FeedTemplatePreview>(
-      tenantPath(`/feed-templates/${templateId}/preview`),
-      { method: "POST", body: form }
-    );
+    return request<FeedTemplatePreview>(tenantPath(`/feed-templates/${templateId}/preview`), {
+      method: "POST",
+      body: form,
+    });
   },
 
   // --- Runs / jobs history (Cycle 3) ---
