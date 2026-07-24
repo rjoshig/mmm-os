@@ -236,9 +236,12 @@ stages. This maps them onto our vocabulary:
 |---|---|
 | "staging / onboarding validation" | the **ingestion + structure-detection** stage (Phase 1) landing a `LandedDataset`, before mapping |
 | "ETL cleansing / exception validation" | the **transform (Phase 3) + validation/anomaly (Phase 4)** phases |
-| "stack data" / "the stack" | the clean, canonical, model-ready **output** (`output_row`, ADR-005) |
+| "stack data" / "the stack" | the clean, canonical, model-ready **output** — from Cycle 5 a first-class, named, versioned **`Stack`** entity (the Gold panel; ADR-012), materialising `output_row`/`StackRow` (ADR-005) |
 | "source / feed / integration" | a **`SourceConnector`** (upload, SFTP, or a partner API connector) |
 | "landed / staged dataset" | the common **`LandedDataset`** every source emits |
+| "bronze / silver / gold" (medallion) | **Bronze** = immutable raw file; **Silver** = cleaned per-source `output_row` (Stage 1); **Gold** = harmonized cross-source **`Stack`** (Stage 2). See ADR-014 |
+| "harmonization / conforming" | the Stage-2 cross-source unification (taxonomy, currency/timezone/attribution, grain, semantic mapping) that assembles a `Stack` (Phase 16) |
+| "custom field / schema extension" | a tenant-scoped `schema_extension` (dimension/measure/factor) stored via JSON columns + a metadata registry (ADR-015) |
 
 ---
 
@@ -443,6 +446,74 @@ Format: **ADR-NNN — Title — Status (Accepted / Proposed / Superseded) — Da
   re-pulls (CC-6) and traceability to `source`/`sync_run` (CC-3) extend the
   existing invariants rather than replacing them. Two-DB strategy and all prior
   ADRs are untouched.
+
+### ADR-011 — Config-driven I/O paths & destinations — Accepted — 2026-07 (Cycle 5)
+- **Context:** Output was a backend-DB table + browser CSV download only; there was
+  no way to configure where inputs come from or where outputs are written, and no
+  archive/error/reject lifecycle for processed files.
+- **Decision:** Introduce a versioned, config-as-data **`io_profile`** (global
+  default + per-tenant override) declaring logical roots `input`, `output`, `temp`,
+  `archive`, `error`, `reject`, resolved through the existing `ObjectStorage`
+  abstraction (ADR-006) — never a hardcoded dialect/host. Generated output is
+  written to the configured `output` destination **in addition to** the CSV
+  download; processed input copies move to `archive`/`error`/`reject` with
+  `job_event` records (CC-14).
+- **Consequences:** Paths are data, not code. Immutable-raw (CC-2) is preserved —
+  the lifecycle acts on copies. No new storage backend; env vars provide defaults
+  only. See [`phases/phase-14-config-driven-io-paths.md`](./phases/phase-14-config-driven-io-paths.md).
+
+### ADR-012 — Stack as a first-class entity — Accepted — 2026-07 (Cycle 5)
+- **Context:** The model-ready dataset existed only implicitly as `output_row` rows
+  for one job — not nameable, versionable, publishable, or assembled across sources.
+- **Decision:** Introduce a first-class **`Stack`** (name, version, lifecycle,
+  grain, reporting frame, schema-contract snapshot) + **`StackRow`** (canonical rows
+  linked to a stack, keeping traceability columns; likely `output_row` + a
+  `stack_id`). A Stack is the **Gold** panel that assembles one or more Silver
+  outputs, is publish-gated by panel validation (CC-15), idempotent (CC-6), and
+  carries the export contract + destination export + lineage.
+- **Consequences:** The "stack" becomes the certified hand-off to modelling. Extends
+  ADR-005 (does not replace the DB-table output). See
+  [`phases/phase-16-harmonization-stack-assembly.md`](./phases/phase-16-harmonization-stack-assembly.md).
+
+### ADR-013 — In-app sandbox model — Accepted — 2026-07 (Cycle 5)
+- **Context:** There was no safe way to try a config before publishing; the only
+  "safe" mechanisms were live preview and the draft→publish lifecycle.
+- **Decision:** Add a **sandbox run** — a full-pipeline run over a chosen file using
+  a config **draft**, marked by a `sandbox` flag on `job`, producing throwaway
+  results (coverage/preview/flags/output-stats) that never enter real
+  output/`output_row`/`Stack` and auto-expire via retention (Phase 10). Promotion
+  goes through the normal draft→publish flow.
+- **Consequences:** "Test before commit" without a separate environment or dataset.
+  Reuses the preview + pipeline services. Distinct from the Phase-11 infra staging
+  environment. See [`phases/phase-18-in-app-sandbox.md`](./phases/phase-18-in-app-sandbox.md).
+
+### ADR-014 — Two-stage medallion (Silver per-source / Gold harmonized stack) — Accepted — 2026-07 (Cycle 5)
+- **Context:** Reaching a modelling-ready state requires *harmonizing multiple
+  sources* (taxonomy, currency/timezone/attribution, grain, entity naming), which is
+  a different activity from cleaning one source — periodic, cross-source, deliberate.
+- **Decision:** Adopt a **two-stage pipeline** on the medallion pattern. **Stage 1
+  "Prepare" (Silver)** is the existing per-source ingest→map→transform→validate to
+  `output_row`. **Stage 2 "Harmonize & Assemble" (Gold)** is a new surface that
+  pulls Silver outputs and unifies them into a published `Stack`. The two stages
+  share one canonical schema, config-as-data, lineage, and design system — Stage 2
+  is a surface, not a separate silo.
+- **Consequences:** Clean separation of cadence and reuse (one Silver source feeds
+  many Stacks); a single certified Gold hand-off; a natural home for AI-assisted
+  harmonization. See [`phases/phase-16-harmonization-stack-assembly.md`](./phases/phase-16-harmonization-stack-assembly.md)
+  and [`design/usability-reuse-model-readiness.md`](./design/usability-reuse-model-readiness.md) §2.
+
+### ADR-015 — Tenant schema extensibility via metadata registry + JSON columns — Accepted — 2026-07 (Cycle 5)
+- **Context:** The canonical schema is a fixed contract; some customers need their
+  own dimensions/measures/factors without forking code or the schema.
+- **Decision:** Keep the canonical **core** fixed; add per-tenant extensions in a
+  versioned **`schema_extension`** metadata registry (kind/name/type/taxonomy/
+  validation/layer/version). Extension **values** live in the existing JSON columns
+  (`output_row.data` / `StackRow`), so adding a field needs **no migration**. The UI
+  and engines read the *resolved* schema (core + extensions). **Rejected:** EAV
+  (query/complexity cost) and schema-per-tenant (migration/portability cost).
+- **Consequences:** Metadata-driven flexibility that stays SQLite→Postgres portable
+  (ADR-002) and tenant-isolated (CC-1). Custom checks reuse the sandboxed DSL
+  (ADR-004). See [`phases/phase-21-tenant-scoped-extensibility.md`](./phases/phase-21-tenant-scoped-extensibility.md).
 
 ---
 

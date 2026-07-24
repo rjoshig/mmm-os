@@ -11,6 +11,16 @@ hardcoded.
 MMM data is stored **long/tidy**: one row per (date × dimensions × measure-set).
 The field list below is a starting point — refine in Phase 0.
 
+> **The canonical schema is the semantic contract for the "stack."** From Cycle 5
+> the model-ready output is a first-class, named, versioned **`Stack`** — the
+> **Gold** panel assembled from cleaned per-source (**Silver**) outputs (ADR-012,
+> ADR-014). Its columns are these canonical fields **plus** any tenant
+> **schema extensions** (custom dimensions/measures/factors) added via the
+> metadata registry (ADR-015, [`phases/phase-21-tenant-scoped-extensibility.md`](./phases/phase-21-tenant-scoped-extensibility.md));
+> the **core** below stays a fixed contract. Before publish, a Stack carries
+> per-measure **output statistics** (min/max/mean/…) and passes semantic + panel
+> validation (CC-15, [`phases/phase-17-semantic-output-validation.md`](./phases/phase-17-semantic-output-validation.md)).
+
 ---
 
 ## Appendix A — Canonical Schema (draft v0.1)

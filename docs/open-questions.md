@@ -110,6 +110,31 @@ implementation; **spec-only** phases (10–12) resolve theirs if/when scheduled.
 
 ---
 
+## Usability, Reuse & Model-Readiness questions (Cycle 5 — phases 14–21)
+
+Designed in [`design/usability-reuse-model-readiness.md`](./design/usability-reuse-model-readiness.md).
+
+| ID | Question | Phase | Status |
+|---|---|---|---|
+| OQ-14.1 | io_profile scope — global default + per-tenant override; per-connector path overrides in v1? | 14 | 🟡 Default: global + tenant only; per-connector is a follow-up. |
+| OQ-14.2 | File lifecycle — move vs copy to archive/error/reject. | 14 | 🟡 Default: **copy** (preserve immutability, CC-2); move configurable. |
+| OQ-15.1 | Clone naming collisions — auto-suffix vs require new name. | 15 | 🟡 Default: pre-fill "… (copy)", editable. |
+| OQ-15.2 | Clone into existing customer — merge vs skip on collision. | 15 | 🟡 Default: create drafts; never overwrite published. |
+| OQ-16.1 | Stack scope — multi-source aggregation confirmed; max sources; incremental append vs full rebuild on re-publish. | 16 | 🟡 Aggregation confirmed; append/rebuild open. |
+| OQ-16.2 | Harmonization rules — separate config family vs reuse `RuleSet` with a scope flag. | 16 | 🟡 Default: separate family. |
+| OQ-16.3 | AI harmonization — deterministic alias first, LLM for residual; auto-suggest vs require-review threshold. | 16.3 | 🟡 Default: deterministic-first; review required. |
+| OQ-17.1 | CTR/CPC/CPM plausibility bounds — default bands + per-tenant override. | 17 | ⏸️ Deferred to build. |
+| OQ-17.2 | Charting — bespoke SVG vs first charting dependency (respect the design system). | 17/20 | ⏸️ Deferred to build. |
+| OQ-18.1 | Sandbox data — sample fixtures vs real files; retention/expiry window. | 18 | 🟡 Default: both; short expiry (~7 days). |
+| OQ-19.1 | Approve/publish as a permission distinct from `write_config` — adopt now? | 19 | 🟡 Default: add `approver` role now; second-approver is a per-tenant setting. |
+| OQ-20.1 | Live-monitoring transport — polling vs SSE. | 20 | 🟡 Default: polling on active runs; SSE if latency demands. |
+| OQ-21.1 | Extension storage — JSON + metadata registry vs EAV vs per-tenant schema. | 21 | ✅ **JSON columns + metadata registry** (ADR-015). |
+| OQ-21.2 | Do custom dimensions participate in anomaly slicing / required-field gates? | 21 | 🟡 Default: advisory unless marked required. |
+| OQ-21.3 | Custom-check safety — bound the DSL; cap checks per tenant. | 21 | ⏸️ Deferred to build. |
+| OQ-21.4 | How far to formalize the semantic-layer / headless-BI framing now vs later. | 21 | ⏸️ Deferred. |
+
+---
+
 ## Still open (need input before their phase)
 
 - **OQ-5.1 (cost ceiling per file)** — set once we have real per-file token/cost data.
@@ -135,6 +160,9 @@ Recorded in [`architecture.md`](./architecture.md) (ADR log) and the relevant do
 - Required canonical fields: `date` + `channel` + ≥1 measure **or factor** (OQ-2.2; factors added in Cycle 2).
 - Python targets **3.10+**; backend SQLAlchemy 2.0 + Alembic; UI Prisma.
 - Front-end design language replicated from the reference UI (`../front-end/CLAUDE.md`).
+- **Config-driven I/O paths & destinations** — versioned `io_profile`, global + tenant, immutable-raw preserved (ADR-011, CC-14).
+- **Stack as a first-class entity** (Gold, model-ready panel) via a two-stage medallion pipeline (ADR-012, ADR-014).
+- **Tenant schema extensibility = metadata registry + JSON columns** — not EAV, not schema-per-tenant (ADR-015).
 
 ---
 
