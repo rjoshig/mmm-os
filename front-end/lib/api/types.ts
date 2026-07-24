@@ -680,3 +680,14 @@ export interface ActiveJobRead {
 export interface ActiveJobsResponse {
   active: ActiveJobRead[];
 }
+
+// --- Custom validation rules (Part 3) ---
+export interface ValidationRule {
+  id: Uuid;
+  name: string;
+  expression: string;
+  severity: string;
+  enabled: boolean;
+  description: string | null;
+  created_at: string;
+}

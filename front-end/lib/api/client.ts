@@ -68,6 +68,7 @@ import type {
   SchemaExtension,
   StackDetail,
   StackRead,
+  ValidationRule,
 } from "@/lib/api/types";
 import { clearSession, getToken } from "@/lib/session";
 import { getActiveTenantId } from "@/lib/tenant";
@@ -544,4 +545,28 @@ export const api = {
   // --- Phase 20: dashboard + live monitoring ---
   getDashboard: () => request<DashboardResponse>(tenantPath("/dashboard")),
   getActiveJobs: () => request<ActiveJobsResponse>(tenantPath("/active-jobs")),
+
+  // --- Custom validation rules (Part 3) ---
+  listValidationRules: () => request<ValidationRule[]>(tenantPath("/validation-rules")),
+  createValidationRule: (input: {
+    name: string;
+    expression: string;
+    severity?: string;
+    enabled?: boolean;
+    description?: string | null;
+  }) =>
+    request<ValidationRule>(tenantPath("/validation-rules"), {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  updateValidationRule: (
+    id: string,
+    patch: { name?: string; expression?: string; severity?: string; enabled?: boolean }
+  ) =>
+    request<ValidationRule>(tenantPath(`/validation-rules/${id}`), {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    }),
+  deleteValidationRule: (id: string) =>
+    request<void>(tenantPath(`/validation-rules/${id}`), { method: "DELETE" }),
 };

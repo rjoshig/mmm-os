@@ -4,6 +4,7 @@ import {
   Boxes,
   Database,
   KeyRound,
+  ListChecks,
   Plus,
   ScrollText,
   ShieldCheck,
@@ -27,6 +28,7 @@ import type {
   RoleMatrixResponse,
   SchemaExtension,
   UserRead,
+  ValidationRule,
 } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import { getStoredPrincipal } from "@/lib/session";
@@ -36,12 +38,13 @@ const inputCls =
   "h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const ADMIN_ROLES = new Set(["admin", "platform_admin"]);
 
-type Tab = "users" | "roles" | "schema" | "audit" | "access" | "retention";
+type Tab = "users" | "roles" | "schema" | "validation" | "audit" | "access" | "retention";
 
 const TABS: { id: Tab; label: string; icon: typeof Users }[] = [
   { id: "users", label: "Users", icon: Users },
   { id: "roles", label: "Roles", icon: KeyRound },
   { id: "schema", label: "Schema & Fields", icon: Boxes },
+  { id: "validation", label: "Validation rules", icon: ListChecks },
   { id: "audit", label: "Audit log", icon: ScrollText },
   { id: "access", label: "Access review", icon: ShieldCheck },
   { id: "retention", label: "Data retention", icon: Database },
@@ -99,6 +102,7 @@ export default function AdminPage() {
       {tab === "users" ? <UsersTab /> : null}
       {tab === "roles" ? <RolesTab /> : null}
       {tab === "schema" ? <SchemaTab /> : null}
+      {tab === "validation" ? <ValidationRulesTab /> : null}
       {tab === "audit" ? <AuditTab /> : null}
       {tab === "access" ? <AccessTab /> : null}
       {tab === "retention" ? <RetentionTab /> : null}
@@ -225,7 +229,6 @@ function SchemaTab() {
     kind: "dimension",
     name: "",
     data_type: "string",
-    validation: "",
   });
 
   const load = useCallback(async () => {
@@ -249,11 +252,10 @@ function SchemaTab() {
         kind: form.kind,
         name: form.name.trim(),
         data_type: form.data_type,
-        validation: form.validation.trim() || undefined,
       });
       toast.success(`Added custom ${form.kind} “${form.name}”.`);
       setDialogOpen(false);
-      setForm({ kind: "dimension", name: "", data_type: "string", validation: "" });
+      setForm({ kind: "dimension", name: "", data_type: "string" });
       await load();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Could not add field.");
@@ -390,17 +392,11 @@ function SchemaTab() {
               placeholder="brand"
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
-              Validation expression (optional)
-            </label>
-            <input
-              className={inputCls}
-              value={form.validation}
-              onChange={(e) => setForm({ ...form, validation: e.target.value })}
-              placeholder="clicks <= impressions"
-            />
-          </div>
+          <p className="text-xs text-muted-foreground">
+            Need a business-rule check (e.g. clicks ≤ impressions)? Add it under the{" "}
+            <span className="font-medium">Validation rules</span> tab — rules run across all data,
+            not just this field.
+          </p>
           <div className="flex justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)}>
               Cancel
@@ -555,6 +551,186 @@ function UsersTab() {
         ))}
       </tbody>
     </Table>
+  );
+}
+
+/** Custom validation rules (Part 3): tenant-authored semantic checks. */
+function ValidationRulesTab() {
+  const toast = useToast();
+  const [rules, setRules] = useState<ValidationRule[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState({ name: "", expression: "", severity: "blocking" });
+
+  const load = useCallback(async () => {
+    try {
+      setRules(await api.listValidationRules());
+      setError(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to load rules.");
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function create() {
+    try {
+      await api.createValidationRule({
+        name: form.name.trim(),
+        expression: form.expression.trim(),
+        severity: form.severity,
+      });
+      toast.success(`Added rule “${form.name}”.`);
+      setDialogOpen(false);
+      setForm({ name: "", expression: "", severity: "blocking" });
+      await load();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not add rule.");
+    }
+  }
+
+  async function toggle(rule: ValidationRule) {
+    try {
+      await api.updateValidationRule(rule.id, { enabled: !rule.enabled });
+      await load();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not update rule.");
+    }
+  }
+
+  async function remove(id: string) {
+    try {
+      await api.deleteValidationRule(id);
+      await load();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not delete rule.");
+    }
+  }
+
+  if (error) return <ErrorBanner message={error} />;
+  if (rules === null) return <Loading label="Loading validation rules…" />;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Meaningful, business-rule validation authored as a safe expression (e.g.{" "}
+          <span className="mono">clicks &lt;= impressions</span>). Rules run automatically across
+          every pipeline run, sheet validation, and Stack publish. Blocking rules stop output until
+          resolved or overridden.
+        </p>
+        <Button onClick={() => setDialogOpen(true)}>
+          <Plus className="h-4 w-4" /> Add rule
+        </Button>
+      </div>
+
+      {rules.length === 0 ? (
+        <EmptyState
+          icon={<ListChecks className="h-6 w-6" />}
+          title="No custom rules"
+          description="Add a business-rule check to catch data errors the built-in checks don't."
+        />
+      ) : (
+        <Table>
+          <THead>
+            <TR>
+              <TH>Name</TH>
+              <TH>Expression</TH>
+              <TH>Severity</TH>
+              <TH>Enabled</TH>
+              <TH className="text-right">Actions</TH>
+            </TR>
+          </THead>
+          <tbody>
+            {rules.map((r) => (
+              <TR key={r.id} className="hover:bg-muted/40">
+                <TD className="font-medium">{r.name}</TD>
+                <TD className="mono text-xs text-muted-foreground">{r.expression}</TD>
+                <TD>
+                  <Badge variant={statusVariant(r.severity)}>{r.severity}</Badge>
+                </TD>
+                <TD>
+                  <button
+                    type="button"
+                    onClick={() => toggle(r)}
+                    className={cn(
+                      "rounded-full px-2 py-0.5 text-xs font-medium",
+                      r.enabled ? "bg-success/12 text-success" : "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {r.enabled ? "enabled" : "disabled"}
+                  </button>
+                </TD>
+                <TD className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => remove(r.id)}
+                    aria-label="Delete"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TD>
+              </TR>
+            ))}
+          </tbody>
+        </Table>
+      )}
+
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} title="Add a validation rule">
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Rule name</label>
+            <input
+              className={inputCls}
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="clicks under impressions"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">
+              Expression (must be true to pass)
+            </label>
+            <input
+              className={inputCls}
+              value={form.expression}
+              onChange={(e) => setForm({ ...form, expression: e.target.value })}
+              placeholder="clicks <= impressions"
+            />
+            <span className="block text-xs text-muted-foreground">
+              Sandboxed — fields, comparisons, and a small function allowlist only.
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Severity</label>
+            <select
+              className={inputCls}
+              value={form.severity}
+              onChange={(e) => setForm({ ...form, severity: e.target.value })}
+            >
+              <option value="blocking">blocking (stops output)</option>
+              <option value="warning">warning</option>
+              <option value="info">info</option>
+            </select>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={create}
+              disabled={!form.name.trim() || !form.expression.trim()}
+            >
+              Add rule
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+    </div>
   );
 }
 
