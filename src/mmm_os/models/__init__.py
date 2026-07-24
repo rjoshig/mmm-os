@@ -18,6 +18,7 @@ from mmm_os.models.connectors import ConnectorConfig, ConnectorCredential, SyncR
 from mmm_os.models.feed_template import FeedTemplate
 from mmm_os.models.file import File, Profile, Sheet
 from mmm_os.models.governance import AuditLog
+from mmm_os.models.io_profile import IoProfile
 from mmm_os.models.job import Job, JobEvent, Suggestion, ValidationFlag
 from mmm_os.models.output import OutputRow
 from mmm_os.models.tenant import Tenant, TenantSettings, User
@@ -31,6 +32,7 @@ __all__ = [
     "FeedTemplate",
     "File",
     "IdentityProviderConfig",
+    "IoProfile",
     "Job",
     "JobEvent",
     "LlmBudget",

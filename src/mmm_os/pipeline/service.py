@@ -23,7 +23,7 @@ from mmm_os.mapping.service import auto_map_sheet, resolve_mapping, save_sheet_m
 from mmm_os.mapping.signature import column_signature
 from mmm_os.models import File, Job, Sheet
 from mmm_os.models.enums import RuleLayer, Severity
-from mmm_os.output import generate_output, prepare_sheet_rows
+from mmm_os.output import generate_output, prepare_sheet_rows, record_file_lifecycle
 from mmm_os.storage.base import ObjectStorage
 from mmm_os.validation.service import run_validation
 
@@ -205,6 +205,17 @@ def run_pipeline(
                 rule_set_version=prepared.rule_set_version,
             )
         )
+
+    # Config-driven file lifecycle (Phase 14, CC-14): record where the processed
+    # input goes — archive on a clean run, error if any sheet was blocked.
+    outcome = "error" if any(s.blocked for s in result.sheets) else "archive"
+    record_file_lifecycle(
+        session,
+        tenant_id=tenant_id,
+        job_id=job.id,
+        file_id=file.id,
+        outcome=outcome,
+    )
 
     session.commit()
     return result
