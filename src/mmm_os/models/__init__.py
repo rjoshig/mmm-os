@@ -21,6 +21,7 @@ from mmm_os.models.governance import AuditLog
 from mmm_os.models.io_profile import IoProfile
 from mmm_os.models.job import Job, JobEvent, Suggestion, ValidationFlag
 from mmm_os.models.output import OutputRow
+from mmm_os.models.schema_extension import SchemaExtension
 from mmm_os.models.tenant import Tenant, TenantSettings, User
 
 __all__ = [
@@ -43,6 +44,7 @@ __all__ = [
     "Profile",
     "Rule",
     "RuleSet",
+    "SchemaExtension",
     "SecretRef",
     "Session",
     "Sheet",

@@ -34,6 +34,8 @@ DEFAULT_POLICY: dict[str, str] = {
     # Cross-source panel checks (Gold layer, Phase 16 publish gate).
     "spend_reconciliation": Severity.BLOCKING.value,
     "taxonomy_incomplete": Severity.WARNING.value,
+    # Tenant-authored custom checks (Phase 21).
+    "custom_check": Severity.WARNING.value,
 }
 
 
