@@ -6,7 +6,17 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, Numeric, String, Text, Uuid
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    Uuid,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from mmm_os.db.base import Base
@@ -30,6 +40,9 @@ class Job(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("user.id", ondelete="SET NULL")
     )
+    # Sandbox run (Phase 18): a throwaway dry-run that writes no real output/stack
+    # and auto-expires via retention. Excluded from output/stacks and dashboards.
+    sandbox: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
 
 class JobEvent(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):

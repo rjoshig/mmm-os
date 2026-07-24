@@ -35,6 +35,7 @@ from mmm_os.api.routers import (
     pipeline,
     rbac,
     reads,
+    sandbox,
     schema_extensions,
     stacks,
     transform,
@@ -176,6 +177,7 @@ def create_app() -> FastAPI:
     app.include_router(stacks.router, dependencies=protected)
     app.include_router(clone.router, dependencies=protected)
     app.include_router(rbac.router, dependencies=protected)
+    app.include_router(sandbox.router, dependencies=protected)
 
     @app.exception_handler(LLMBudgetExceededError)
     def _budget_exceeded(_request: Request, exc: LLMBudgetExceededError) -> JSONResponse:
