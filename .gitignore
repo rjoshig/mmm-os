@@ -47,6 +47,9 @@ front-end/prisma/dev.db*
 # Local object storage (dev uploads — immutable raw files, never commit)
 _storage/
 
+# Local encrypted secret store (dev SecretStore backend — never commit)
+_secrets/
+
 # ---------------------------------------------------------------------------
 # Node / Next.js
 # ---------------------------------------------------------------------------
