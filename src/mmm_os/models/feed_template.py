@@ -9,9 +9,10 @@ way every time, regardless of source.
 
 from __future__ import annotations
 
+import uuid
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, String
+from sqlalchemy import JSON, Boolean, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from mmm_os.db.base import Base
@@ -35,3 +36,5 @@ class FeedTemplate(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base)
     expected_columns: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     # Optional filename glob (e.g. "sales_*.txt") to auto-match incoming feeds.
     filename_glob: Mapped[str | None] = mapped_column(String(255))
+    # Provenance when this template was created by cloning another (Phase 15).
+    cloned_from: Mapped[uuid.UUID | None] = mapped_column(Uuid)
