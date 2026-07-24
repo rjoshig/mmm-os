@@ -11,8 +11,11 @@ import { TableSkeleton } from "@/components/ui/skeleton";
 import { api, ApiError } from "@/lib/api/client";
 import type { JobDetail, JobListItem, SyncRunListItem } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
+import { usePolling } from "@/lib/use-polling";
 
 type Tab = "jobs" | "syncs";
+
+const ACTIVE = new Set(["pending", "running"]);
 
 /** Human duration between two ISO timestamps, or "—" when unavailable. */
 function duration(start?: string | null, end?: string | null): string {
@@ -48,6 +51,10 @@ export default function RunsPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Live monitoring: auto-refresh while any job is in flight, stop when idle.
+  const activeCount = (jobs ?? []).filter((j) => ACTIVE.has(j.job.status)).length;
+  usePolling(() => void load(), 4000, activeCount > 0);
 
   const jobColumns: DataColumn<JobListItem>[] = [
     {
@@ -162,6 +169,14 @@ export default function RunsPage() {
         eyebrow="Automation"
         title="Runs"
         description="Every pipeline job and connector sync — status, timing, who ran it, and per-stage logs (CC-7)."
+        actions={
+          activeCount > 0 ? (
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-success/12 px-2.5 py-1 text-xs font-medium text-success">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-success" />
+              Live · {activeCount} running
+            </span>
+          ) : undefined
+        }
       />
 
       <div className="inline-flex rounded-md border border-border p-0.5 text-sm">
