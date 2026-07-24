@@ -67,6 +67,16 @@ failures**, at both the per-source (Silver) and cross-source panel (Gold) layers
   gains a distribution/spark view of failing rows per check + a stats table. This
   is the first charting need — make an explicit bespoke-SVG-vs-library decision
   under the design system (OQ-17.2).
+- **P17-6 Tenant-authored validation rules** *(shipped as a follow-up)* — a
+  first-class **`ValidationRule`** entity (name, sandboxed expression, per-rule
+  severity, enable/disable) so a tenant adds its own meaningful checks (e.g.
+  `clicks <= impressions`) without code. Rules run **everywhere validation runs** —
+  pipeline, sheet validation, and the Stack publish gate — via
+  `services/validation_rule.py::active_validation_rules` feeding `run_validation`
+  and `validate_panel`. Expressions run only in the sandbox (ADR-004); numeric-
+  looking strings are coerced so comparisons are numeric. Authored in Admin →
+  **Validation rules**. Supersedes the Phase-21 per-field `validation` expression
+  (kept for back-compat, unioned in).
 
 ## Deliverables
 

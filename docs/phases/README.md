@@ -51,7 +51,7 @@ until scoped.
 | 21 | 14 | [phase-14](./phase-14-config-driven-io-paths.md) | Config-driven I/O: root paths (input/output/temp/archive/error/reject) + output-to-destination + file lifecycle (CC-14). | 1, 6 | Done |
 | 22 | 15 | [phase-15](./phase-15-universal-clone-duplicate.md) | Universal clone/duplicate of any config/mapping/rule/feed/connector/stack/customer (never secrets). | 2, 3, 8, 16 | Done (backend + UI; configs-page clone via API) |
 | 23 | 16 (+16.1–16.3) | [phase-16](./phase-16-harmonization-stack-assembly.md) | Stage 2 — Harmonization & Stack assembly (Gold): first-class Stack, semantic mapping, AI harmonization, panel validation gate. | 2–6, 14, 17, 21 | Done |
-| 24 | 17 | [phase-17](./phase-17-semantic-output-validation.md) | Semantic & output validation (clicks ≤ impressions; min/max/mean) + failure visualization (CC-15). | 4, 6, 16 | Done |
+| 24 | 17 | [phase-17](./phase-17-semantic-output-validation.md) | Semantic & output validation (clicks ≤ impressions; min/max/mean) + failure visualization (CC-15); + P17-6 first-class tenant-authored `ValidationRule`s wired into pipeline/sheet/stack. | 4, 6, 16 | Done |
 | 25 | 18 | [phase-18](./phase-18-in-app-sandbox.md) | In-app sandbox / test environment: run configs without publishing. | 3, 4, 10, 13 | Done |
 | 26 | 19 | [phase-19](./phase-19-rbac-enhancements.md) | RBAC enhancements: approver + platform-admin roles, approve permission, role-management UI. | 00.5, 8, 6 | Done |
 | 27 | 20 | [phase-20](./phase-20-dashboard-live-monitoring.md) | Dashboard revamp + live pipeline monitoring (auto-refresh runs; tenant KPI dashboard). | 6, 07.1, 13, 16 | Done |
