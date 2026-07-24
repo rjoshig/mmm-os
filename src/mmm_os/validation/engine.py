@@ -9,6 +9,7 @@ from mmm_os.transform.types import Table
 from mmm_os.validation.checks import ALL_CHECKS
 from mmm_os.validation.flags import Finding, Flag
 from mmm_os.validation.policy import Policy
+from mmm_os.validation.semantic import SEMANTIC_CHECKS
 
 
 def finalize(findings: Iterable[Finding], policy: Policy) -> list[Flag]:
@@ -45,6 +46,6 @@ def validate(table: Table, schema: CanonicalSchema, policy: Policy | None = None
     """
     active = policy or Policy()
     findings: list[Finding] = []
-    for check in ALL_CHECKS:
+    for check in (*ALL_CHECKS, *SEMANTIC_CHECKS):
         findings.extend(check(table, schema))
     return finalize(findings, active)

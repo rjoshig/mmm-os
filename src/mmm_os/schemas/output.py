@@ -63,6 +63,28 @@ class OutputContract(BaseModel):
     sample: list[dict[str, Any]]
 
 
+class MeasureStatsRead(BaseModel):
+    """Summary statistics for one measure (Phase 17, output validation)."""
+
+    measure: str
+    count: int
+    non_null: int
+    null_rate: float
+    min: float | None = None
+    max: float | None = None
+    mean: float | None = None
+    median: float | None = None
+    stddev: float | None = None
+
+
+class OutputStatsResponse(BaseModel):
+    """Per-measure output statistics for a job's clean output."""
+
+    file_id: uuid.UUID
+    row_count: int
+    measures: list[MeasureStatsRead]
+
+
 class LineageSource(BaseModel):
     """One source sheet contributing to a job's clean output."""
 

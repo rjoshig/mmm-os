@@ -23,6 +23,17 @@ DEFAULT_POLICY: dict[str, str] = {
     "zero_spend": Severity.INFO.value,
     "out_of_range": Severity.WARNING.value,
     "anomaly": Severity.WARNING.value,
+    # Semantic / meaningful checks (Phase 17, CC-15). Funnel monotonicity is a
+    # genuine data impossibility (clicks > impressions) → blocking; the ratio /
+    # coherence heuristics are warnings by default (tunable per tenant, OQ-17.1).
+    "funnel_monotonicity": Severity.BLOCKING.value,
+    "ctr_implausible": Severity.WARNING.value,
+    "cvr_implausible": Severity.WARNING.value,
+    "spend_without_delivery": Severity.WARNING.value,
+    "revenue_without_conversion": Severity.WARNING.value,
+    # Cross-source panel checks (Gold layer, Phase 16 publish gate).
+    "spend_reconciliation": Severity.BLOCKING.value,
+    "taxonomy_incomplete": Severity.WARNING.value,
 }
 
 

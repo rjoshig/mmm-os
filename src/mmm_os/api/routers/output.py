@@ -33,12 +33,15 @@ from mmm_os.schemas.output import (
     ContractField,
     GenerateOutputResponse,
     LineageSource,
+    MeasureStatsRead,
     OutputContract,
     OutputLineage,
     OutputListResponse,
     OutputRowRead,
+    OutputStatsResponse,
 )
 from mmm_os.storage import ObjectStorage
+from mmm_os.validation.stats import output_statistics
 
 router = APIRouter(prefix="/api/v1", tags=["output"])
 
@@ -218,6 +221,33 @@ def output_contract_route(
         mapping_config_version=first.mapping_config_version if first else None,
         rule_set_version=first.rule_set_version if first else None,
         sample=[r.data for r in rows[:sample]],
+    )
+
+
+@router.get("/tenants/{tenant_id}/jobs/{job_id}/output/stats", response_model=OutputStatsResponse)
+def output_stats_route(
+    tenant_id: uuid.UUID,
+    job_id: uuid.UUID,
+    session: Session = Depends(get_session),
+    canonical: CanonicalConfig = Depends(get_canonical),
+) -> OutputStatsResponse:
+    """Return per-measure output statistics (min/max/mean/median/stddev/null-rate).
+
+    The pre-publish sanity check on magnitudes (Phase 17, P17-3).
+
+    Raises:
+        HTTPException: 404 if the job has no generated output.
+    """
+    file, rows = list_output_rows(session, tenant_id, job_id, limit=None)
+    if file is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="no output generated for this job"
+        )
+    stats = output_statistics([r.data for r in rows], canonical.schema)
+    return OutputStatsResponse(
+        file_id=file.id,
+        row_count=stats.row_count,
+        measures=[MeasureStatsRead(**vars(m)) for m in stats.measures],
     )
 
 
