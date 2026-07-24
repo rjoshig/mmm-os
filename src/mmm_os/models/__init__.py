@@ -22,6 +22,7 @@ from mmm_os.models.io_profile import IoProfile
 from mmm_os.models.job import Job, JobEvent, Suggestion, ValidationFlag
 from mmm_os.models.output import OutputRow
 from mmm_os.models.schema_extension import SchemaExtension
+from mmm_os.models.stack import Stack, StackRow
 from mmm_os.models.tenant import Tenant, TenantSettings, User
 
 __all__ = [
@@ -48,6 +49,8 @@ __all__ = [
     "SecretRef",
     "Session",
     "Sheet",
+    "Stack",
+    "StackRow",
     "Suggestion",
     "SyncRun",
     "Taxonomy",
