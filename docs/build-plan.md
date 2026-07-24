@@ -33,12 +33,15 @@
 | **8** | Governance & Security | Roles, audit, encryption, compliance | 7 |
 | **9** | Connectors & Extraction | Partner data connectors (SFTP + Meta/Google/DV360/TikTok); PDF/email extraction *(deferred sub-track)* | 0–8 |
 | **13** | Collaboration & Multi-User Workflow | Config library + authorship + draft→publish lifecycle, runs history UI, review queue/assignment, comments/notifications | 2, 3, 6, 8 |
+| **14–21** | Usability, Reuse & Model-Readiness (Cycle 5) | Config-driven I/O; universal clone; Stage-2 harmonization / Gold "stack"; semantic + output validation; in-app sandbox; RBAC enhancements; live monitoring + KPI dashboard; tenant-scoped extensibility | see [`design/usability-reuse-model-readiness.md`](./design/usability-reuse-model-readiness.md) |
 
 Additional phases (added post-v0.1 for enterprise readiness) are listed
 authoritatively in [`phases/README.md`](./phases/README.md): inserted **Build**
 phases 00.5, 00.6, 05.1, 07.1, 07.2, 08.1; **Build** phase 13 (collaboration /
-multi-user, part of the enterprise-overhaul track); and **Spec-only** tail phases
-10, 11, 12.
+multi-user, part of the enterprise-overhaul track); **Spec-only** tail phases
+10, 11, 12; and the **Cycle 5** track (phases 14–21) designed in
+[`design/usability-reuse-model-readiness.md`](./design/usability-reuse-model-readiness.md),
+which adds **CC-14** (config-driven I/O) and **CC-15** (semantic integrity).
 
 **Guiding principle:** the MVP is **Phases 0–4** (file in → clean data out,
 config-driven). Phase 5 (AI) and Phase 6 (UI) make it usable; the enterprise-
@@ -73,6 +76,8 @@ relevant `CC-n` where applicable.
 - **CC-11 Authenticated access:** every API endpoint MUST require authenticated + authorized (tenant-scoped) access — no anonymous reach into any tenant's data. See [`phases/phase-00.5-authentication-identity.md`](./phases/phase-00.5-authentication-identity.md).
 - **CC-12 Secrets via store:** all secrets/tokens (app secrets, auth/IdP secrets, partner OAuth tokens) MUST go through the `SecretStore` — never plaintext at rest, never logged. See [`phases/phase-00.6-secrets-management.md`](./phases/phase-00.6-secrets-management.md).
 - **CC-13 LLM budget enforcement:** LLM usage MUST be metered per tenant and respect configured budgets/caps. See [`phases/phase-05.1-llm-cost-controls.md`](./phases/phase-05.1-llm-cost-controls.md).
+- **CC-14 Config-driven I/O:** input/output/temp/archive/error/reject **paths** and export **destinations** MUST come from versioned config (global default + per-tenant override), never hardcoded; immutable-raw (CC-2) still holds — the file lifecycle acts on copies. See [`phases/phase-14-config-driven-io-paths.md`](./phases/phase-14-config-driven-io-paths.md).
+- **CC-15 Semantic integrity:** cross-field business-rule checks (funnel monotonicity, ratio sanity, coherence) and cross-source panel checks MUST run and gate a **Stack** publish. See [`phases/phase-17-semantic-output-validation.md`](./phases/phase-17-semantic-output-validation.md).
 
 ---
 
@@ -97,6 +102,14 @@ relevant `CC-n` where applicable.
 | 8 | [`phases/phase-08-governance-security.md`](./phases/phase-08-governance-security.md) | Not started |
 | 9 | [`phases/phase-09-future-connectors-extraction.md`](./phases/phase-09-future-connectors-extraction.md) | Build (sequenced last; PDF/email sub-track deferred) |
 | 13 | [`phases/phase-13-collaboration-multiuser-workflow.md`](./phases/phase-13-collaboration-multiuser-workflow.md) | Build (enterprise-overhaul track; see phases/README.md for authoritative status) |
+| 14 | [`phases/phase-14-config-driven-io-paths.md`](./phases/phase-14-config-driven-io-paths.md) | Build (Cycle 5) |
+| 15 | [`phases/phase-15-universal-clone-duplicate.md`](./phases/phase-15-universal-clone-duplicate.md) | Build (Cycle 5) |
+| 16 | [`phases/phase-16-harmonization-stack-assembly.md`](./phases/phase-16-harmonization-stack-assembly.md) | Build (Cycle 5; sub-phases 16.1–16.3) |
+| 17 | [`phases/phase-17-semantic-output-validation.md`](./phases/phase-17-semantic-output-validation.md) | Build (Cycle 5) |
+| 18 | [`phases/phase-18-in-app-sandbox.md`](./phases/phase-18-in-app-sandbox.md) | Build (Cycle 5) |
+| 19 | [`phases/phase-19-rbac-enhancements.md`](./phases/phase-19-rbac-enhancements.md) | Build (Cycle 5) |
+| 20 | [`phases/phase-20-dashboard-live-monitoring.md`](./phases/phase-20-dashboard-live-monitoring.md) | Build (Cycle 5) |
+| 21 | [`phases/phase-21-tenant-scoped-extensibility.md`](./phases/phase-21-tenant-scoped-extensibility.md) | Build (Cycle 5) |
 
 ---
 

@@ -52,6 +52,23 @@ import type {
   TenantSettings,
   UserRead,
   ValidateResponse,
+  // Cycle 5 (phases 14–21)
+  ActiveJobsResponse,
+  CloneResponse,
+  CustomerCloneResponse,
+  DashboardResponse,
+  ExportToDestinationResponse,
+  HarmonizationSuggestionsResponse,
+  IoProfile,
+  OutputStatsResponse,
+  PublishStackResponse,
+  ResolvedSchemaResponse,
+  RoleMatrixResponse,
+  SandboxRunResponse,
+  SchemaExtension,
+  StackDetail,
+  StackRead,
+  ValidationRule,
 } from "@/lib/api/types";
 import { clearSession, getToken } from "@/lib/session";
 import { getActiveTenantId } from "@/lib/tenant";
@@ -235,8 +252,7 @@ export const api = {
     request<OutputListResponse>(tenantPath(`/jobs/${jobId}/output?limit=${limit}`)),
   getOutputContract: (jobId: string) =>
     request<OutputContract>(tenantPath(`/jobs/${jobId}/output/contract`)),
-  getOutputLineage: (jobId: string) =>
-    request<OutputLineage>(tenantPath(`/jobs/${jobId}/lineage`)),
+  getOutputLineage: (jobId: string) => request<OutputLineage>(tenantPath(`/jobs/${jobId}/lineage`)),
   // Fetch the CSV export as a Blob (carries the auth header, unlike a plain link).
   fetchOutputCsv: async (jobId: string): Promise<Blob> => {
     const token = getToken();
@@ -278,17 +294,13 @@ export const api = {
       body: JSON.stringify(input),
     }),
   listAssignments: (assignee?: string) =>
-    request<Assignment[]>(
-      tenantPath(`/assignments${assignee ? `?assignee=${assignee}` : ""}`)
-    ),
+    request<Assignment[]>(tenantPath(`/assignments${assignee ? `?assignee=${assignee}` : ""}`)),
   resolveAssignment: (id: string) =>
     request<Assignment>(tenantPath(`/assignments/${id}/resolve`), { method: "POST" }),
 
   // --- Comments + notifications (Phase 13.5) ---
   listComments: (targetType: string, targetId: string) =>
-    request<Comment[]>(
-      tenantPath(`/comments?target_type=${targetType}&target_id=${targetId}`)
-    ),
+    request<Comment[]>(tenantPath(`/comments?target_type=${targetType}&target_id=${targetId}`)),
   createComment: (input: {
     target_type: string;
     target_id: string;
@@ -309,8 +321,7 @@ export const api = {
     request<Notification>(tenantPath(`/notifications/${id}/read`), { method: "POST" }),
 
   // --- Config library / authorship (Phase 13) ---
-  getConfigLibrary: () =>
-    request<{ items: ConfigLibraryItem[] }>(tenantPath("/config-library")),
+  getConfigLibrary: () => request<{ items: ConfigLibraryItem[] }>(tenantPath("/config-library")),
   getConfigVersions: (kind: string, key: string) =>
     request<{ kind: string; key: string; versions: ConfigVersionItem[] }>(
       tenantPath(`/config-library/versions?kind=${kind}&key=${encodeURIComponent(key)}`)
@@ -349,10 +360,10 @@ export const api = {
     configId: string,
     input: { token: string; scopes?: string[] | null; expires_at?: string | null }
   ) =>
-    request<ConnectorCredentialStatus>(
-      tenantPath(`/connector-configs/${configId}/credential`),
-      { method: "PUT", body: JSON.stringify(input) }
-    ),
+    request<ConnectorCredentialStatus>(tenantPath(`/connector-configs/${configId}/credential`), {
+      method: "PUT",
+      body: JSON.stringify(input),
+    }),
   deleteConnectorCredential: (configId: string) =>
     request<void>(tenantPath(`/connector-configs/${configId}/credential`), {
       method: "DELETE",
@@ -389,10 +400,10 @@ export const api = {
   previewFeedTemplate: (templateId: string, file: File) => {
     const form = new FormData();
     form.append("upload", file);
-    return request<FeedTemplatePreview>(
-      tenantPath(`/feed-templates/${templateId}/preview`),
-      { method: "POST", body: form }
-    );
+    return request<FeedTemplatePreview>(tenantPath(`/feed-templates/${templateId}/preview`), {
+      method: "POST",
+      body: form,
+    });
   },
 
   // --- Runs / jobs history (Cycle 3) ---
@@ -406,4 +417,156 @@ export const api = {
     request<{ purged: Record<string, number> }>(tenantPath("/retention/run"), { method: "POST" }),
   auditLog: (limit = 100) => request<AuditEntryRead[]>(tenantPath(`/audit-log?limit=${limit}`)),
   accessReview: () => request<AccessReviewRow[]>(tenantPath("/access-review")),
+
+  // ==========================================================================
+  // Cycle 5 — Usability, Reuse & Model-Readiness (phases 14–21)
+  // ==========================================================================
+
+  // --- Phase 17: output statistics ---
+  getOutputStats: (jobId: string) =>
+    request<OutputStatsResponse>(tenantPath(`/jobs/${jobId}/output/stats`)),
+
+  // --- Phase 16: Stacks (Gold layer) ---
+  listStacks: () => request<StackRead[]>(tenantPath("/stacks")),
+  getStack: (stackId: string) => request<StackDetail>(tenantPath(`/stacks/${stackId}`)),
+  createStack: (input: {
+    name: string;
+    description?: string | null;
+    source_job_ids: string[];
+    harmonization?: {
+      field_map?: Record<string, string>;
+      value_map?: Record<string, Record<string, string>>;
+    };
+    grain?: string | null;
+  }) =>
+    request<StackDetail>(tenantPath("/stacks"), {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  publishStack: (stackId: string, force = false) =>
+    request<PublishStackResponse>(tenantPath(`/stacks/${stackId}/publish?force=${force}`), {
+      method: "POST",
+    }),
+  harmonizationSuggestions: (sourceJobIds: string[], field = "channel") =>
+    request<HarmonizationSuggestionsResponse>(
+      tenantPath(`/stacks/harmonization-suggestions?field=${field}`),
+      { method: "POST", body: JSON.stringify(sourceJobIds) }
+    ),
+  fetchStackCsv: async (stackId: string): Promise<Blob> => {
+    const token = getToken();
+    const response = await fetch(`${BASE_URL}${tenantPath(`/stacks/${stackId}.csv`)}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) throw new ApiError(response.status, "Could not export the stack CSV.");
+    return response.blob();
+  },
+
+  // --- Phase 21: tenant schema extensions ---
+  listSchemaExtensions: () => request<SchemaExtension[]>(tenantPath("/schema-extensions")),
+  createSchemaExtension: (input: {
+    kind: string;
+    name: string;
+    data_type?: string;
+    taxonomy_ref?: string | null;
+    validation?: string | null;
+  }) =>
+    request<SchemaExtension>(tenantPath("/schema-extensions"), {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  deleteSchemaExtension: (extId: string) =>
+    request<void>(tenantPath(`/schema-extensions/${extId}`), { method: "DELETE" }),
+  getResolvedSchema: () => request<ResolvedSchemaResponse>(tenantPath("/resolved-schema")),
+
+  // --- Phase 14: config-driven I/O ---
+  getIoProfile: () => request<IoProfile>(tenantPath("/io-profile")),
+  updateIoProfile: (patch: Partial<Record<keyof IoProfile, string>>) =>
+    request<IoProfile>(tenantPath("/io-profile"), {
+      method: "PUT",
+      body: JSON.stringify({
+        input_path: patch.input,
+        output_path: patch.output,
+        temp_path: patch.temp,
+        archive_path: patch.archive,
+        error_path: patch.error,
+        reject_path: patch.reject,
+      }),
+    }),
+  exportToDestination: (jobId: string) =>
+    request<ExportToDestinationResponse>(tenantPath(`/jobs/${jobId}/export-to-destination`), {
+      method: "POST",
+    }),
+
+  // --- Phase 18: sandbox ---
+  sandboxRun: (sheetId: string, sample = 20) =>
+    request<SandboxRunResponse>(tenantPath(`/sheets/${sheetId}/sandbox-run?sample=${sample}`), {
+      method: "POST",
+    }),
+
+  // --- Phase 19: RBAC role management ---
+  getRoleMatrix: () => request<RoleMatrixResponse>("/api/v1/rbac/roles"),
+  setUserRole: (userId: string, role: string) =>
+    request<UserRead>(tenantPath(`/users/${userId}/role`), {
+      method: "PUT",
+      body: JSON.stringify({ role }),
+    }),
+
+  // --- Phase 15: universal clone / duplicate ---
+  cloneRuleSet: (id: string, input: { new_name?: string; target_tenant_id?: string }) =>
+    request<CloneResponse>(tenantPath(`/rule-sets/${id}/clone`), {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  cloneMappingConfig: (id: string, input: { new_name?: string; target_tenant_id?: string }) =>
+    request<CloneResponse>(tenantPath(`/mapping-configs/${id}/clone`), {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  cloneFeedTemplate: (id: string, input: { new_name?: string; target_tenant_id?: string }) =>
+    request<CloneResponse>(tenantPath(`/feed-templates/${id}/clone`), {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  cloneConnectorConfig: (id: string, input: { new_name?: string; target_tenant_id?: string }) =>
+    request<CloneResponse>(tenantPath(`/connector-configs/${id}/clone`), {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  cloneStack: (id: string, input: { new_name?: string }) =>
+    request<CloneResponse>(tenantPath(`/stacks/${id}/clone`), {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  cloneCustomerConfigs: (targetTenantId: string) =>
+    request<CustomerCloneResponse>(tenantPath(`/clone-configs-to/${targetTenantId}`), {
+      method: "POST",
+    }),
+
+  // --- Phase 20: dashboard + live monitoring ---
+  getDashboard: () => request<DashboardResponse>(tenantPath("/dashboard")),
+  getActiveJobs: () => request<ActiveJobsResponse>(tenantPath("/active-jobs")),
+
+  // --- Custom validation rules (Part 3) ---
+  listValidationRules: () => request<ValidationRule[]>(tenantPath("/validation-rules")),
+  createValidationRule: (input: {
+    name: string;
+    expression: string;
+    severity?: string;
+    enabled?: boolean;
+    description?: string | null;
+  }) =>
+    request<ValidationRule>(tenantPath("/validation-rules"), {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  updateValidationRule: (
+    id: string,
+    patch: { name?: string; expression?: string; severity?: string; enabled?: boolean }
+  ) =>
+    request<ValidationRule>(tenantPath(`/validation-rules/${id}`), {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    }),
+  deleteValidationRule: (id: string) =>
+    request<void>(tenantPath(`/validation-rules/${id}`), { method: "DELETE" }),
 };

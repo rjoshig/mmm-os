@@ -526,3 +526,168 @@ export interface FilePipelineStatus {
   has_output: boolean;
   sheets: SheetPipelineStatus[];
 }
+
+// ============================================================================
+// Cycle 5 — Usability, Reuse & Model-Readiness (phases 14–21)
+// ============================================================================
+
+// --- Phase 17: output statistics ---
+export interface MeasureStats {
+  measure: string;
+  count: number;
+  non_null: number;
+  null_rate: number;
+  min: number | null;
+  max: number | null;
+  mean: number | null;
+  median: number | null;
+  stddev: number | null;
+}
+
+export interface OutputStatsResponse {
+  file_id: Uuid;
+  row_count: number;
+  measures: MeasureStats[];
+}
+
+// --- Phase 16: Stacks (Gold layer) ---
+export interface StackRead {
+  id: Uuid;
+  name: string;
+  description: string | null;
+  version: number;
+  lifecycle_status: string;
+  grain: string | null;
+  reporting_currency: string | null;
+  reporting_timezone: string | null;
+  schema_contract: Record<string, unknown>;
+  source_job_ids: string[];
+  cloned_from: Uuid | null;
+  created_at: string;
+}
+
+export interface StackDetail extends StackRead {
+  row_count: number;
+  measures: MeasureStats[];
+}
+
+export interface PublishStackResponse {
+  stack_id: Uuid;
+  lifecycle_status: string;
+  published: boolean;
+  blocking_flags: { check: string; description: string; location: Record<string, unknown> }[];
+}
+
+export interface HarmonizationSuggestion {
+  raw: string;
+  canonical: string;
+}
+
+export interface HarmonizationSuggestionsResponse {
+  field: string;
+  suggestions: HarmonizationSuggestion[];
+}
+
+// --- Phase 21: tenant schema extensions ---
+export interface SchemaExtension {
+  id: Uuid;
+  kind: string;
+  name: string;
+  data_type: string;
+  taxonomy_ref: string | null;
+  validation: string | null;
+  layer: string;
+  version: number;
+  lifecycle_status: string;
+}
+
+export interface ResolvedField {
+  name: string;
+  kind: string;
+  type: string;
+  source: "core" | "extension";
+}
+
+export interface ResolvedSchemaResponse {
+  fields: ResolvedField[];
+}
+
+// --- Phase 14: config-driven I/O ---
+export interface IoProfile {
+  input: string;
+  output: string;
+  temp: string;
+  archive: string;
+  error: string;
+  reject: string;
+}
+
+export interface ExportToDestinationResponse {
+  job_id: string;
+  written_key: string | null;
+  row_count: number;
+}
+
+// --- Phase 18: sandbox ---
+export interface SandboxRunResponse {
+  sheet_id: Uuid;
+  is_sandbox: boolean;
+  row_count: number;
+  sample_rows: Record<string, unknown>[];
+  flag_counts: Record<string, number>;
+  blocking: boolean;
+  row_count_stats: number;
+  measures: MeasureStats[];
+}
+
+// --- Phase 19: RBAC ---
+export interface RoleMatrixResponse {
+  roles: Record<string, string[]>;
+}
+
+// --- Phase 15: clone ---
+export interface CloneResponse {
+  id: Uuid;
+  tenant_id: Uuid;
+  name: string;
+  cloned_from: Uuid | null;
+}
+
+export interface CustomerCloneResponse {
+  target_tenant_id: Uuid;
+  counts: Record<string, number>;
+}
+
+// --- Phase 20: dashboard + live monitoring ---
+export interface DashboardResponse {
+  files_total: number;
+  jobs_by_status: Record<string, number>;
+  active_jobs: number;
+  stacks_total: number;
+  stacks_published: number;
+  open_flags_by_severity: Record<string, number>;
+  sync_by_status: Record<string, number>;
+}
+
+export interface ActiveJobRead {
+  id: Uuid;
+  file_id: Uuid | null;
+  status: string;
+  started_at: string | null;
+  created_at: string;
+}
+
+export interface ActiveJobsResponse {
+  active: ActiveJobRead[];
+}
+
+// --- Custom validation rules (Part 3) ---
+export interface ValidationRule {
+  id: Uuid;
+  name: string;
+  expression: string;
+  severity: string;
+  enabled: boolean;
+  description: string | null;
+  created_at: string;
+}

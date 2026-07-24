@@ -75,6 +75,16 @@ class Settings(BaseSettings):
     # (canonicalized, no traversal) — nothing outside a configured root is reachable.
     ingest_landing_roots: str = ""
 
+    # Config-driven I/O paths (Phase 14, CC-14). Default logical roots (storage
+    # key prefixes) for the file/output lifecycle; a per-tenant `io_profile` row
+    # overrides any of these. Paths are data, not code — these are only defaults.
+    io_input_prefix: str = "input"
+    io_output_prefix: str = "output"
+    io_temp_prefix: str = "temp"
+    io_archive_prefix: str = "archive"
+    io_error_prefix: str = "error"
+    io_reject_prefix: str = "reject"
+
     # Secrets management (Phase 00.6, CC-12). "local" encrypts secrets on disk under
     # a key derived from secret_master_key; production swaps to a KMS/vault backend.
     secrets_backend: str = "local"

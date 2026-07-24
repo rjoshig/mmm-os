@@ -15,14 +15,72 @@ import { useCallback, useEffect, useState } from "react";
 import { AddSourceWizard } from "@/components/onboarding/add-source-wizard";
 import { Badge, statusVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MiniBars, token, type BarDatum } from "@/components/ui/chart";
 import { DataTable, type DataColumn } from "@/components/ui/data-table";
 import { EmptyState, ErrorBanner } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
 import { TableSkeleton } from "@/components/ui/skeleton";
 import { StatCard } from "@/components/ui/stat-card";
 import { api, ApiError } from "@/lib/api/client";
-import type { ConfigLibraryItem, FileListItem, JobListItem, SyncRunListItem } from "@/lib/api/types";
+import type {
+  ConfigLibraryItem,
+  DashboardResponse,
+  FileListItem,
+  JobListItem,
+  SyncRunListItem,
+} from "@/lib/api/types";
 import { formatBytes, formatDateTime } from "@/lib/format";
+
+const SEVERITY_COLOR: Record<string, string> = {
+  blocking: token("destructive"),
+  warning: token("tertiary"),
+  info: token("muted-foreground"),
+};
+
+function KpiPanel({ kpi }: { kpi: DashboardResponse }) {
+  const jobs: BarDatum[] = Object.entries(kpi.jobs_by_status).map(([label, value]) => ({
+    label,
+    value,
+    color: label === "failed" ? token("destructive") : token("primary"),
+  }));
+  const flags: BarDatum[] = Object.entries(kpi.open_flags_by_severity).map(([label, value]) => ({
+    label,
+    value,
+    color: SEVERITY_COLOR[label] ?? token("primary"),
+  }));
+  const syncs: BarDatum[] = Object.entries(kpi.sync_by_status).map(([label, value]) => ({
+    label,
+    value,
+    color: label === "failed" ? token("destructive") : token("success"),
+  }));
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      <Card>
+        <CardHeader>
+          <CardTitle>Jobs by status</CardTitle>
+        </CardHeader>
+        <CardContent>{jobs.length ? <MiniBars data={jobs} /> : <Empty />}</CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Open flags by severity</CardTitle>
+        </CardHeader>
+        <CardContent>{flags.length ? <MiniBars data={flags} /> : <Empty />}</CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Connector sync health</CardTitle>
+        </CardHeader>
+        <CardContent>{syncs.length ? <MiniBars data={syncs} /> : <Empty />}</CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function Empty() {
+  return <p className="text-sm text-muted-foreground">Nothing yet.</p>;
+}
 
 type Tab = "files" | "activity";
 
@@ -39,6 +97,7 @@ export default function DashboardPage() {
   const [jobs, setJobs] = useState<JobListItem[]>([]);
   const [configs, setConfigs] = useState<ConfigLibraryItem[]>([]);
   const [syncs, setSyncs] = useState<SyncRunListItem[]>([]);
+  const [kpi, setKpi] = useState<DashboardResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("files");
@@ -48,7 +107,10 @@ export default function DashboardPage() {
       const [f, j, c] = await Promise.all([
         api.listFiles(),
         api.listJobs().catch(() => []),
-        api.getConfigLibrary().then((r) => r.items).catch(() => []),
+        api
+          .getConfigLibrary()
+          .then((r) => r.items)
+          .catch(() => []),
       ]);
       setFiles(f);
       setJobs(j);
@@ -59,6 +121,10 @@ export default function DashboardPage() {
         .listAllSyncRuns()
         .then(setSyncs)
         .catch(() => setSyncs([]));
+      api
+        .getDashboard()
+        .then(setKpi)
+        .catch(() => setKpi(null));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load dashboard.");
       setFiles([]);
@@ -89,7 +155,7 @@ export default function DashboardPage() {
               {j.filename ?? "file"}
             </Link>
           ) : (
-            j.filename ?? "file"
+            (j.filename ?? "file")
           )}
           {j.triggered_by_email ? ` · ${j.triggered_by_email}` : ""}
         </>
@@ -114,8 +180,7 @@ export default function DashboardPage() {
       status: c.status,
       text: (
         <>
-          {c.name} ({c.kind === "mapping" ? "mapping" : "rule set"}) updated to v
-          {c.latest_version}
+          {c.name} ({c.kind === "mapping" ? "mapping" : "rule set"}) updated to v{c.latest_version}
           {c.created_by_email ? ` · ${c.created_by_email}` : ""}
         </>
       ),
@@ -149,7 +214,13 @@ export default function DashboardPage() {
       ),
       sortKey: (i) => i.latest_job_status ?? "",
     },
-    { key: "sheets", header: "Sheets", align: "right", cell: (i) => i.sheet_count, sortKey: (i) => i.sheet_count },
+    {
+      key: "sheets",
+      header: "Sheets",
+      align: "right",
+      cell: (i) => i.sheet_count,
+      sortKey: (i) => i.sheet_count,
+    },
     {
       key: "review",
       header: "Needs review",
@@ -172,7 +243,9 @@ export default function DashboardPage() {
     {
       key: "uploaded",
       header: "Uploaded",
-      cell: (i) => <span className="text-muted-foreground">{formatDateTime(i.file.created_at)}</span>,
+      cell: (i) => (
+        <span className="text-muted-foreground">{formatDateTime(i.file.created_at)}</span>
+      ),
       sortKey: (i) => i.file.created_at,
     },
   ];
@@ -211,12 +284,14 @@ export default function DashboardPage() {
           icon={<FileSpreadsheet className="h-4 w-4 text-muted-foreground" />}
         />
         <StatCard
-          label="Sheets"
-          value={list.reduce((n, i) => n + i.sheet_count, 0)}
+          label="Stacks published"
+          value={kpi ? `${kpi.stacks_published}/${kpi.stacks_total}` : "—"}
           icon={<Layers className="h-4 w-4 text-muted-foreground" />}
-          hint="Total detected sheets across all files"
+          hint="Model-ready panels published vs. total"
         />
       </div>
+
+      {kpi ? <KpiPanel kpi={kpi} /> : null}
 
       {error ? <ErrorBanner message={error} /> : null}
 
@@ -228,11 +303,15 @@ export default function DashboardPage() {
             onClick={() => setTab(t)}
             className={
               tab === t
-                ? "flex items-center gap-1.5 rounded px-3 py-1 bg-primary text-primary-foreground"
+                ? "flex items-center gap-1.5 rounded bg-primary px-3 py-1 text-primary-foreground"
                 : "flex items-center gap-1.5 rounded px-3 py-1 text-muted-foreground hover:text-foreground"
             }
           >
-            {t === "files" ? <FileSpreadsheet className="h-3.5 w-3.5" /> : <Activity className="h-3.5 w-3.5" />}
+            {t === "files" ? (
+              <FileSpreadsheet className="h-3.5 w-3.5" />
+            ) : (
+              <Activity className="h-3.5 w-3.5" />
+            )}
             {t === "files" ? "Files" : "Recent activity"}
           </button>
         ))}

@@ -3,6 +3,7 @@
 import {
   Building2,
   FileStack,
+  Boxes,
   Inbox,
   Layers,
   LayoutDashboard,
@@ -27,6 +28,7 @@ const NAV = [
   { href: "/sources", label: "Sources", icon: Plug },
   { href: "/feeds", label: "File feeds", icon: FileStack },
   { href: "/runs", label: "Runs", icon: ListChecks },
+  { href: "/stacks", label: "Stacks", icon: Boxes },
   { href: "/configs", label: "Configs", icon: Library },
   { href: "/queue", label: "Queue", icon: Inbox },
   { href: "/settings", label: "Settings", icon: Settings },
@@ -40,7 +42,8 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const principal = getStoredPrincipal();
-  const nav = principal?.role === "admin" ? [...NAV, ...ADMIN_NAV] : NAV;
+  const isAdmin = principal?.role === "admin" || principal?.role === "platform_admin";
+  const nav = isAdmin ? [...NAV, ...ADMIN_NAV] : NAV;
 
   async function onLogout() {
     try {

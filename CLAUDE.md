@@ -71,10 +71,16 @@ acceptance criteria pass.
    compliance controls) and **spec-only** tail phases (10 governance, 11 deployment,
    12 load/scale — design only, not scheduled to build). **Authentication (00.5) and
    secrets (00.6) are foundational, built right after Phase 0**, and the **Review UI
-   (Phase 6) depends on auth**. Postgres migration remains **Deferred**.
+   (Phase 6) depends on auth**. Postgres migration remains **Deferred**. Phases 0–13
+   are implemented (Done, pending merge); the newest track is **Cycle 5 — Usability,
+   Reuse & Model-Readiness (phases 14–21)**, designed in
+   [`docs/design/usability-reuse-model-readiness.md`](./docs/design/usability-reuse-model-readiness.md)
+   (config-driven I/O, universal clone, the Stage-2 harmonization / Gold **"stack"**
+   surface, semantic + output validation, in-app sandbox, RBAC enhancements, live
+   monitoring + KPI dashboard, tenant-scoped extensibility).
    [`docs/phases/README.md`](./docs/phases/README.md) is the **authoritative** build
    order + per-phase Status.
-2. **Honor the cross-cutting requirements (CC-1…CC-13) in every phase:**
+2. **Honor the cross-cutting requirements (CC-1…CC-15) in every phase:**
    - **Multi-tenant:** every persisted record carries `tenant_id`; no query returns cross-tenant data.
    - **Immutable raw files:** original uploads are stored unaltered; processing works on copies/derived data.
    - **Config-as-data:** all mappings and transformations are stored as versioned data, never as code.
@@ -87,6 +93,8 @@ acceptance criteria pass.
    - **Authenticated access (CC-11):** every API endpoint requires authenticated + authorized (tenant-scoped) access (Phase 00.5).
    - **Secrets via store (CC-12):** all secrets/tokens go through the `SecretStore` — never plaintext at rest, never logged (Phase 00.6).
    - **LLM budget enforcement (CC-13):** LLM usage is metered per tenant and respects configured budgets/caps (Phase 05.1).
+   - **Config-driven I/O (CC-14):** input/output/temp/archive/error/reject paths and export destinations come from versioned config (global + per-tenant), never hardcoded; immutable-raw still holds — the lifecycle acts on copies (Phase 14).
+   - **Semantic integrity (CC-15):** cross-field business-rule checks (e.g. clicks ≤ impressions) and cross-source panel checks run and gate a `Stack` publish (Phase 17).
 3. **Never build anything marked Deferred / Spec-only / Out of scope** unless explicitly told — e.g. **PDF/email extraction** (the deferred sub-track within Phase 9), the **spec-only** phases 10–12 (governance/deployment/load-testing), and the **Postgres migration**. *(Phase 9 partner connectors are now a planned **Build**, fully designed across 09.1–09.8, but sequenced last — after the core + enterprise-readiness phases. See [`docs/phases/README.md`](./docs/phases/README.md).)*
 4. **Resolve Open Questions before assuming.** If something is unspecified, add it to [`docs/open-questions.md`](./docs/open-questions.md) and ask — do not invent requirements.
 5. **Database portability is a hard requirement.** Two independent databases (backend + UI), each SQLite now and swappable to Postgres via env-var URL only. Use dialect-agnostic types; read the URL from env; never hardcode a dialect. See [`docs/architecture.md`](./docs/architecture.md).

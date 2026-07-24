@@ -41,6 +41,10 @@ class ConnectorConfig(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Ba
     # metrics/dimensions/currency/timezone/lookback_days/backfill_days/schedule.
     settings: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # Provenance when this config was created by cloning another (Phase 15).
+    # A clone never copies the ConnectorCredential/secret (CC-10) — it starts
+    # unauthenticated.
+    cloned_from: Mapped[uuid.UUID | None] = mapped_column(Uuid)
 
 
 class ConnectorCredential(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):

@@ -7,6 +7,7 @@ import {
   FileDown,
   FileSpreadsheet,
   GitBranch,
+  HardDriveUpload,
   Play,
   ShieldAlert,
   ShieldCheck,
@@ -17,6 +18,8 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { DataQualityScore } from "@/components/data-quality-score";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MiniBars, SimpleBarChart, token, type BarDatum } from "@/components/ui/chart";
 import { EmptyState, ErrorBanner, Loading } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, TD, TH, THead, TR } from "@/components/ui/table";
@@ -30,6 +33,7 @@ import type {
   OutputContract,
   OutputLineage,
   OutputRowRead,
+  OutputStatsResponse,
 } from "@/lib/api/types";
 
 export default function ValidationReviewPage() {
@@ -233,6 +237,7 @@ export default function ValidationReviewPage() {
       ) : (
         <div className="space-y-4">
           <DataQualityScore flags={flags} />
+          <FailureDistribution flags={flags} />
           <div>
             <h2 className="mb-2 text-sm font-semibold">
               Issues grouped by type ({flags.length} flag{flags.length === 1 ? "" : "s"})
@@ -245,6 +250,8 @@ export default function ValidationReviewPage() {
           </div>
         </div>
       )}
+
+      {outputSummary && jobId ? <OutputStatsPanel jobId={jobId} /> : null}
 
       {outputRows ? (
         <div className="space-y-3">
@@ -260,6 +267,89 @@ export default function ValidationReviewPage() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+const SEVERITY_TONE: Record<string, string> = {
+  blocking: token("destructive"),
+  warning: token("tertiary"),
+  info: token("muted-foreground"),
+};
+
+/** Distribution of failing rows per check — the meaningful-validation view (Phase 17). */
+function FailureDistribution({ flags }: { flags: FlagRead[] }) {
+  const counts = new Map<string, { count: number; severity: string }>();
+  for (const f of flags) {
+    const check = String((f.location as { check?: string }).check ?? "other");
+    const prev = counts.get(check);
+    counts.set(check, { count: (prev?.count ?? 0) + 1, severity: f.severity });
+  }
+  const data: BarDatum[] = [...counts.entries()]
+    .map(([label, { count, severity }]) => ({
+      label,
+      value: count,
+      color: SEVERITY_TONE[severity.toLowerCase()] ?? token("primary"),
+    }))
+    .sort((a, b) => b.value - a.value);
+  if (data.length === 0) return null;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Failures by check</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <MiniBars data={data} />
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Per-measure output statistics (min/max/mean/…) once output is generated (Phase 17). */
+function OutputStatsPanel({ jobId }: { jobId: string }) {
+  const [stats, setStats] = useState<OutputStatsResponse | null>(null);
+  useEffect(() => {
+    api
+      .getOutputStats(jobId)
+      .then(setStats)
+      .catch(() => setStats(null));
+  }, [jobId]);
+  if (!stats || stats.measures.length === 0) return null;
+  const meanData: BarDatum[] = stats.measures
+    .filter((m) => m.mean != null)
+    .map((m) => ({ label: m.measure, value: Number(m.mean) }));
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Output statistics · {stats.row_count.toLocaleString()} rows</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {meanData.length > 0 && <SimpleBarChart data={meanData} valueLabel="mean" height={180} />}
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                <th className="py-2 pr-4">Measure</th>
+                <th className="py-2 pr-4 text-right">Min</th>
+                <th className="py-2 pr-4 text-right">Max</th>
+                <th className="py-2 pr-4 text-right">Mean</th>
+                <th className="py-2 pr-4 text-right">Null %</th>
+              </tr>
+            </thead>
+            <tbody className="tabular-nums">
+              {stats.measures.map((m) => (
+                <tr key={m.measure} className="border-b border-border/60">
+                  <td className="py-2 pr-4 font-medium">{m.measure}</td>
+                  <td className="py-2 pr-4 text-right">{m.min ?? "—"}</td>
+                  <td className="py-2 pr-4 text-right">{m.max ?? "—"}</td>
+                  <td className="py-2 pr-4 text-right">{m.mean ?? "—"}</td>
+                  <td className="py-2 pr-4 text-right">{Math.round(m.null_rate * 100)}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -304,6 +394,23 @@ function ExportToMmm({ jobId }: { jobId: string }) {
   const [contract, setContract] = useState<OutputContract | null>(null);
   const [open, setOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [writing, setWriting] = useState(false);
+
+  async function writeToDestination() {
+    setWriting(true);
+    try {
+      const res = await api.exportToDestination(jobId);
+      toast.success(
+        res.written_key
+          ? `Wrote ${res.row_count} rows to ${res.written_key}.`
+          : "No output rows to write."
+      );
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not write to destination.");
+    } finally {
+      setWriting(false);
+    }
+  }
 
   async function toggleContract() {
     const next = !open;
@@ -348,6 +455,10 @@ function ExportToMmm({ jobId }: { jobId: string }) {
           <Button variant="ghost" size="sm" onClick={toggleContract}>
             {open ? "Hide contract" : "View contract"}
           </Button>
+          <Button variant="outline" size="sm" onClick={writeToDestination} disabled={writing}>
+            <HardDriveUpload className="h-4 w-4" />
+            {writing ? "Writing…" : "Write to destination"}
+          </Button>
           <Button size="sm" onClick={downloadCsv} disabled={downloading}>
             <FileDown className="h-4 w-4" />
             {downloading ? "Preparing…" : "Download CSV"}
@@ -382,7 +493,15 @@ function ExportToMmm({ jobId }: { jobId: string }) {
   );
 }
 
-function Node({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
+function Node({
+  icon,
+  title,
+  subtitle,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+}) {
   return (
     <div className="flex min-w-[7rem] flex-col items-center rounded-lg border border-border bg-background px-3 py-2 text-center">
       <div className="text-muted-foreground">{icon}</div>

@@ -48,6 +48,14 @@ until scoped.
 | 18 | 11 | [phase-11](./phase-11-deployment-infrastructure.md) | Deployment & infra: environments, CI/CD, IaC, autoscaling, secret injection. | 0–8 | Done (containers + CI/CD + compose + runbook; cloud/IaC target open) |
 | 19 | 12 | [phase-12](./phase-12-load-scale-testing.md) | Load/scale test plan for 200–500 tenants + batch concurrency. | 0–8, 11 | Done (plan + runnable harness + fairness/isolation proofs; full-scale run on stage) |
 | 20 | 13 | [phase-13](./phase-13-collaboration-multiuser-workflow.md) | Collaboration & multi-user workflow: config library + authorship + draft→publish lifecycle, runs history UI, review queue/assignment, comments/notifications. | 2, 3, 6, 8 | Done |
+| 21 | 14 | [phase-14](./phase-14-config-driven-io-paths.md) | Config-driven I/O: root paths (input/output/temp/archive/error/reject) + output-to-destination + file lifecycle (CC-14). | 1, 6 | Done |
+| 22 | 15 | [phase-15](./phase-15-universal-clone-duplicate.md) | Universal clone/duplicate of any config/mapping/rule/feed/connector/stack/customer (never secrets). | 2, 3, 8, 16 | Done (backend + UI; configs-page clone via API) |
+| 23 | 16 (+16.1–16.3) | [phase-16](./phase-16-harmonization-stack-assembly.md) | Stage 2 — Harmonization & Stack assembly (Gold): first-class Stack, semantic mapping, AI harmonization, panel validation gate. | 2–6, 14, 17, 21 | Done |
+| 24 | 17 | [phase-17](./phase-17-semantic-output-validation.md) | Semantic & output validation (clicks ≤ impressions; min/max/mean) + failure visualization (CC-15); + P17-6 first-class tenant-authored `ValidationRule`s wired into pipeline/sheet/stack. | 4, 6, 16 | Done |
+| 25 | 18 | [phase-18](./phase-18-in-app-sandbox.md) | In-app sandbox / test environment: run configs without publishing. | 3, 4, 10, 13 | Done |
+| 26 | 19 | [phase-19](./phase-19-rbac-enhancements.md) | RBAC enhancements: approver + platform-admin roles, approve permission, role-management UI. | 00.5, 8, 6 | Done |
+| 27 | 20 | [phase-20](./phase-20-dashboard-live-monitoring.md) | Dashboard revamp + live pipeline monitoring (auto-refresh runs; tenant KPI dashboard). | 6, 07.1, 13, 16 | Done |
+| 28 | 21 | [phase-21](./phase-21-tenant-scoped-extensibility.md) | Tenant-scoped extensibility: custom dimensions/measures/factors/checks via metadata registry + JSON (ADR-015); saved layouts a follow-up. | 0, 2, 3, 4, 6 | Done (layouts/views deferred) |
 | — | Postgres migration | [architecture §2](../architecture.md) | Swap backend/UI DB SQLite→Postgres by config only (portability already designed). | — | Deferred |
 
 > **Note on Phase 13.** Phase 13 is part of the **enterprise-overhaul** track and is
@@ -62,6 +70,17 @@ until scoped.
 > enterprise-readiness phases. **PDF/email extraction within Phase 9 stays a
 > deferred sub-track.** **Postgres migration remains Deferred** — portability is
 > already designed, so it needs no new work.
+
+> **Note on Cycle 5 (phases 14–21).** Phases 14–21 are the **Usability, Reuse &
+> Model-Readiness** track, designed in
+> [`../design/usability-reuse-model-readiness.md`](../design/usability-reuse-model-readiness.md).
+> They add config-driven I/O, universal clone, the **Stage-2 harmonization / Gold
+> "stack"** surface, semantic + output validation, an in-app sandbox, RBAC
+> enhancements, live monitoring + a KPI dashboard, and tenant-scoped extensibility.
+> They introduce two new cross-cutting invariants (**CC-14 config-driven I/O**,
+> **CC-15 semantic integrity**). Suggested build order and dependencies are in the
+> design doc §10; 14/17/19/20 are largely independent and can proceed in parallel.
+> Phase 16 is a parent with sub-phases 16.1–16.3.
 
 ## Phase 9 sub-phases (built; full framework + mock partner clients)
 

@@ -28,6 +28,7 @@ from mmm_os.schemas.validation import (
     ValidateResponse,
 )
 from mmm_os.services.tenant_settings import reporting_context
+from mmm_os.services.validation_rule import active_validation_rules
 from mmm_os.storage import ObjectStorage
 from mmm_os.transform.engine import apply_rules
 from mmm_os.transform.registry import RuleContext
@@ -88,6 +89,7 @@ def validate_job(
         policy=Policy(body.policy_overrides),
         anomaly_measure=body.anomaly_measure,
         group_by=body.group_by,
+        rules=active_validation_rules(session, tenant_id),
     )
     session.commit()
     return ValidateResponse(blocked=blocked, flags=[FlagRead.model_validate(f) for f in flags])
@@ -165,6 +167,7 @@ def validate_sheet(
         schema=canonical.schema,
         anomaly_measure=anomaly_measure,
         group_by=group_by,
+        rules=active_validation_rules(session, tenant_id),
     )
     session.commit()
     return ValidateResponse(blocked=blocked, flags=[FlagRead.model_validate(f) for f in flags])

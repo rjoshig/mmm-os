@@ -1,13 +1,14 @@
 "use client";
 
-import { Plus, Save, Trash2 } from "lucide-react";
+import { HardDrive, Plus, Save, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErrorBanner, Loading } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 import { api, ApiError } from "@/lib/api/client";
-import type { TenantSettings } from "@/lib/api/types";
+import type { IoProfile, TenantSettings } from "@/lib/api/types";
 
 const inputCls =
   "h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -98,7 +99,9 @@ export default function SettingsPage() {
                 placeholder="USD"
                 onChange={(e) => setCurrency(e.target.value)}
               />
-              <span className="block text-xs text-muted-foreground">ISO 4217 code (e.g. USD, EUR).</span>
+              <span className="block text-xs text-muted-foreground">
+                ISO 4217 code (e.g. USD, EUR).
+              </span>
             </label>
             <label className="space-y-1.5">
               <span className="text-sm font-medium">Reporting timezone</span>
@@ -108,13 +111,17 @@ export default function SettingsPage() {
                 placeholder="UTC"
                 onChange={(e) => setTimezone(e.target.value)}
               />
-              <span className="block text-xs text-muted-foreground">IANA name (e.g. UTC, America/New_York).</span>
+              <span className="block text-xs text-muted-foreground">
+                IANA name (e.g. UTC, America/New_York).
+              </span>
             </label>
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold">FX rates → {currency.toUpperCase() || "reporting"}</h2>
+              <h2 className="text-sm font-semibold">
+                FX rates → {currency.toUpperCase() || "reporting"}
+              </h2>
               <Button
                 variant="outline"
                 size="sm"
@@ -124,8 +131,8 @@ export default function SettingsPage() {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Multiplier from a source currency into the reporting currency. The reporting
-              currency itself is always 1.0.
+              Multiplier from a source currency into the reporting currency. The reporting currency
+              itself is always 1.0.
             </p>
             {fx.length === 0 ? (
               <p className="rounded-md border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
@@ -141,7 +148,9 @@ export default function SettingsPage() {
                       maxLength={3}
                       value={row.currency}
                       onChange={(e) =>
-                        setFx((rows) => rows.map((r, j) => (j === i ? { ...r, currency: e.target.value } : r)))
+                        setFx((rows) =>
+                          rows.map((r, j) => (j === i ? { ...r, currency: e.target.value } : r))
+                        )
                       }
                     />
                     <span className="text-muted-foreground">×</span>
@@ -152,7 +161,9 @@ export default function SettingsPage() {
                       placeholder="1.08"
                       value={row.rate}
                       onChange={(e) =>
-                        setFx((rows) => rows.map((r, j) => (j === i ? { ...r, rate: e.target.value } : r)))
+                        setFx((rows) =>
+                          rows.map((r, j) => (j === i ? { ...r, rate: e.target.value } : r))
+                        )
                       }
                     />
                     <Button
@@ -169,6 +180,82 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      <IoProfileCard />
     </div>
+  );
+}
+
+const IO_ROOTS: { key: keyof IoProfile; label: string; hint: string }[] = [
+  { key: "input", label: "Input", hint: "where inbound files are read from" },
+  { key: "output", label: "Output", hint: "where generated output is written" },
+  { key: "archive", label: "Archive", hint: "processed inputs on success" },
+  { key: "error", label: "Error", hint: "inputs from failed jobs" },
+  { key: "reject", label: "Reject", hint: "validation-rejected data" },
+  { key: "temp", label: "Temp", hint: "scratch space" },
+];
+
+/** Config-driven storage paths (Phase 14, CC-14). */
+function IoProfileCard() {
+  const toast = useToast();
+  const [profile, setProfile] = useState<IoProfile | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    api
+      .getIoProfile()
+      .then(setProfile)
+      .catch(() => setProfile(null));
+  }, []);
+
+  async function save() {
+    if (!profile) return;
+    setSaving(true);
+    try {
+      const saved = await api.updateIoProfile(profile);
+      setProfile(saved);
+      toast.success("Storage paths saved.");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not save paths.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex-row items-center justify-between">
+        <CardTitle className="flex items-center gap-2">
+          <HardDrive className="h-4 w-4" /> Storage &amp; I/O paths
+        </CardTitle>
+        <Button size="sm" onClick={save} disabled={saving || profile === null}>
+          <Save className="h-4 w-4" /> {saving ? "Saving…" : "Save paths"}
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <p className="mb-4 text-xs text-muted-foreground">
+          Config-driven storage roots the pipeline uses. Output is written here (in addition to the
+          browser download), and processed files move to archive/error/reject. Immutable raw copies
+          are always preserved.
+        </p>
+        {profile === null ? (
+          <Loading label="Loading paths…" />
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {IO_ROOTS.map(({ key, label, hint }) => (
+              <label key={key} className="space-y-1.5">
+                <span className="text-sm font-medium">{label}</span>
+                <input
+                  className={`${inputCls} w-full`}
+                  value={profile[key]}
+                  onChange={(e) => setProfile({ ...profile, [key]: e.target.value })}
+                />
+                <span className="block text-xs text-muted-foreground">{hint}</span>
+              </label>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

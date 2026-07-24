@@ -130,6 +130,17 @@ For an automatically-arriving multi-tab Excel file:
 **The magic is steps 4→8: configure once, auto-run forever after.** First
 onboarding is manual; every refresh after is near-automatic.
 
+**Two stages (Cycle 5): Prepare → Harmonize.** Steps 1–7 above clean **one source
+at a time** into canonical output (the **Silver** layer). A second stage —
+**Harmonize & Assemble (Gold)** — pulls one or more cleaned outputs and unifies
+them across sources (taxonomy, currency/timezone/attribution, grain, semantic
+mapping, AI-assisted) into a published, model-ready **"stack"** (a first-class,
+versioned `Stack`). This medallion split (Bronze raw → Silver per-source → Gold
+harmonized stack) is designed in
+[`design/usability-reuse-model-readiness.md`](./design/usability-reuse-model-readiness.md)
+(ADR-012, ADR-014). The MMM model itself remains out of scope — the Stack is the
+hand-off to modelling.
+
 ---
 
 ## 6. The Transformation / Rule Engine

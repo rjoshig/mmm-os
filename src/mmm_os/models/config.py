@@ -36,6 +36,8 @@ class MappingConfig(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base
     # Lifecycle (Phase 13.2): draft | published | archived. Only the latest
     # *published* version resolves into the pipeline. Default published (back-compat).
     lifecycle_status: Mapped[str] = mapped_column(String(16), nullable=False, default="published")
+    # Provenance when this config was created by cloning another (Phase 15).
+    cloned_from: Mapped[uuid.UUID | None] = mapped_column(Uuid)
 
 
 class Taxonomy(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):
@@ -76,6 +78,8 @@ class RuleSet(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):
     # Lifecycle (Phase 13.2): draft | published | archived. Only the latest
     # *published* version resolves into the pipeline. Default published (back-compat).
     lifecycle_status: Mapped[str] = mapped_column(String(16), nullable=False, default="published")
+    # Provenance when this rule set was created by cloning another (Phase 15).
+    cloned_from: Mapped[uuid.UUID | None] = mapped_column(Uuid)
 
 
 class Rule(UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Base):

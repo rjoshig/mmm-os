@@ -21,19 +21,27 @@ from mmm_os.api.deps import require_auth
 from mmm_os.api.routers import (
     ai,
     auth,
+    clone,
     collaboration,
     configs,
     connectors,
     customers,
+    dashboard,
     feed_templates,
     files,
     governance,
+    io_profile,
     mapping,
     output,
     pipeline,
+    rbac,
     reads,
+    sandbox,
+    schema_extensions,
+    stacks,
     transform,
     validation,
+    validation_rules,
 )
 from mmm_os.api.routers import (
     settings as settings_router,
@@ -166,6 +174,14 @@ def create_app() -> FastAPI:
     app.include_router(governance.router, dependencies=protected)
     app.include_router(connectors.router, dependencies=protected)
     app.include_router(feed_templates.router, dependencies=protected)
+    app.include_router(io_profile.router, dependencies=protected)
+    app.include_router(schema_extensions.router, dependencies=protected)
+    app.include_router(stacks.router, dependencies=protected)
+    app.include_router(clone.router, dependencies=protected)
+    app.include_router(rbac.router, dependencies=protected)
+    app.include_router(sandbox.router, dependencies=protected)
+    app.include_router(dashboard.router, dependencies=protected)
+    app.include_router(validation_rules.router, dependencies=protected)
 
     @app.exception_handler(LLMBudgetExceededError)
     def _budget_exceeded(_request: Request, exc: LLMBudgetExceededError) -> JSONResponse:
